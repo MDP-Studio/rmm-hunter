@@ -22,7 +22,7 @@ const args = [
   path.join(root, "rmm_hunter.py")
 ];
 
-const result = childProcess.spawnSync(pyinstaller, args, {
+const result = childProcess.spawnSync(pyinstaller.command, [...pyinstaller.prefixArgs, ...args], {
   cwd: root,
   stdio: "inherit",
   windowsHide: true
@@ -36,7 +36,10 @@ process.exit(result.status || 0);
 
 function resolvePyInstaller() {
   if (process.env.RMM_HUNTER_PYINSTALLER) {
-    return process.env.RMM_HUNTER_PYINSTALLER;
+    return {
+      command: process.env.RMM_HUNTER_PYINSTALLER,
+      prefixArgs: []
+    };
   }
 
   const localPath = process.platform === "win32"
@@ -44,8 +47,14 @@ function resolvePyInstaller() {
     : path.join(root, ".release-venv", "bin", "pyinstaller");
 
   if (fs.existsSync(localPath)) {
-    return localPath;
+    return {
+      command: localPath,
+      prefixArgs: []
+    };
   }
 
-  return "pyinstaller";
+  return {
+    command: process.env.PYTHON || "python",
+    prefixArgs: ["-m", "PyInstaller"]
+  };
 }

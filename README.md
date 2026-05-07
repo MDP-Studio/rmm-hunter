@@ -160,7 +160,7 @@ Build Windows installer and portable artifacts:
 npm.cmd run dist
 ```
 
-The scanner build script uses `RMM_HUNTER_PYINSTALLER` when set, then `.release-venv\Scripts\pyinstaller.exe` when present, then `pyinstaller` from `PATH`.
+The scanner build script uses `RMM_HUNTER_PYINSTALLER` when set, then `.release-venv\Scripts\pyinstaller.exe` when present, then `python -m PyInstaller`.
 
 Release artifacts are written to `release\`.
 

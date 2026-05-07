@@ -42,8 +42,17 @@ jobs:
           npm audit --audit-level=moderate
           pip-audit -r requirements-build.txt
 
-      - name: Test and package
-        run: npm run dist
+      - name: Clean release folders
+        run: npm run clean
+
+      - name: Test
+        run: npm run check
+
+      - name: Build scanner executable
+        run: npm run build:scanner
+
+      - name: Package Windows app
+        run: electron-builder --win --x64
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7
