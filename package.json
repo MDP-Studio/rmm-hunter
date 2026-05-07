@@ -1,0 +1,85 @@
+{
+  "name": "rmm-hunter",
+  "version": "0.1.0",
+  "description": "Windows desktop scanner for unauthorized remote access tools and living-off-the-land traces.",
+  "main": "gui/main.js",
+  "author": "Meidie <meidie@mdpstudio.com.au>",
+  "license": "UNLICENSED",
+  "private": true,
+  "homepage": "https://github.com/MDP-Studio/rmm-hunter#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MDP-Studio/rmm-hunter.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MDP-Studio/rmm-hunter/issues",
+    "email": "meidie@mdpstudio.com.au"
+  },
+  "scripts": {
+    "start": "electron .",
+    "clean": "node scripts/clean-release.js",
+    "check:js": "node --check gui/main.js && node --check gui/preload.js && node --check gui/renderer.js && node --check scripts/build-scanner.js && node --check scripts/clean-release.js",
+    "check:py": "python -m py_compile rmm_hunter.py && python -m unittest discover -v",
+    "check": "npm run check:js && npm run check:py",
+    "test": "python -m unittest discover -v",
+    "build:scanner": "node scripts/build-scanner.js",
+    "dist": "npm run clean && npm run check && npm run build:scanner && electron-builder --win --x64",
+    "dist:dir": "npm run clean && npm run check && npm run build:scanner && electron-builder --win --x64 --dir",
+    "release:verify": "npm run check && npm audit --audit-level=moderate"
+  },
+  "build": {
+    "appId": "com.meidie.rmmhunter",
+    "productName": "RMM Hunter",
+    "asar": true,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "gui/**/*",
+      "rmm_hunter.py",
+      "collect_windows.ps1",
+      "README.md",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "build/scanner/rmm-hunter-cli.exe",
+        "to": "bin/rmm-hunter-cli.exe"
+      }
+    ],
+    "win": {
+      "signAndEditExecutable": false,
+      "verifyUpdateCodeSignature": false,
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "artifactName": "RMM-Hunter-Setup-${version}-${arch}.${ext}",
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false
+    },
+    "portable": {
+      "artifactName": "RMM-Hunter-Portable-${version}-${arch}.${ext}"
+    }
+  },
+  "devDependencies": {
+    "electron": "42.0.0",
+    "electron-builder": "^26.8.1"
+  }
+}

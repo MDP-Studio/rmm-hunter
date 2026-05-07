@@ -1,0 +1,577 @@
+[CmdletBinding()]
+param(
+    [int]$LookbackDays = 14,
+    [int]$MaxRecentFiles = 500,
+    [string]$OutputPath,
+    [switch]$Pretty
+)
+
+$ErrorActionPreference = "Continue"
+$CollectionErrors = @()
+$StartTime = (Get-Date).AddDays(-1 * [Math]::Abs($LookbackDays))
+
+function Add-CollectionError {
+    param(
+        [string]$Source,
+        [string]$Message
+    )
+
+    $script:CollectionErrors += [ordered]@{
+        source = $Source
+        message = $Message
+    }
+}
+
+function ConvertTo-IsoUtc {
+    param($Value)
+
+    if ($null -eq $Value) {
+        return $null
+    }
+
+    try {
+        return ([datetime]$Value).ToUniversalTime().ToString("o")
+    }
+    catch {
+        return [string]$Value
+    }
+}
+
+function Limit-Text {
+    param(
+        [AllowNull()][string]$Value,
+        [int]$Max = 4000
+    )
+
+    if ([string]::IsNullOrEmpty($Value)) {
+        return $Value
+    }
+
+    if ($Value.Length -le $Max) {
+        return $Value
+    }
+
+    return ($Value.Substring(0, $Max) + "...[truncated]")
+}
+
+function Test-IsAdmin {
+    try {
+        $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+        $principal = New-Object Security.Principal.WindowsPrincipal($identity)
+        return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    }
+    catch {
+        return $false
+    }
+}
+
+function Test-PathAccessible {
+    param([string]$Path)
+
+    try {
+        return (Test-Path -LiteralPath $Path -ErrorAction Stop)
+    }
+    catch {
+        return $false
+    }
+}
+
+function Convert-InstallDate {
+    param($Value)
+
+    if ($null -eq $Value) {
+        return $null
+    }
+
+    $text = [string]$Value
+    if ($text -match "^\d{8}$") {
+        try {
+            return ([datetime]::ParseExact($text, "yyyyMMdd", $null)).ToString("yyyy-MM-dd")
+        }
+        catch {
+            return $text
+        }
+    }
+
+    return $text
+}
+
+function Get-ExecutablePathFromCommand {
+    param([AllowNull()][string]$CommandLine)
+
+    if ([string]::IsNullOrWhiteSpace($CommandLine)) {
+        return $null
+    }
+
+    $trimmed = $CommandLine.Trim()
+    if ($trimmed.StartsWith('"')) {
+        $closingQuote = $trimmed.IndexOf('"', 1)
+        if ($closingQuote -gt 1) {
+            return $trimmed.Substring(1, $closingQuote - 1)
+        }
+    }
+
+    $match = [regex]::Match($trimmed, '(?i)[a-z]:\\[^"]+?\.(exe|com|dll|bat|cmd|ps1|msi|msp|scr)')
+    if ($match.Success) {
+        return $match.Value.Trim()
+    }
+
+    return $null
+}
+
+function Get-SignatureSummary {
+    param([AllowNull()][string]$Path)
+
+    if ([string]::IsNullOrWhiteSpace($Path) -or -not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        return $null
+    }
+
+    try {
+        $signature = Get-AuthenticodeSignature -LiteralPath $Path -ErrorAction Stop
+        $subject = $null
+        $issuer = $null
+        $thumbprint = $null
+
+        if ($null -ne $signature.SignerCertificate) {
+            $subject = $signature.SignerCertificate.Subject
+            $issuer = $signature.SignerCertificate.Issuer
+            $thumbprint = $signature.SignerCertificate.Thumbprint
+        }
+
+        return [ordered]@{
+            status = [string]$signature.Status
+            status_message = [string]$signature.StatusMessage
+            signer_subject = $subject
+            signer_issuer = $issuer
+            thumbprint = $thumbprint
+        }
+    }
+    catch {
+        Add-CollectionError -Source "authenticode" -Message ("Failed to read signature for {0}: {1}" -f $Path, $_.Exception.Message)
+        return $null
+    }
+}
+
+function Get-UninstallEntries {
+    $sources = @(
+        @{ hive = "HKLM"; path = "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*" },
+        @{ hive = "HKLM"; path = "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*" },
+        @{ hive = "HKCU"; path = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*" }
+    )
+
+    $items = @()
+    foreach ($source in $sources) {
+        try {
+            $entries = Get-ItemProperty -Path $source.path -ErrorAction Stop
+            foreach ($entry in $entries) {
+                if ([string]::IsNullOrWhiteSpace($entry.DisplayName)) {
+                    continue
+                }
+
+                $basePath = $source.path.Replace("\*", "")
+                $items += [ordered]@{
+                    display_name = [string]$entry.DisplayName
+                    display_version = [string]$entry.DisplayVersion
+                    publisher = [string]$entry.Publisher
+                    install_date = Convert-InstallDate $entry.InstallDate
+                    install_location = [string]$entry.InstallLocation
+                    uninstall_string = Limit-Text ([string]$entry.UninstallString) 1000
+                    quiet_uninstall_string = Limit-Text ([string]$entry.QuietUninstallString) 1000
+                    registry_hive = $source.hive
+                    registry_path = (Join-Path $basePath $entry.PSChildName)
+                }
+            }
+        }
+        catch {
+            Add-CollectionError -Source "installed_programs:$($source.path)" -Message $_.Exception.Message
+        }
+    }
+
+    return @($items | Sort-Object display_name, registry_path)
+}
+
+function Get-ServiceArtifacts {
+    $items = @()
+
+    try {
+        $services = Get-CimInstance Win32_Service -ErrorAction Stop
+        foreach ($service in $services) {
+            $exePath = Get-ExecutablePathFromCommand $service.PathName
+            $items += [ordered]@{
+                name = [string]$service.Name
+                display_name = [string]$service.DisplayName
+                state = [string]$service.State
+                status = [string]$service.Status
+                start_mode = [string]$service.StartMode
+                start_name = [string]$service.StartName
+                path_name = Limit-Text ([string]$service.PathName) 2000
+                executable_path = $exePath
+                process_id = $service.ProcessId
+                description = Limit-Text ([string]$service.Description) 1000
+                signature = Get-SignatureSummary $exePath
+            }
+        }
+    }
+    catch {
+        Add-CollectionError -Source "services" -Message $_.Exception.Message
+    }
+
+    return @($items | Sort-Object name)
+}
+
+function Get-ScheduledTaskArtifacts {
+    $items = @()
+
+    try {
+        $tasks = Get-ScheduledTask -ErrorAction Stop
+        foreach ($task in $tasks) {
+            $actions = @()
+            foreach ($action in $task.Actions) {
+                $actions += [ordered]@{
+                    execute = [string]$action.Execute
+                    arguments = Limit-Text ([string]$action.Arguments) 2000
+                    working_directory = [string]$action.WorkingDirectory
+                }
+            }
+
+            $lastRunTime = $null
+            $nextRunTime = $null
+            try {
+                $info = Get-ScheduledTaskInfo -TaskName $task.TaskName -TaskPath $task.TaskPath -ErrorAction Stop
+                $lastRunTime = ConvertTo-IsoUtc $info.LastRunTime
+                $nextRunTime = ConvertTo-IsoUtc $info.NextRunTime
+            }
+            catch {
+                $null = $null
+            }
+
+            $items += [ordered]@{
+                task_name = [string]$task.TaskName
+                task_path = [string]$task.TaskPath
+                state = [string]$task.State
+                author = [string]$task.Author
+                description = Limit-Text ([string]$task.Description) 1000
+                actions = $actions
+                last_run_time_utc = $lastRunTime
+                next_run_time_utc = $nextRunTime
+            }
+        }
+    }
+    catch {
+        Add-CollectionError -Source "scheduled_tasks" -Message $_.Exception.Message
+    }
+
+    return @($items | Sort-Object task_path, task_name)
+}
+
+function Get-StartupRegistryArtifacts {
+    $sources = @(
+        @{ hive = "HKLM"; path = "HKLM:\Software\Microsoft\Windows\CurrentVersion\Run" },
+        @{ hive = "HKLM"; path = "HKLM:\Software\Microsoft\Windows\CurrentVersion\RunOnce" },
+        @{ hive = "HKLM"; path = "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Run" },
+        @{ hive = "HKLM"; path = "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\RunOnce" },
+        @{ hive = "HKCU"; path = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" },
+        @{ hive = "HKCU"; path = "HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce" }
+    )
+
+    $skipNames = @("PSPath", "PSParentPath", "PSChildName", "PSDrive", "PSProvider")
+    $items = @()
+
+    foreach ($source in $sources) {
+        try {
+            if (-not (Test-Path -LiteralPath $source.path)) {
+                continue
+            }
+
+            $props = Get-ItemProperty -LiteralPath $source.path -ErrorAction Stop
+            foreach ($prop in $props.PSObject.Properties) {
+                if ($skipNames -contains $prop.Name) {
+                    continue
+                }
+
+                $items += [ordered]@{
+                    hive = $source.hive
+                    registry_path = $source.path
+                    value_name = [string]$prop.Name
+                    value = Limit-Text ([string]$prop.Value) 2000
+                    executable_path = Get-ExecutablePathFromCommand ([string]$prop.Value)
+                }
+            }
+        }
+        catch {
+            Add-CollectionError -Source "startup_registry:$($source.path)" -Message $_.Exception.Message
+        }
+    }
+
+    return @($items | Sort-Object registry_path, value_name)
+}
+
+function Get-StartupFolderArtifacts {
+    $dirs = @(
+        [Environment]::GetFolderPath("Startup"),
+        (Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs\StartUp")
+    ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
+
+    $items = @()
+    foreach ($dir in $dirs) {
+        try {
+            if (-not (Test-Path -LiteralPath $dir)) {
+                continue
+            }
+
+            $files = Get-ChildItem -LiteralPath $dir -File -ErrorAction Stop
+            foreach ($file in $files) {
+                $items += [ordered]@{
+                    name = [string]$file.Name
+                    path = [string]$file.FullName
+                    extension = [string]$file.Extension
+                    length = $file.Length
+                    creation_time_utc = ConvertTo-IsoUtc $file.CreationTimeUtc
+                    last_write_time_utc = ConvertTo-IsoUtc $file.LastWriteTimeUtc
+                    signature = Get-SignatureSummary $file.FullName
+                }
+            }
+        }
+        catch {
+            Add-CollectionError -Source "startup_folder:$dir" -Message $_.Exception.Message
+        }
+    }
+
+    return @($items | Sort-Object path)
+}
+
+function Get-RecentFileArtifacts {
+    $extensions = @(".exe", ".msi", ".msp", ".bat", ".cmd", ".ps1", ".vbs", ".js", ".jse", ".hta", ".zip", ".7z", ".rar", ".scr", ".lnk")
+    $signedExtensions = @(".exe", ".msi", ".msp", ".dll", ".scr")
+    $dirs = @()
+
+    try {
+        $profiles = Get-CimInstance Win32_UserProfile -ErrorAction Stop | Where-Object {
+            -not $_.Special -and -not [string]::IsNullOrWhiteSpace($_.LocalPath)
+        }
+
+        foreach ($profile in $profiles) {
+            $dirs += (Join-Path $profile.LocalPath "Downloads")
+            $dirs += (Join-Path $profile.LocalPath "AppData\Local\Temp")
+        }
+    }
+    catch {
+        Add-CollectionError -Source "user_profiles" -Message $_.Exception.Message
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($env:TEMP)) {
+        $dirs += $env:TEMP
+    }
+    if (-not [string]::IsNullOrWhiteSpace($env:TMP)) {
+        $dirs += $env:TMP
+    }
+    if (-not [string]::IsNullOrWhiteSpace($env:WINDIR)) {
+        $dirs += (Join-Path $env:WINDIR "Temp")
+    }
+
+    $dirs = $dirs | Where-Object { -not [string]::IsNullOrWhiteSpace($_) -and (Test-PathAccessible $_) } | Select-Object -Unique
+    $items = @()
+    $seen = @{}
+
+    foreach ($dir in $dirs) {
+        try {
+            $candidateFiles = @()
+            $candidateFiles += Get-ChildItem -LiteralPath $dir -File -ErrorAction SilentlyContinue
+            $childDirs = Get-ChildItem -LiteralPath $dir -Directory -ErrorAction SilentlyContinue
+            foreach ($childDir in $childDirs) {
+                $candidateFiles += Get-ChildItem -LiteralPath $childDir.FullName -File -ErrorAction SilentlyContinue
+            }
+
+            foreach ($file in $candidateFiles) {
+                if ($items.Count -ge $MaxRecentFiles) {
+                    break
+                }
+
+                if ($file.LastWriteTime -lt $StartTime -and $file.CreationTime -lt $StartTime) {
+                    continue
+                }
+
+                if ($extensions -notcontains $file.Extension.ToLowerInvariant()) {
+                    continue
+                }
+
+                $key = $file.FullName.ToLowerInvariant()
+                if ($seen.ContainsKey($key)) {
+                    continue
+                }
+                $seen[$key] = $true
+
+                $signature = $null
+                if ($signedExtensions -contains $file.Extension.ToLowerInvariant()) {
+                    $signature = Get-SignatureSummary $file.FullName
+                }
+
+                $items += [ordered]@{
+                    name = [string]$file.Name
+                    path = [string]$file.FullName
+                    directory = [string]$file.DirectoryName
+                    extension = [string]$file.Extension
+                    length = $file.Length
+                    creation_time_utc = ConvertTo-IsoUtc $file.CreationTimeUtc
+                    last_write_time_utc = ConvertTo-IsoUtc $file.LastWriteTimeUtc
+                    signature = $signature
+                }
+            }
+        }
+        catch {
+            Add-CollectionError -Source "recent_files:$dir" -Message $_.Exception.Message
+        }
+    }
+
+    return @($items | Sort-Object last_write_time_utc -Descending)
+}
+
+function Convert-EventRecord {
+    param($Event)
+
+    $eventData = [ordered]@{}
+    try {
+        [xml]$xml = $Event.ToXml()
+        $index = 0
+        foreach ($node in $xml.Event.EventData.Data) {
+            $name = $node.Name
+            if ([string]::IsNullOrWhiteSpace($name)) {
+                $name = "Data$index"
+            }
+            $eventData[$name] = Limit-Text ([string]$node."#text") 2000
+            $index += 1
+        }
+    }
+    catch {
+        $eventData = [ordered]@{}
+    }
+
+    return [ordered]@{
+        log_name = [string]$Event.LogName
+        id = $Event.Id
+        time_created_utc = ConvertTo-IsoUtc $Event.TimeCreated
+        provider = [string]$Event.ProviderName
+        level = [string]$Event.LevelDisplayName
+        message = Limit-Text ([string]$Event.Message) 4000
+        data = $eventData
+    }
+}
+
+function Get-EventArtifacts {
+    param(
+        [string]$LogName,
+        [int[]]$Ids,
+        [int]$MaxEvents = 200
+    )
+
+    try {
+        $filter = @{
+            LogName = $LogName
+            StartTime = $StartTime
+        }
+
+        if ($Ids -and $Ids.Count -gt 0) {
+            $filter["Id"] = $Ids
+        }
+
+        return @(Get-WinEvent -FilterHashtable $filter -MaxEvents $MaxEvents -ErrorAction Stop | ForEach-Object {
+            Convert-EventRecord $_
+        })
+    }
+    catch {
+        Add-CollectionError -Source "event_log:$LogName" -Message $_.Exception.Message
+        return @()
+    }
+}
+
+function Test-EventContainsAnyTerm {
+    param(
+        $Event,
+        [string[]]$Terms
+    )
+
+    $dataText = ""
+    if ($null -ne $Event.data) {
+        $dataText = (($Event.data.GetEnumerator() | ForEach-Object { [string]$_.Value }) -join " ")
+    }
+
+    $text = (([string]$Event.message) + " " + $dataText).ToLowerInvariant()
+    foreach ($term in $Terms) {
+        if ($text.Contains($term.ToLowerInvariant())) {
+            return $true
+        }
+    }
+
+    return $false
+}
+
+$remoteToolTerms = @(
+    "screenconnect", "connectwise control", "simplehelp", "anydesk", "teamviewer",
+    "meshagent", "meshcentral", "tacticalrmm", "tactical rmm", "atera",
+    "splashtop", "rustdesk", "dwagent", "dwservice"
+)
+
+$processTerms = $remoteToolTerms + @(
+    "msiexec", "powershell", "pwsh", "wmic", "wmiprvse", "regsvr32", "rundll32",
+    "bitsadmin", "certutil", "mshta", "encodedcommand", " -enc "
+)
+
+$defenderEvents = Get-EventArtifacts -LogName "Microsoft-Windows-Windows Defender/Operational" -Ids @(1116, 1117, 1118, 1119, 1120, 1121, 1122, 5001, 5004, 5007, 5013) -MaxEvents 250
+$powershellOperationalEvents = Get-EventArtifacts -LogName "Microsoft-Windows-PowerShell/Operational" -Ids @(4103, 4104) -MaxEvents 500
+$windowsPowerShellEvents = Get-EventArtifacts -LogName "Windows PowerShell" -Ids @(400, 403, 600) -MaxEvents 250
+$serviceInstallEvents = Get-EventArtifacts -LogName "System" -Ids @(7045) -MaxEvents 250
+$wmiEvents = Get-EventArtifacts -LogName "Microsoft-Windows-WMI-Activity/Operational" -Ids @(5857, 5858, 5859, 5860, 5861) -MaxEvents 250
+$processEventsRaw = Get-EventArtifacts -LogName "Security" -Ids @(4688) -MaxEvents 1500
+$processEvents = @($processEventsRaw | Where-Object { Test-EventContainsAnyTerm -Event $_ -Terms $processTerms })
+
+$report = [ordered]@{
+    schema_version = "1.0"
+    scanner = [ordered]@{
+        name = "RMM Hunter Windows Collector"
+        version = "0.1.0"
+        collected_at_utc = (Get-Date).ToUniversalTime().ToString("o")
+        hostname = $env:COMPUTERNAME
+        username = [Environment]::UserName
+        powershell_version = $PSVersionTable.PSVersion.ToString()
+        is_admin = Test-IsAdmin
+    }
+    collection = [ordered]@{
+        lookback_days = [Math]::Abs($LookbackDays)
+        start_time_utc = ConvertTo-IsoUtc $StartTime
+        max_recent_files = $MaxRecentFiles
+    }
+    artifacts = [ordered]@{
+        installed_programs = Get-UninstallEntries
+        services = Get-ServiceArtifacts
+        service_install_events = $serviceInstallEvents
+        scheduled_tasks = Get-ScheduledTaskArtifacts
+        startup_registry = Get-StartupRegistryArtifacts
+        startup_folders = Get-StartupFolderArtifacts
+        recent_files = Get-RecentFileArtifacts
+        defender_events = $defenderEvents
+        powershell_events = @($powershellOperationalEvents + $windowsPowerShellEvents)
+        process_creation_events = $processEvents
+        wmi_events = $wmiEvents
+    }
+    collection_errors = $CollectionErrors
+}
+
+$depth = 12
+if ($Pretty) {
+    $json = $report | ConvertTo-Json -Depth $depth
+}
+else {
+    $json = $report | ConvertTo-Json -Depth $depth -Compress
+}
+
+if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
+    $parent = Split-Path -Parent $OutputPath
+    if (-not [string]::IsNullOrWhiteSpace($parent) -and -not (Test-Path -LiteralPath $parent)) {
+        New-Item -ItemType Directory -Path $parent -Force | Out-Null
+    }
+
+    Set-Content -LiteralPath $OutputPath -Value $json -Encoding UTF8
+}
+else {
+    $json
+}

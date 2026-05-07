@@ -1,0 +1,9 @@
+reports/
+__pycache__/
+*.pyc
+node_modules/
+build/
+release/
+.release-venv/
+*.spec
+npm-debug.log*

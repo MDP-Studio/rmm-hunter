@@ -1,0 +1,68 @@
+name: Build Windows Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Build Windows installer and portable app
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-build.txt
+
+      - name: Audit dependencies
+        run: |
+          npm audit --audit-level=moderate
+          pip-audit -r requirements-build.txt
+
+      - name: Test and package
+        run: npm run dist
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: rmm-hunter-windows-${{ github.ref_name || github.run_number }}
+          path: |
+            release/RMM-Hunter-Setup-*.exe
+            release/RMM-Hunter-Setup-*.exe.blockmap
+            release/RMM-Hunter-Portable-*.exe
+          if-no-files-found: error
+
+      - name: Create draft GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          $files = @(
+            Get-ChildItem -Path release -File -Filter "RMM-Hunter-Setup-*.exe"
+            Get-ChildItem -Path release -File -Filter "RMM-Hunter-Setup-*.exe.blockmap"
+            Get-ChildItem -Path release -File -Filter "RMM-Hunter-Portable-*.exe"
+          ) | Select-Object -ExpandProperty FullName
+          gh release create "${{ github.ref_name }}" @files --draft --generate-notes --title "RMM Hunter ${{ github.ref_name }}"

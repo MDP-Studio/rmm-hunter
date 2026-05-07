@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; connect-src 'none';">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>RMM Hunter</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="sidebar" aria-label="Scan status">
+        <div class="brand">
+          <img class="brand-mark" src="./assets/logo.svg" alt="RMM Hunter logo">
+          <div>
+            <h1>RMM Hunter</h1>
+            <p>Windows endpoint scanner</p>
+          </div>
+        </div>
+
+        <div class="verdict-panel verdict-idle" id="verdictPanel">
+          <span class="label">Current verdict</span>
+          <strong id="verdictText">Not scanned</strong>
+          <span id="riskScore">Risk score unavailable</span>
+        </div>
+
+        <div class="scope-list" aria-label="Scan coverage">
+          <div>Installed apps</div>
+          <div>Services</div>
+          <div>Startup entries</div>
+          <div>Scheduled tasks</div>
+          <div>Event logs</div>
+          <div>Recent installers</div>
+        </div>
+      </aside>
+
+      <section class="workspace">
+        <header class="topbar">
+          <div>
+            <h2>Device scan</h2>
+            <p id="subtitle">Check this Windows device for unauthorized remote access tools and suspicious admin traces.</p>
+          </div>
+          <button class="primary-button" id="scanButton" type="button">Scan this device</button>
+        </header>
+
+        <section class="progress-panel hidden" id="progressPanel" aria-live="polite">
+          <div class="progress-header">
+            <div>
+              <span class="eyebrow">Scanning</span>
+              <h3 id="progressStage">Preparing scanner</h3>
+            </div>
+            <div class="spinner" aria-hidden="true"></div>
+          </div>
+          <div class="progress-track">
+            <div class="progress-bar"></div>
+          </div>
+          <ol class="progress-log" id="progressLog"></ol>
+        </section>
+
+        <section class="results-grid" id="resultsGrid">
+          <article class="metric">
+            <span>Findings</span>
+            <strong id="findingCount">0</strong>
+          </article>
+          <article class="metric">
+            <span>High</span>
+            <strong id="highCount">0</strong>
+          </article>
+          <article class="metric">
+            <span>Medium</span>
+            <strong id="mediumCount">0</strong>
+          </article>
+          <article class="metric">
+            <span>Low</span>
+            <strong id="lowCount">0</strong>
+          </article>
+        </section>
+
+        <section class="summary-panel" id="summaryPanel">
+          <div>
+            <span class="eyebrow">Summary</span>
+            <p id="summaryText">Run a scan to see the endpoint verdict, evidence, and export options.</p>
+          </div>
+          <div class="actions">
+            <button class="secondary-button" id="aiExplain" type="button" disabled>AI Recommendations</button>
+            <button class="secondary-button" id="exportJson" type="button" disabled>Export JSON</button>
+            <button class="secondary-button" id="exportPdf" type="button" disabled>Export PDF</button>
+          </div>
+        </section>
+
+        <section class="recommendations-panel hidden" id="recommendationsPanel">
+          <div class="section-heading">
+            <h3>Recommended next steps</h3>
+            <span id="recommendationsHint">Based on deterministic scan rules</span>
+          </div>
+          <ul class="recommendation-list" id="recommendationList"></ul>
+        </section>
+
+        <section class="ai-panel hidden" id="aiPanel">
+          <div class="section-heading">
+            <h3>AI explanation</h3>
+            <span id="aiStatus">Optional</span>
+          </div>
+          <p class="ai-summary" id="aiSummary"></p>
+          <ul class="recommendation-list" id="aiNextSteps"></ul>
+          <div class="ai-finding-list" id="aiFindingList"></div>
+          <p class="privacy-note" id="aiPrivacyNote"></p>
+        </section>
+
+        <section class="report-paths hidden" id="reportPaths">
+          <span>Report files</span>
+          <button id="showJsonPath" type="button"></button>
+        </section>
+
+        <section class="evidence-section">
+          <div class="section-heading">
+            <h3>Evidence</h3>
+            <span id="evidenceHint">No findings yet</span>
+          </div>
+          <div class="evidence-list" id="evidenceList"></div>
+        </section>
+      </section>
+    </main>
+
+    <script src="./renderer.js"></script>
+  </body>
+</html>

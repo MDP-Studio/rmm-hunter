@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0",
+  "scanner": {
+    "name": "Synthetic collector",
+    "version": "0.0.0",
+    "collected_at_utc": "2026-05-07T00:00:00Z",
+    "hostname": "LAB-PC"
+  },
+  "collection": {
+    "lookback_days": 14
+  },
+  "artifacts": {
+    "installed_programs": [],
+    "services": [
+      {
+        "name": "ScreenConnect Client (abcd)",
+        "display_name": "ScreenConnect Client",
+        "state": "Running",
+        "start_mode": "Auto",
+        "path_name": "\"C:\\Users\\Alice\\Downloads\\ScreenConnect.ClientService.exe\"",
+        "executable_path": "C:\\Users\\Alice\\Downloads\\ScreenConnect.ClientService.exe",
+        "signature": {
+          "status": "UnknownError",
+          "signer_subject": null
+        }
+      }
+    ],
+    "service_install_events": [],
+    "scheduled_tasks": [],
+    "startup_registry": [],
+    "startup_folders": [],
+    "recent_files": [],
+    "defender_events": [],
+    "powershell_events": [
+      {
+        "log_name": "Microsoft-Windows-PowerShell/Operational",
+        "id": 4104,
+        "time_created_utc": "2026-05-07T00:00:00Z",
+        "message": "Creating Scriptblock text: powershell -EncodedCommand SQBFAFgA",
+        "data": {
+          "ScriptBlockText": "powershell -EncodedCommand SQBFAFgA"
+        }
+      }
+    ],
+    "process_creation_events": [],
+    "wmi_events": []
+  },
+  "collection_errors": []
+}
+
