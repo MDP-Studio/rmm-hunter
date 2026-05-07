@@ -160,6 +160,8 @@ Build Windows installer and portable artifacts:
 npm.cmd run dist
 ```
 
+Release packaging passes `--publish never` to Electron Builder. The GitHub workflow creates the draft GitHub release explicitly after artifacts are built.
+
 Package only, after `npm.cmd run build:scanner` has already produced the scanner executable:
 
 ```powershell

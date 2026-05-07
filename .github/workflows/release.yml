@@ -62,7 +62,7 @@ jobs:
           exit $code
 
       - name: Upload package log
-        if: always()
+        if: steps.package_windows.outcome == 'failure'
         uses: actions/upload-artifact@v7
         with:
           name: package-windows-log-${{ github.run_number }}
