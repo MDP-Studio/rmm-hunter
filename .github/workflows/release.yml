@@ -52,7 +52,19 @@ jobs:
         run: npm run build:scanner
 
       - name: Package Windows app
-        run: npm run package:windows
+        id: package_windows
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          npm run package:windows *>&1 | Tee-Object -FilePath package-windows.log
+          exit $LASTEXITCODE
+
+      - name: Show packaging failure
+        if: steps.package_windows.outcome == 'failure'
+        shell: pwsh
+        run: |
+          $tail = Get-Content -Path package-windows.log -Tail 80
+          Write-Error ($tail -join "`n")
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7
