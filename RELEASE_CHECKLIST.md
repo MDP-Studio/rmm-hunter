@@ -11,6 +11,8 @@ Use this checklist before creating a GitHub release.
 - [ ] Confirm `LICENSE` and `package.json` both use Apache-2.0.
 - [ ] Confirm `gui/assets/icon.ico` is present and referenced by `package.json`.
 - [ ] Confirm `docs/CODE_SIGNING.md` reflects the current signing status.
+- [ ] Confirm `docs/CODE_SIGNING_POLICY.md` reflects maintainer roles, signing scope, and SignPath status.
+- [ ] Confirm `PRIVACY.md` reflects local report handling and optional AI provider data handling.
 - [ ] Confirm no secrets or raw scan reports are tracked.
 
 ## Local Verification

@@ -14,12 +14,13 @@ Reviewed:
 - JSON/PDF export
 - Windows icon and unsigned signing status
 - dependency security
+- privacy policy and SignPath-ready code-signing policy
 - GitHub Actions release workflow
 - Windows installer, portable executable, and bundled scanner executable
 
 ## Release Readiness Result
 
-RMM Hunter is ready for a draft GitHub release after committing the current files and pushing a `v*` tag.
+RMM Hunter is ready for an unsigned public beta release after committing the current files, pushing a `v*` tag, and publishing the generated draft release as a prerelease.
 
 The release is not ready for broad public trust until code signing is complete.
 
@@ -79,10 +80,13 @@ The GitHub workflow uploads only the setup executable, setup blockmap, and porta
 - GitHub release workflow now uploads explicit artifact paths instead of relying on shell wildcard expansion.
 - Local unsigned build avoids the Electron Builder symlink privilege failure encountered when extracting the Windows code-sign helper.
 - `docs/CODE_SIGNING.md` now documents the unsigned status, future Microsoft Artifact Signing setup, and icon regeneration commands.
+- `PRIVACY.md` now documents local report handling and optional AI provider data handling.
+- `docs/CODE_SIGNING_POLICY.md` now documents the SignPath-ready signing policy, maintainer roles, signing scope, MFA expectation, release integrity gates, and security-tool scope.
 
 ## Residual Release Risks
 
-- Windows artifacts are unsigned. Expect SmartScreen friction until code signing is configured.
+- Windows artifacts are unsigned. Expect SmartScreen friction until SignPath Foundation, Microsoft Artifact Signing, or another trusted signing option is configured.
+- GitHub MFA status cannot be verified through the current CLI response. The maintainer must confirm MFA in GitHub account settings before applying to SignPath.
 - Do not publish an app build that embeds an MDP Studio AI provider key. Desktop users should supply their own key unless a server-side paid AI service is added later.
 - Source is licensed under Apache-2.0. The package remains `private` to prevent accidental npm publishing.
 - Electron Builder currently includes deprecated transitive build-time packages, although `npm audit` reports no vulnerabilities.
@@ -93,7 +97,7 @@ The GitHub workflow uploads only the setup executable, setup blockmap, and porta
 ```powershell
 npm run release:verify
 npm audit --omit=dev --audit-level=moderate
-.\.release-venv\Scripts\pip-audit.exe -r requirements-build.txt
+uvx pip-audit==2.10.0 -r requirements-build.txt
 npm run dist
 ```
 
@@ -105,9 +109,7 @@ release\RMM-Hunter-Setup-0.1.0-x64.exe /S /D=%TEMP%\RMMHunterInstallTest
 
 ## Next Release Steps
 
-1. Configure Windows code signing.
-2. Commit the release-ready files.
-3. Push to GitHub.
-4. Create and push `v0.1.0`.
-5. Let `.github/workflows/release.yml` create the draft release.
-6. Download and smoke-test the GitHub-built artifacts before publishing.
+1. Publish the generated `v0.1.0` draft as an unsigned prerelease with clear SmartScreen wording.
+2. Confirm GitHub MFA is enabled for the maintainer account.
+3. Apply to SignPath Foundation using the public repository, public release page, privacy policy, and code-signing policy.
+4. After SignPath approval, add the SignPath GitHub Actions signing step and required repository secret.

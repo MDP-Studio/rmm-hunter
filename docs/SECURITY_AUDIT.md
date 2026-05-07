@@ -11,6 +11,7 @@ Reviewed the RMM Hunter Windows MVP:
 - PowerShell collector in `collect_windows.ps1`
 - npm dependency tree
 - release packaging path
+- privacy and code-signing policy documentation
 
 Excluded generated folders and local scan output:
 
@@ -41,6 +42,8 @@ No reportable security vulnerabilities were found in the application code after 
 - Release builds bundle a PyInstaller scanner executable so the packaged Electron app does not require Python on the target endpoint.
 - Packaged builds ignore developer scanner override environment variables and prefer the bundled scanner executable.
 - Windows release builds use the tracked `gui/assets/icon.ico` instead of the default Electron icon.
+- `PRIVACY.md` states that reports stay local by default and optional AI sends only sanitized summaries to the user-selected provider.
+- `docs/CODE_SIGNING_POLICY.md` states that RMM Hunter detects breach traces and unauthorized remote management tools, and does not exploit systems, bypass controls, scan networks, delete files, stop services, or change Windows settings by default.
 - Local unsigned builds set `signAndEditExecutable` to `false` so non-admin Windows sessions do not fail while extracting Electron Builder code-signing helpers. Public releases should still be signed when a certificate is available.
 
 ## Dependency Notes
@@ -49,8 +52,8 @@ No reportable security vulnerabilities were found in the application code after 
 - `npm audit --omit=dev --audit-level=moderate` passed with 0 vulnerabilities.
 - Secret-pattern scan across source and docs found only documented API-key placeholder examples and runtime key-handling code, not a committed secret.
 - `electron-builder` brings some deprecated transitive packages in the current npm tree. They are build-time dependencies and no vulnerability was reported by npm audit, but they should be watched during dependency updates.
-- Build Python dependencies are pinned in `requirements-build.txt` and should be checked with `pip-audit -r requirements-build.txt`.
-- `pip-audit -r requirements-build.txt` passed with no known vulnerabilities.
+- Build Python dependencies are pinned in `requirements-build.txt` and should be checked with `pip-audit -r requirements-build.txt` or `uvx pip-audit==2.10.0 -r requirements-build.txt`.
+- `uvx pip-audit==2.10.0 -r requirements-build.txt` passed with no known vulnerabilities.
 
 ## Release Verification Performed
 
@@ -77,5 +80,6 @@ No reportable security vulnerabilities were found in the application code after 
 ```powershell
 npm run release:verify
 pip-audit -r requirements-build.txt
+uvx pip-audit==2.10.0 -r requirements-build.txt
 npm run dist
 ```

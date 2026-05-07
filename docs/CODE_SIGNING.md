@@ -10,7 +10,9 @@ Unsigned artifacts:
 
 ## Recommended Path
 
-Use Microsoft Artifact Signing when MDP Studio is ready to publish broadly. It is the cleanest path for GitHub Actions because signing happens through a managed Microsoft service instead of a local certificate file or USB token.
+For free open-source signing, apply to SignPath Foundation first. The project policy is documented in `docs/CODE_SIGNING_POLICY.md`.
+
+Use Microsoft Artifact Signing when MDP Studio is ready to publish broadly under its own publisher identity. It is the cleanest paid path for GitHub Actions because signing happens through a managed Microsoft service instead of a local certificate file or USB token.
 
 Traditional OV code-signing certificates from a certificate authority are also valid, but modern public code-signing private keys generally require hardware-backed storage or a managed signing service.
 
@@ -87,4 +89,5 @@ magick .\gui\assets\icon.png -define icon:auto-resize=256,128,64,48,32,16 .\gui\
 
 - Microsoft Windows code-signing options: https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/code-signing-options
 - Electron Builder Windows signing: https://www.electron.build/code-signing-win.html
+- SignPath Foundation: https://signpath.org/
 - CA/Browser Forum code-signing requirements: https://cabforum.org/working-groups/code-signing/requirements/

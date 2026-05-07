@@ -16,6 +16,8 @@ It does not delete files, stop services, uninstall software, quarantine artifact
 
 Repository: `https://github.com/MDP-Studio/rmm-hunter`
 
+Downloads: `https://github.com/MDP-Studio/rmm-hunter/releases`
+
 Security reports and project contact: `meidie@mdpstudio.com.au`
 
 Do not send raw scan reports unless requested. Reports can contain usernames, file paths, command-line fragments, service names, task actions, and event excerpts.
@@ -156,6 +158,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\collect_windows.ps1 -Outpu
 
 The GitHub release build is Windows-first. It bundles the Python scanner as a PyInstaller executable, then packages the Electron desktop app with Electron Builder.
 
+Current public downloads are published from GitHub Releases. RMM Hunter v0.1.0 is an unsigned beta release, so Windows may show `Unknown publisher` or Microsoft Defender SmartScreen warnings. Verify release artifacts against the hashes shown on GitHub Releases when testing unsigned builds.
+
 The Windows app icon is tracked at `gui/assets/icon.ico`, with SVG/PNG sources beside it. Regenerate it from `gui/assets/icon.svg` with ImageMagick:
 
 ```powershell
@@ -210,6 +214,23 @@ git push origin v0.1.0
 
 RMM Hunter is released under the Apache License 2.0. The npm package remains marked `private` to prevent accidental registry publishing.
 
+## Code Signing Policy
+
+RMM Hunter's code signing policy is documented in `docs/CODE_SIGNING_POLICY.md`.
+
+Current status:
+
+- v0.1.0 artifacts are unsigned beta builds.
+- Future signed open-source releases are intended to use SignPath Foundation if the project is accepted.
+- Signing credentials and API tokens must never be committed to the repository.
+- Maintainers and signing approvers must keep multi-factor authentication enabled for GitHub and SignPath accounts.
+
+Signing policy statement for future SignPath-backed releases:
+
+```text
+Free code signing provided by SignPath.io, certificate by SignPath Foundation.
+```
+
 ## Reading The Verdict
 
 `clean` means the collected sources did not contain known RMM or suspicious living-off-the-land indicators. It is not a guarantee that the endpoint is safe.
@@ -230,11 +251,15 @@ Reports can include usernames, file paths, command-line fragments, service names
 
 The optional AI explanation layer is off by default and requires a user-supplied provider key or environment variable. If enabled, only sanitized report evidence is sent to the selected AI provider. Keep the deterministic JSON report as the source of truth for technical review.
 
+Full privacy policy: `PRIVACY.md`
+
 ## Security And Release Docs
 
 - `SECURITY.md`: vulnerability reporting and release security checklist
 - `LICENSE`: Apache License 2.0 terms
 - `docs/CODE_SIGNING.md`: Windows signing and icon setup
+- `docs/CODE_SIGNING_POLICY.md`: SignPath-ready project signing policy
+- `PRIVACY.md`: local report handling and optional AI data handling
 - `docs/SECURITY_AUDIT.md`: current security audit summary
 - `RELEASE_CHECKLIST.md`: GitHub release readiness checklist
 - `CHANGELOG.md`: release notes
