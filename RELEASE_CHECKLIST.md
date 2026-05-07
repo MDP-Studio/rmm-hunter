@@ -8,7 +8,7 @@ Use this checklist before creating a GitHub release.
 - [ ] Confirm `CHANGELOG.md` has release notes for the version.
 - [ ] Confirm maintainer and security contact details are current.
 - [ ] Confirm GitHub remote is `https://github.com/MDP-Studio/rmm-hunter.git`.
-- [ ] Choose a public license before making the repository open source. The current package is `UNLICENSED`.
+- [ ] Confirm `LICENSE` and `package.json` both use Apache-2.0.
 - [ ] Confirm no secrets or raw scan reports are tracked.
 
 ## Local Verification

@@ -4,7 +4,7 @@
   "description": "Windows desktop scanner for unauthorized remote access tools and living-off-the-land traces.",
   "main": "gui/main.js",
   "author": "Meidie <meidie@mdpstudio.com.au>",
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "private": true,
   "homepage": "https://github.com/MDP-Studio/rmm-hunter#readme",
   "repository": {

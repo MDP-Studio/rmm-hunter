@@ -20,7 +20,7 @@ Reviewed:
 
 RMM Hunter is ready for a draft GitHub release after committing the current files and pushing a `v*` tag.
 
-The release is not ready for broad public trust until code signing and a public license decision are complete.
+The release is not ready for broad public trust until code signing is complete.
 
 Target repository: `https://github.com/MDP-Studio/rmm-hunter`
 
@@ -79,7 +79,7 @@ The GitHub workflow uploads only the setup executable, setup blockmap, and porta
 
 - Windows artifacts are unsigned. Expect SmartScreen friction until code signing is configured.
 - The app still uses the default Electron executable icon in packaged builds. Add a Windows `.ico` before a polished public release.
-- The package is marked `UNLICENSED`. Choose a license before making the repository public.
+- Source is licensed under Apache-2.0. The package remains `private` to prevent accidental npm publishing.
 - Electron Builder currently includes deprecated transitive build-time packages, although `npm audit` reports no vulnerabilities.
 - GitHub Actions are pinned to major versions of official actions, not immutable commit SHAs. Pin to SHAs if you want stricter supply-chain control.
 
@@ -100,11 +100,10 @@ release\RMM-Hunter-Setup-0.1.0-x64.exe /S /D=%TEMP%\RMMHunterInstallTest
 
 ## Next Release Steps
 
-1. Decide public license.
-2. Add a proper `.ico` app icon.
-3. Configure Windows code signing.
-4. Commit the release-ready files.
-5. Push to GitHub.
-6. Create and push `v0.1.0`.
-7. Let `.github/workflows/release.yml` create the draft release.
-8. Download and smoke-test the GitHub-built artifacts before publishing.
+1. Add a proper `.ico` app icon.
+2. Configure Windows code signing.
+3. Commit the release-ready files.
+4. Push to GitHub.
+5. Create and push `v0.1.0`.
+6. Let `.github/workflows/release.yml` create the draft release.
+7. Download and smoke-test the GitHub-built artifacts before publishing.

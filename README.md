@@ -185,7 +185,7 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-Before making the repository public, choose a license. The package is currently marked `UNLICENSED` until you decide the public license.
+RMM Hunter is released under the Apache License 2.0. The npm package remains marked `private` to prevent accidental registry publishing.
 
 ## Reading The Verdict
 
@@ -210,6 +210,7 @@ The optional AI explanation layer is off by default and requires `OPENAI_API_KEY
 ## Security And Release Docs
 
 - `SECURITY.md`: vulnerability reporting and release security checklist
+- `LICENSE`: Apache License 2.0 terms
 - `docs/SECURITY_AUDIT.md`: current security audit summary
 - `RELEASE_CHECKLIST.md`: GitHub release readiness checklist
 - `CHANGELOG.md`: release notes
