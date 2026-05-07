@@ -9,6 +9,7 @@ const { pathToFileURL } = require("node:url");
 
 const ROOT_DIR = path.resolve(__dirname, "..");
 const APP_FILE = path.join(__dirname, "index.html");
+const APP_ICON = path.join(__dirname, "assets", "icon.ico");
 const REPOSITORY_URL = "https://github.com/MDP-Studio/rmm-hunter";
 const APP_TITLE = "RMM Hunter";
 const DEFAULT_AI_PROVIDER = "openai";
@@ -83,6 +84,7 @@ function createWindow() {
     minHeight: 680,
     backgroundColor: "#f6f7f9",
     title: "RMM Hunter",
+    icon: APP_ICON,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,

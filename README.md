@@ -156,6 +156,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\collect_windows.ps1 -Outpu
 
 The GitHub release build is Windows-first. It bundles the Python scanner as a PyInstaller executable, then packages the Electron desktop app with Electron Builder.
 
+The Windows app icon is tracked at `gui/assets/icon.ico`, with SVG/PNG sources beside it. Regenerate it from `gui/assets/icon.svg` with ImageMagick:
+
+```powershell
+magick .\gui\assets\icon.svg -resize 1024x1024 .\gui\assets\icon.png
+magick .\gui\assets\icon.png -define icon:auto-resize=256,128,64,48,32,16 .\gui\assets\icon.ico
+```
+
 Install build dependencies:
 
 ```powershell
@@ -227,6 +234,7 @@ The optional AI explanation layer is off by default and requires a user-supplied
 
 - `SECURITY.md`: vulnerability reporting and release security checklist
 - `LICENSE`: Apache License 2.0 terms
+- `docs/CODE_SIGNING.md`: Windows signing and icon setup
 - `docs/SECURITY_AUDIT.md`: current security audit summary
 - `RELEASE_CHECKLIST.md`: GitHub release readiness checklist
 - `CHANGELOG.md`: release notes
@@ -240,7 +248,7 @@ Fast validation experiment:
 1. Run against 3 clean Windows machines and 3 intentionally seeded lab machines.
 2. Track false positives for each source: services, tasks, startup keys, recent files, logs.
 3. Add an allowlist file only after the first false-positive pass.
-4. Package as a signed single-folder release once the CLI output is stable.
+4. Package as a signed release once the CLI output is stable and a Windows code-signing option is configured.
 
 ## References
 

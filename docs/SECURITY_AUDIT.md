@@ -40,6 +40,7 @@ No reportable security vulnerabilities were found in the application code after 
 - PowerShell collector treats collected endpoint artifacts as data and does not execute them.
 - Release builds bundle a PyInstaller scanner executable so the packaged Electron app does not require Python on the target endpoint.
 - Packaged builds ignore developer scanner override environment variables and prefer the bundled scanner executable.
+- Windows release builds use the tracked `gui/assets/icon.ico` instead of the default Electron icon.
 - Local unsigned builds set `signAndEditExecutable` to `false` so non-admin Windows sessions do not fail while extracting Electron Builder code-signing helpers. Public releases should still be signed when a certificate is available.
 
 ## Dependency Notes

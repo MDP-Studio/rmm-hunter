@@ -50,6 +50,7 @@
       }
     ],
     "win": {
+      "icon": "gui/assets/icon.ico",
       "signAndEditExecutable": false,
       "verifyUpdateCodeSignature": false,
       "target": [

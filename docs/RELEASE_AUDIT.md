@@ -12,6 +12,7 @@ Reviewed:
 - Electron desktop app
 - optional AI explanation path
 - JSON/PDF export
+- Windows icon and unsigned signing status
 - dependency security
 - GitHub Actions release workflow
 - Windows installer, portable executable, and bundled scanner executable
@@ -65,6 +66,7 @@ The GitHub workflow uploads only the setup executable, setup blockmap, and porta
 - Packaged app now prefers `resources/bin/rmm-hunter-cli.exe`, so target machines do not need Python installed.
 - Packaged app now ignores developer scanner override environment variables, reducing local process-hijack risk in installed builds.
 - AI settings are now bring-your-own-key with OpenAI, OpenRouter, Groq, and custom OpenAI-compatible provider support. No-key clicks open setup and send no report data.
+- Windows app and installer packaging now use `gui/assets/icon.ico`.
 - Build now creates separate installer and portable filenames.
 - Build now cleans stale release artifacts before packaging.
 - PyInstaller now runs through `scripts/build-scanner.js` with absolute paths, avoiding fragile Windows quoting and spec-path behavior.
@@ -76,11 +78,11 @@ The GitHub workflow uploads only the setup executable, setup blockmap, and porta
 - GitHub release workflow now refreshes existing draft release assets with `gh release upload --clobber`, but refuses to overwrite a published release.
 - GitHub release workflow now uploads explicit artifact paths instead of relying on shell wildcard expansion.
 - Local unsigned build avoids the Electron Builder symlink privilege failure encountered when extracting the Windows code-sign helper.
+- `docs/CODE_SIGNING.md` now documents the unsigned status, future Microsoft Artifact Signing setup, and icon regeneration commands.
 
 ## Residual Release Risks
 
 - Windows artifacts are unsigned. Expect SmartScreen friction until code signing is configured.
-- The app still uses the default Electron executable icon in packaged builds. Add a Windows `.ico` before a polished public release.
 - Do not publish an app build that embeds an MDP Studio AI provider key. Desktop users should supply their own key unless a server-side paid AI service is added later.
 - Source is licensed under Apache-2.0. The package remains `private` to prevent accidental npm publishing.
 - Electron Builder currently includes deprecated transitive build-time packages, although `npm audit` reports no vulnerabilities.
@@ -103,10 +105,9 @@ release\RMM-Hunter-Setup-0.1.0-x64.exe /S /D=%TEMP%\RMMHunterInstallTest
 
 ## Next Release Steps
 
-1. Add a proper `.ico` app icon.
-2. Configure Windows code signing.
-3. Commit the release-ready files.
-4. Push to GitHub.
-5. Create and push `v0.1.0`.
-6. Let `.github/workflows/release.yml` create the draft release.
-7. Download and smoke-test the GitHub-built artifacts before publishing.
+1. Configure Windows code signing.
+2. Commit the release-ready files.
+3. Push to GitHub.
+4. Create and push `v0.1.0`.
+5. Let `.github/workflows/release.yml` create the draft release.
+6. Download and smoke-test the GitHub-built artifacts before publishing.

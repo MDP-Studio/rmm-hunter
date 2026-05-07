@@ -9,6 +9,8 @@ Use this checklist before creating a GitHub release.
 - [ ] Confirm maintainer and security contact details are current.
 - [ ] Confirm GitHub remote is `https://github.com/MDP-Studio/rmm-hunter.git`.
 - [ ] Confirm `LICENSE` and `package.json` both use Apache-2.0.
+- [ ] Confirm `gui/assets/icon.ico` is present and referenced by `package.json`.
+- [ ] Confirm `docs/CODE_SIGNING.md` reflects the current signing status.
 - [ ] Confirm no secrets or raw scan reports are tracked.
 
 ## Local Verification
@@ -39,6 +41,7 @@ Use this checklist before creating a GitHub release.
 - [ ] Create a version tag, for example `v0.1.0`.
 - [ ] Wait for the `Build Windows Release` workflow to finish.
 - [ ] Download and smoke-test the workflow artifacts.
+- [ ] Confirm installer and portable artifacts show the RMM Hunter icon.
 - [ ] Edit the draft GitHub release notes with known limitations.
 - [ ] Publish the draft release.
 
