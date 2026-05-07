@@ -23,6 +23,7 @@
     "check": "npm run check:js && npm run check:py",
     "test": "python -m unittest discover -v",
     "build:scanner": "node scripts/build-scanner.js",
+    "package:windows": "electron-builder --win --x64",
     "dist": "npm run clean && npm run check && npm run build:scanner && electron-builder --win --x64",
     "dist:dir": "npm run clean && npm run check && npm run build:scanner && electron-builder --win --x64 --dir",
     "release:verify": "npm run check && npm audit --audit-level=moderate"

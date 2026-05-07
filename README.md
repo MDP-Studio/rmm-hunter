@@ -160,6 +160,12 @@ Build Windows installer and portable artifacts:
 npm.cmd run dist
 ```
 
+Package only, after `npm.cmd run build:scanner` has already produced the scanner executable:
+
+```powershell
+npm.cmd run package:windows
+```
+
 The scanner build script uses `RMM_HUNTER_PYINSTALLER` when set, then `.release-venv\Scripts\pyinstaller.exe` when present, then `python -m PyInstaller`.
 
 Release artifacts are written to `release\`.

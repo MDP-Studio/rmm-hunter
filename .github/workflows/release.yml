@@ -52,7 +52,7 @@ jobs:
         run: npm run build:scanner
 
       - name: Package Windows app
-        run: electron-builder --win --x64
+        run: npm run package:windows
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7
