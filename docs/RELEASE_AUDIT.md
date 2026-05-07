@@ -68,6 +68,7 @@ The GitHub workflow uploads only the setup executable, setup blockmap, and porta
 - Build now cleans stale release artifacts before packaging.
 - PyInstaller now runs through `scripts/build-scanner.js` with absolute paths, avoiding fragile Windows quoting and spec-path behavior.
 - The scanner build script now detects `.release-venv` or an explicit `RMM_HUNTER_PYINSTALLER` override before falling back to `pyinstaller` on `PATH`.
+- GitHub Actions Python setup now points pip caching at `requirements-build.txt`, matching this repo's build dependency file.
 - GitHub release workflow now uploads explicit artifact paths instead of relying on shell wildcard expansion.
 - Local unsigned build avoids the Electron Builder symlink privilege failure encountered when extracting the Windows code-sign helper.
 
