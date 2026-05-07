@@ -8,5 +8,6 @@
 - JSON, text, and PDF reporting.
 - Deterministic next-step recommendations.
 - Optional AI explanations with sanitized report data and no verdict authority.
+- Bring-your-own-key AI provider settings for OpenAI, OpenRouter, Groq, and custom OpenAI-compatible endpoints.
 - Electron hardening: sandboxed renderer, context isolation, disabled Node integration, restrictive CSP, navigation blocking, and report-path restrictions.
 - Windows release packaging through Electron Builder and bundled PyInstaller scanner executable.

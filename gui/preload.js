@@ -9,6 +9,9 @@ contextBridge.exposeInMainWorld("rmmHunter", {
   },
   exportJson: (report) => ipcRenderer.invoke("report:exportJson", report),
   exportPdf: (report) => ipcRenderer.invoke("report:exportPdf", report),
+  getAiSettings: () => ipcRenderer.invoke("ai:getSettings"),
+  saveAiSettings: (settings) => ipcRenderer.invoke("ai:saveSettings", settings),
+  clearAiKey: () => ipcRenderer.invoke("ai:clearKey"),
   explainReport: (report) => ipcRenderer.invoke("ai:explainReport", report),
   showPath: (targetPath) => ipcRenderer.invoke("path:show", targetPath)
 });

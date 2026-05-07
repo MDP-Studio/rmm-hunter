@@ -50,7 +50,7 @@ The GitHub workflow uploads only the setup executable, setup blockmap, and porta
 | npm audit | Pass | 0 vulnerabilities for all dependencies. |
 | production npm audit | Pass | 0 vulnerabilities with `--omit=dev`. |
 | Python build dependency audit | Pass | `pip-audit -r requirements-build.txt` found no known vulnerabilities. |
-| secret-pattern scan | Pass | Only the documented `OPENAI_API_KEY` placeholder example was found outside ignored/generated folders. |
+| secret-pattern scan | Pass | Only documented API-key placeholder examples and runtime key-handling code were found outside ignored/generated folders. |
 | PyInstaller scanner build | Pass | Bundled `rmm-hunter-cli.exe` created successfully. |
 | Bundled scanner behavior | Pass | Packaged scanner analyzed the high-risk sample artifact successfully. |
 | Electron Builder release build | Pass | Setup and portable Windows artifacts generated. |
@@ -64,6 +64,7 @@ The GitHub workflow uploads only the setup executable, setup blockmap, and porta
 - Packaged app report path moved to `%LOCALAPPDATA%\RMM Hunter\reports` so installed builds do not write into the install directory.
 - Packaged app now prefers `resources/bin/rmm-hunter-cli.exe`, so target machines do not need Python installed.
 - Packaged app now ignores developer scanner override environment variables, reducing local process-hijack risk in installed builds.
+- AI settings are now bring-your-own-key with OpenAI, OpenRouter, Groq, and custom OpenAI-compatible provider support. No-key clicks open setup and send no report data.
 - Build now creates separate installer and portable filenames.
 - Build now cleans stale release artifacts before packaging.
 - PyInstaller now runs through `scripts/build-scanner.js` with absolute paths, avoiding fragile Windows quoting and spec-path behavior.
@@ -72,6 +73,7 @@ The GitHub workflow uploads only the setup executable, setup blockmap, and porta
 - GitHub Actions release packaging now runs clean, test, scanner build, and `npm run package:windows` as separate steps for clearer release failures.
 - GitHub Actions captures Electron Builder packaging output into `package-windows.log`, uploads it for failed runs, and surfaces the tail if packaging fails.
 - Electron Builder packaging now passes `--publish never`; draft GitHub release creation is handled by the explicit `gh release create` step.
+- GitHub release workflow now refreshes existing draft release assets with `gh release upload --clobber`, but refuses to overwrite a published release.
 - GitHub release workflow now uploads explicit artifact paths instead of relying on shell wildcard expansion.
 - Local unsigned build avoids the Electron Builder symlink privilege failure encountered when extracting the Windows code-sign helper.
 
@@ -79,6 +81,7 @@ The GitHub workflow uploads only the setup executable, setup blockmap, and porta
 
 - Windows artifacts are unsigned. Expect SmartScreen friction until code signing is configured.
 - The app still uses the default Electron executable icon in packaged builds. Add a Windows `.ico` before a polished public release.
+- Do not publish an app build that embeds an MDP Studio AI provider key. Desktop users should supply their own key unless a server-side paid AI service is added later.
 - Source is licensed under Apache-2.0. The package remains `private` to prevent accidental npm publishing.
 - Electron Builder currently includes deprecated transitive build-time packages, although `npm audit` reports no vulnerabilities.
 - GitHub Actions are pinned to major versions of official actions, not immutable commit SHAs. Pin to SHAs if you want stricter supply-chain control.

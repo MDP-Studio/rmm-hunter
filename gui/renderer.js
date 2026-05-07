@@ -21,6 +21,16 @@ const aiSummary = document.getElementById("aiSummary");
 const aiNextSteps = document.getElementById("aiNextSteps");
 const aiFindingList = document.getElementById("aiFindingList");
 const aiPrivacyNote = document.getElementById("aiPrivacyNote");
+const aiSettingsToggle = document.getElementById("aiSettingsToggle");
+const aiSettings = document.getElementById("aiSettings");
+const aiProvider = document.getElementById("aiProvider");
+const aiModel = document.getElementById("aiModel");
+const aiEndpoint = document.getElementById("aiEndpoint");
+const aiEndpointGroup = document.getElementById("aiEndpointGroup");
+const aiApiKey = document.getElementById("aiApiKey");
+const aiSaveSettings = document.getElementById("aiSaveSettings");
+const aiClearKey = document.getElementById("aiClearKey");
+const aiSettingsStatus = document.getElementById("aiSettingsStatus");
 const exportJson = document.getElementById("exportJson");
 const exportPdf = document.getElementById("exportPdf");
 const reportPaths = document.getElementById("reportPaths");
@@ -28,6 +38,7 @@ const showJsonPath = document.getElementById("showJsonPath");
 
 let currentReport = null;
 let currentPaths = null;
+let currentAiSettings = null;
 const desktopBridge = window.rmmHunter || {
   startScan: async () => {
     throw new Error("Desktop scanner bridge is unavailable. Start the app with npm.cmd start.");
@@ -35,8 +46,26 @@ const desktopBridge = window.rmmHunter || {
   onProgress: () => () => {},
   exportJson: async () => null,
   exportPdf: async () => null,
+  getAiSettings: async () => ({
+    providers: [],
+    selected: "openai",
+    providerLabel: "OpenAI",
+    endpoint: "",
+    model: "",
+    hasApiKey: false,
+    keySource: "none",
+    setupRequired: true,
+    setupReason: "Desktop scanner bridge is unavailable.",
+    requiresApiKey: true,
+    secureStorageAvailable: false
+  }),
+  saveAiSettings: async () => {
+    throw new Error("Desktop scanner bridge is unavailable. Start the app with npm.cmd start.");
+  },
+  clearAiKey: async () => null,
   explainReport: async () => ({
     available: false,
+    needs_setup: true,
     summary: "Desktop scanner bridge is unavailable. Start the app with npm.cmd start.",
     next_steps: ["Start the Electron app before requesting AI recommendations."],
     finding_explanations: [],
@@ -44,6 +73,10 @@ const desktopBridge = window.rmmHunter || {
   }),
   showPath: async () => null
 };
+
+refreshAiSettings().catch((error) => {
+  aiSettingsStatus.textContent = error?.message || "AI settings could not be loaded.";
+});
 
 desktopBridge.onProgress((payload) => {
   progressPanel.classList.remove("hidden");
@@ -87,7 +120,61 @@ exportPdf.addEventListener("click", async () => {
   }
 });
 
-aiExplain.addEventListener("click", async () => {
+aiExplain.addEventListener("click", requestAiExplanation);
+
+aiSettingsToggle.addEventListener("click", async () => {
+  aiPanel.classList.remove("hidden");
+  aiSettings.classList.toggle("hidden");
+  if (!currentAiSettings) {
+    await refreshAiSettings();
+  }
+});
+
+aiProvider.addEventListener("change", () => {
+  applyProviderDefaults();
+});
+
+aiSaveSettings.addEventListener("click", async () => {
+  aiSaveSettings.disabled = true;
+  aiSettingsStatus.textContent = "Saving AI settings";
+  try {
+    const settings = await desktopBridge.saveAiSettings({
+      provider: aiProvider.value,
+      model: aiModel.value,
+      endpoint: aiEndpoint.value,
+      apiKey: aiApiKey.value
+    });
+    aiApiKey.value = "";
+    renderAiSettings(settings);
+    aiSettingsStatus.textContent = settings.hasApiKey
+      ? "Saved. Your key stays on this Windows profile and is not written to scan reports."
+      : "Provider settings saved. Add an API key before using cloud AI recommendations.";
+
+    if (currentReport && (settings.hasApiKey || !settings.requiresApiKey)) {
+      await requestAiExplanation();
+    }
+  } catch (error) {
+    aiSettingsStatus.textContent = error?.message || "AI settings could not be saved.";
+  } finally {
+    aiSaveSettings.disabled = false;
+  }
+});
+
+aiClearKey.addEventListener("click", async () => {
+  aiClearKey.disabled = true;
+  try {
+    const settings = await desktopBridge.clearAiKey();
+    renderAiSettings(settings);
+    aiSettings.classList.remove("hidden");
+    aiSettingsStatus.textContent = "Saved API key cleared.";
+  } catch (error) {
+    aiSettingsStatus.textContent = error?.message || "Saved API key could not be cleared.";
+  } finally {
+    aiClearKey.disabled = false;
+  }
+});
+
+async function requestAiExplanation() {
   if (!currentReport) {
     return;
   }
@@ -102,9 +189,14 @@ aiExplain.addEventListener("click", async () => {
   aiPrivacyNote.textContent = "";
 
   try {
+    await refreshAiSettings();
     const explanation = await desktopBridge.explainReport(currentReport);
     currentReport.ai_explanation = explanation;
     renderAiExplanation(explanation);
+    if (explanation.needs_setup) {
+      aiSettings.classList.remove("hidden");
+      aiSettingsStatus.textContent = explanation.summary || "Add AI settings to continue.";
+    }
   } catch (error) {
     renderAiExplanation({
       available: false,
@@ -117,7 +209,7 @@ aiExplain.addEventListener("click", async () => {
     aiExplain.disabled = false;
     aiExplain.textContent = "AI Recommendations";
   }
-});
+}
 
 showJsonPath.addEventListener("click", () => {
   if (currentPaths?.json) {
@@ -156,6 +248,7 @@ function resetResults() {
   recommendationsPanel.classList.add("hidden");
   recommendationList.replaceChildren();
   aiPanel.classList.add("hidden");
+  aiSettings.classList.add("hidden");
   aiStatus.textContent = "Optional";
   aiSummary.textContent = "";
   aiNextSteps.replaceChildren();
@@ -215,8 +308,75 @@ function renderRecommendations(recommendations) {
   }));
 }
 
+async function refreshAiSettings() {
+  const settings = await desktopBridge.getAiSettings();
+  renderAiSettings(settings);
+  return settings;
+}
+
+function renderAiSettings(settings) {
+  currentAiSettings = settings || {};
+  const providers = Array.isArray(currentAiSettings.providers) ? currentAiSettings.providers : [];
+  const selected = currentAiSettings.selected || providers[0]?.id || "openai";
+
+  aiProvider.replaceChildren(...providers.map((provider) => {
+    const option = document.createElement("option");
+    option.value = provider.id;
+    option.textContent = provider.label;
+    return option;
+  }));
+
+  if (providers.some((provider) => provider.id === selected)) {
+    aiProvider.value = selected;
+  }
+
+  const provider = providers.find((item) => item.id === aiProvider.value) || providers[0] || {};
+  aiModel.value = currentAiSettings.model || provider.defaultModel || "";
+  aiEndpoint.value = currentAiSettings.endpoint || provider.endpoint || "";
+  aiEndpoint.disabled = !provider.customEndpoint;
+  aiEndpointGroup.classList.toggle("hidden", !provider.customEndpoint);
+  aiApiKey.value = "";
+  aiApiKey.placeholder = currentAiSettings.hasApiKey
+    ? `Saved key from ${currentAiSettings.keySource || "settings"}`
+    : `Paste ${provider.label || "provider"} API key`;
+  aiClearKey.disabled = !currentAiSettings.hasApiKey || currentAiSettings.keySource !== "saved";
+  aiSettingsStatus.textContent = buildAiSettingsStatusText(currentAiSettings, provider);
+}
+
+function applyProviderDefaults() {
+  const providers = Array.isArray(currentAiSettings?.providers) ? currentAiSettings.providers : [];
+  const provider = providers.find((item) => item.id === aiProvider.value) || {};
+  aiModel.value = provider.defaultModel || "";
+  aiEndpoint.value = provider.endpoint || "";
+  aiEndpoint.disabled = !provider.customEndpoint;
+  aiEndpointGroup.classList.toggle("hidden", !provider.customEndpoint);
+  aiApiKey.value = "";
+  aiApiKey.placeholder = `Paste ${provider.label || "provider"} API key`;
+  aiSettingsStatus.textContent = provider.customEndpoint
+    ? "Custom endpoints must be OpenAI-compatible. HTTP is allowed only for localhost."
+    : `Save a ${provider.label || "provider"} key to use this provider.`;
+}
+
+function buildAiSettingsStatusText(settings, provider) {
+  if (!settings.secureStorageAvailable) {
+    return "Secure key storage is unavailable. Use an environment variable for the API key.";
+  }
+  if (settings.hasApiKey) {
+    return settings.keySource === "saved"
+      ? "API key saved locally with Windows profile encryption."
+      : `API key loaded from ${settings.keySource}.`;
+  }
+  if (settings.setupReason) {
+    return settings.setupReason;
+  }
+  return `${provider.label || "AI"} is ready for your API key.`;
+}
+
 function renderAiExplanation(explanation) {
   aiPanel.classList.remove("hidden");
+  if (explanation.available && !explanation.needs_setup) {
+    aiSettings.classList.add("hidden");
+  }
   aiStatus.textContent = explanation.available ? `${explanation.provider || "AI"} ${explanation.model || ""}`.trim() : "Not enabled";
   aiSummary.textContent = explanation.summary || "No AI explanation was returned.";
   aiNextSteps.replaceChildren(...(Array.isArray(explanation.next_steps) ? explanation.next_steps : []).map((text) => {

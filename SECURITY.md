@@ -20,7 +20,9 @@ Report vulnerabilities privately to `meidie@mdpstudio.com.au`. Include:
 
 - The scanner is read-only by default. It does not delete files, stop services, uninstall tools, quarantine artifacts, or change Windows settings.
 - The deterministic scanner verdict is the source of truth. Optional AI explanations cannot set or change `clean`, `needs_review`, or `high_risk`.
-- Optional AI is off by default and only runs when `OPENAI_API_KEY` is present and the user clicks the AI button.
+- Optional AI is off by default and only runs when the user configures a provider key or environment variable and clicks the AI button.
+- Saved AI keys are stored under the local Windows profile and encrypted with Electron safe storage where available. They are never returned to the renderer after saving.
+- If no AI key is configured, the app opens the AI settings panel and does not send report data to any provider.
 - Raw reports can contain local usernames, paths, service data, process command lines, and event excerpts. Treat exported JSON/PDF reports as sensitive.
 - The Electron renderer runs with context isolation, sandboxing, no Node integration, a restrictive CSP, and a narrow preload bridge.
 

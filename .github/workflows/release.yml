@@ -93,9 +93,20 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: pwsh
         run: |
+          $tag = "${{ github.ref_name }}"
           $files = @(
             Get-ChildItem -Path release -File -Filter "RMM-Hunter-Setup-*.exe"
             Get-ChildItem -Path release -File -Filter "RMM-Hunter-Setup-*.exe.blockmap"
             Get-ChildItem -Path release -File -Filter "RMM-Hunter-Portable-*.exe"
           ) | Select-Object -ExpandProperty FullName
-          gh release create "${{ github.ref_name }}" @files --draft --generate-notes --title "RMM Hunter ${{ github.ref_name }}"
+
+          $existingDraft = gh release view $tag --json isDraft --jq ".isDraft" 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            if ($existingDraft -ne "true") {
+              throw "Release $tag already exists and is not a draft. Refusing to overwrite published assets."
+            }
+            gh release upload $tag @files --clobber
+            gh release edit $tag --title "RMM Hunter $tag"
+          } else {
+            gh release create $tag @files --draft --generate-notes --title "RMM Hunter $tag"
+          }

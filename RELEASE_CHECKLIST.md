@@ -26,8 +26,10 @@ Use this checklist before creating a GitHub release.
 - [ ] Run a non-elevated scan and confirm a report is generated under the app profile.
 - [ ] Run an elevated scan and confirm extra event-log coverage where available.
 - [ ] Export JSON and PDF.
-- [ ] Confirm AI is disabled without `OPENAI_API_KEY`.
-- [ ] Confirm the AI panel does not change the deterministic verdict when `OPENAI_API_KEY` is configured.
+- [ ] Confirm AI is disabled without a provider key.
+- [ ] Confirm clicking AI Recommendations with no key opens AI settings and sends no report data.
+- [ ] Confirm the AI panel does not change the deterministic verdict when a provider key is configured.
+- [ ] Confirm saved AI keys are not shown in the UI, JSON report, or PDF export.
 - [ ] Test the portable `.exe`.
 
 ## GitHub Release
@@ -45,6 +47,6 @@ Use this checklist before creating a GitHub release.
 - Windows-only MVP.
 - Best scan coverage requires Administrator.
 - No automatic remediation.
-- AI explanations are optional and cloud-based when enabled.
+- AI explanations are optional, bring-your-own-key, and cloud-based when enabled unless a local custom endpoint is configured.
 - Unsigned builds may trigger Windows SmartScreen until code signing is configured.
 - Local unsigned builds skip Electron executable signing/editing to avoid symlink privilege failures on non-admin Windows sessions. Turn signing back on when a Windows code-signing certificate is available.

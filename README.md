@@ -86,24 +86,40 @@ The GUI provides:
 - Dashboard verdict: `clean`, `needs_review`, or `high_risk`
 - Evidence cards for each finding
 - Deterministic recommended next steps
-- Optional AI explanations and recommendations
+- Optional bring-your-own-key AI explanations and recommendations
 - JSON and PDF export
 - No automatic deletion or remediation
 
-Enable optional AI explanations:
+Optional AI explanations are configured inside the app. Run a scan, click `AI Recommendations`, then choose a provider and paste your own API key when prompted. If no key is configured, the app opens the AI settings panel and does not send report data anywhere.
+
+Built-in provider presets:
+
+- OpenAI: Responses API
+- OpenRouter: OpenAI-compatible chat completions
+- Groq: OpenAI-compatible chat completions
+- Custom OpenAI-compatible endpoint
+
+Saved API keys stay on the local Windows profile and are encrypted with Electron safe storage where available. Keys are not written to scan reports or exports.
+
+Environment variables are also supported for portable or managed use:
 
 ```powershell
 $env:OPENAI_API_KEY = "your-api-key"
 npm.cmd start
 ```
 
-Optional model override:
+Provider and model overrides:
 
 ```powershell
+$env:RMM_HUNTER_AI_PROVIDER = "openai"
 $env:RMM_HUNTER_AI_MODEL = "gpt-5.2"
+$env:RMM_HUNTER_AI_ENDPOINT = "https://api.example.com/v1/chat/completions"
+$env:RMM_HUNTER_AI_API_KEY = "provider-api-key"
 ```
 
-Default model: `gpt-5-mini`.
+Provider-specific API key variables are supported: `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, and `GROQ_API_KEY`.
+
+Default OpenAI model: `gpt-5-mini`.
 
 AI is only used to explain the report and suggest next steps. It does not set or change the scanner verdict. Before any AI request, the desktop app sends a minimized report summary and strips or summarizes sensitive values such as full user paths, emails, long tokens, encoded blobs, and raw event payloads.
 
@@ -205,7 +221,7 @@ RMM Hunter is released under the Apache License 2.0. The npm package remains mar
 
 Reports can include usernames, file paths, command-line fragments, service names, task actions, and event excerpts. Do not publish raw reports without reviewing them.
 
-The optional AI explanation layer is off by default and requires `OPENAI_API_KEY`. If enabled, only sanitized report evidence is sent to the AI provider. Keep the deterministic JSON report as the source of truth for technical review.
+The optional AI explanation layer is off by default and requires a user-supplied provider key or environment variable. If enabled, only sanitized report evidence is sent to the selected AI provider. Keep the deterministic JSON report as the source of truth for technical review.
 
 ## Security And Release Docs
 

@@ -99,9 +99,37 @@
         <section class="ai-panel hidden" id="aiPanel">
           <div class="section-heading">
             <h3>AI explanation</h3>
-            <span id="aiStatus">Optional</span>
+            <div class="section-heading-actions">
+              <span id="aiStatus">Optional</span>
+              <button class="link-button" id="aiSettingsToggle" type="button">AI settings</button>
+            </div>
           </div>
           <p class="ai-summary" id="aiSummary"></p>
+          <section class="ai-settings hidden" id="aiSettings" aria-label="AI provider settings">
+            <div class="settings-grid">
+              <label>
+                Provider
+                <select id="aiProvider"></select>
+              </label>
+              <label>
+                Model
+                <input id="aiModel" type="text" autocomplete="off" spellcheck="false">
+              </label>
+              <label class="settings-wide" id="aiEndpointGroup">
+                Endpoint
+                <input id="aiEndpoint" type="url" autocomplete="off" spellcheck="false">
+              </label>
+              <label class="settings-wide">
+                API key
+                <input id="aiApiKey" type="password" autocomplete="off" spellcheck="false">
+              </label>
+            </div>
+            <div class="settings-actions">
+              <button class="secondary-button" id="aiSaveSettings" type="button">Save AI settings</button>
+              <button class="secondary-button" id="aiClearKey" type="button">Clear saved key</button>
+            </div>
+            <p class="settings-status" id="aiSettingsStatus"></p>
+          </section>
           <ul class="recommendation-list" id="aiNextSteps"></ul>
           <div class="ai-finding-list" id="aiFindingList"></div>
           <p class="privacy-note" id="aiPrivacyNote"></p>
