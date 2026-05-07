@@ -70,7 +70,7 @@ The GitHub workflow uploads only the setup executable, setup blockmap, and porta
 - The scanner build script now detects `.release-venv` or an explicit `RMM_HUNTER_PYINSTALLER` override before falling back to `python -m PyInstaller`.
 - GitHub Actions Python setup now points pip caching at `requirements-build.txt`, matching this repo's build dependency file.
 - GitHub Actions release packaging now runs clean, test, scanner build, and `npm run package:windows` as separate steps for clearer release failures.
-- GitHub Actions captures Electron Builder packaging output into `package-windows.log` and surfaces the tail if packaging fails.
+- GitHub Actions captures Electron Builder packaging output into `package-windows.log`, uploads it for failed runs, and surfaces the tail if packaging fails.
 - GitHub release workflow now uploads explicit artifact paths instead of relying on shell wildcard expansion.
 - Local unsigned build avoids the Electron Builder symlink privilege failure encountered when extracting the Windows code-sign helper.
 

@@ -56,15 +56,26 @@ jobs:
         shell: pwsh
         continue-on-error: true
         run: |
-          npm run package:windows *>&1 | Tee-Object -FilePath package-windows.log
-          exit $LASTEXITCODE
+          npm.cmd run package:windows *> package-windows.log
+          $code = $LASTEXITCODE
+          Get-Content -Path package-windows.log -Tail 120
+          exit $code
+
+      - name: Upload package log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: package-windows-log-${{ github.run_number }}
+          path: package-windows.log
+          if-no-files-found: ignore
 
       - name: Show packaging failure
         if: steps.package_windows.outcome == 'failure'
         shell: pwsh
         run: |
-          $tail = Get-Content -Path package-windows.log -Tail 80
-          Write-Error ($tail -join "`n")
+          $tail = (Get-Content -Path package-windows.log -Tail 40) -join "%0A"
+          Write-Output "::error title=Electron Builder failed::$tail"
+          exit 1
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7
