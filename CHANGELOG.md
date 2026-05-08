@@ -1,13 +1,13 @@
 # Changelog
 
-## 0.1.2 - Unreleased
+## 0.1.2 - 2026-05-08
 
 - Improved AI setup feedback so `AI Recommendations` visibly shows when an API key is needed and focuses the API key field.
 - Evidence cards now wrap long paths, certificate subjects, and command fragments inside the card instead of stretching the dashboard.
 - Added deterministic plain-English finding explanations and non-destructive review-action checklists to the GUI, JSON, text, PDF, and mapped exports.
 - Split routine Defender configuration churn from security-sensitive Defender setting changes to reduce noisy medium findings.
 - Suppressed RMM Hunter release-manifest PowerShell events from local developer scans.
-- Added a GitHub Releases update checker with a manual download button for newer public releases.
+- Added installer auto-update support through GitHub Releases, including update download, progress, and restart-to-install states for installed Windows builds.
 
 ## 0.1.1 - 2026-05-08
 

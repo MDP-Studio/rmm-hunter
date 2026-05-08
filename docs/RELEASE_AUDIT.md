@@ -1,6 +1,6 @@
 # Release Audit
 
-Date: 2026-05-07
+Date: 2026-05-08
 
 ## Scope
 
@@ -32,9 +32,9 @@ Target repository: `https://github.com/MDP-Studio/rmm-hunter`
 
 Current local release artifacts:
 
-- `release/RMM-Hunter-Setup-0.1.1-x64.exe`
-- `release/RMM-Hunter-Setup-0.1.1-x64.exe.blockmap`
-- `release/RMM-Hunter-Portable-0.1.1-x64.exe`
+- `release/RMM-Hunter-Setup-0.1.2-x64.exe`
+- `release/RMM-Hunter-Setup-0.1.2-x64.exe.blockmap`
+- `release/RMM-Hunter-Portable-0.1.2-x64.exe`
 
 Electron Builder also creates local debug output:
 
@@ -42,7 +42,7 @@ Electron Builder also creates local debug output:
 - `release/builder-debug.yml`
 - `release/latest.yml`
 
-The GitHub workflow uploads only the setup executable, setup blockmap, and portable executable.
+The GitHub workflow uploads the setup executable, setup blockmap, portable executable, and `latest.yml` so installed NSIS builds can discover and download updates from GitHub Releases.
 
 ## Verification Matrix
 
@@ -86,6 +86,7 @@ The GitHub workflow uploads only the setup executable, setup blockmap, and porta
 - `PRIVACY.md` now documents local report handling and optional AI provider data handling.
 - `docs/CODE_SIGNING_POLICY.md` now documents the SignPath-ready signing policy, maintainer roles, signing scope, MFA expectation, release integrity gates, and security-tool scope.
 - GitHub Actions now publishes `SHA256SUMS.txt`, `rmm-hunter-release-manifest.json`, and `VERIFY_RELEASE.md` beside Windows release assets.
+- GitHub Actions now publishes `latest.yml` beside Windows release assets so installed builds can use the official GitHub release as the auto-update feed.
 - The CLI now supports `--mapped-out` for profile `rmm-hunter.detection-mapping.v1`, preserving deterministic verdict behavior while adding portable detection labels.
 - `scripts/evaluate_corpus.py` now runs a seeded corpus and fails the verification gate on verdict or expected-category regressions.
 - `docs/DETECTION_MAPPING.md` and `docs/COVERAGE_SCORECARD.md` now document the mapping matrix and current seeded coverage scorecard.
@@ -115,12 +116,12 @@ npm run dist
 Installer smoke test:
 
 ```powershell
-release\RMM-Hunter-Setup-0.1.1-x64.exe /S /D=%TEMP%\RMMHunterInstallTest
+release\RMM-Hunter-Setup-0.1.2-x64.exe /S /D=%TEMP%\RMMHunterInstallTest
 ```
 
 ## Next Release Steps
 
-1. Publish the generated `v0.1.1` draft as an unsigned prerelease with clear SmartScreen wording and verification assets.
+1. Publish the generated `v0.1.2` draft as an unsigned prerelease with clear SmartScreen wording and verification assets.
 2. Confirm GitHub MFA is enabled for the maintainer account.
 3. Apply to SignPath Foundation using the public repository, public release page, privacy policy, and code-signing policy.
 4. After SignPath approval, add the SignPath GitHub Actions signing step and required repository secret.

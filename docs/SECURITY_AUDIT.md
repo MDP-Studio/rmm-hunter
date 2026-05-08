@@ -36,7 +36,7 @@ No reportable security vulnerabilities were found in the application code after 
 - Renderer evidence and AI output are inserted as text nodes.
 - Finding review-action buttons only expand local guidance. They do not delete files, stop services, change settings, or execute remediation commands.
 - PDF report HTML escapes report fields and includes a restrictive CSP.
-- Update checks run in the Electron main process against the public GitHub Releases API. The renderer CSP remains `connect-src 'none'`, no scan evidence is sent, and external opening is restricted to the official RMM Hunter GitHub release path.
+- Update checks and installer downloads run in the Electron main process through `electron-updater` and GitHub Releases metadata. The renderer CSP remains `connect-src 'none'`, no scan evidence is sent, and external opening is restricted to the official RMM Hunter GitHub release path.
 - Optional AI explanations are off by default, send only sanitized/minimized report data, enforce a payload cap, and cannot change the deterministic verdict.
 - AI recommendation setup checks run before provider calls. If an API key is missing, the app shows local setup guidance and sends no report data to an AI provider.
 - AI provider settings support OpenAI, OpenRouter, Groq, and custom OpenAI-compatible endpoints. Saved API keys are encrypted with Electron safe storage when available and are never returned to the renderer after saving.
@@ -67,9 +67,9 @@ No reportable security vulnerabilities were found in the application code after 
 
 - `npm run release:verify` passed.
 - `npm run dist` produced:
-  - `release/RMM-Hunter-Setup-0.1.1-x64.exe`
-  - `release/RMM-Hunter-Portable-0.1.1-x64.exe`
-  - `release/RMM-Hunter-Setup-0.1.1-x64.exe.blockmap`
+  - `release/RMM-Hunter-Setup-0.1.2-x64.exe`
+  - `release/RMM-Hunter-Portable-0.1.2-x64.exe`
+  - `release/RMM-Hunter-Setup-0.1.2-x64.exe.blockmap`
 - The bundled scanner executable under `release/win-unpacked/resources/bin/rmm-hunter-cli.exe` successfully analyzed the high-risk sample artifact.
 - The unpacked packaged app launched and stayed alive.
 - The portable executable launched and stayed alive.
@@ -81,7 +81,8 @@ No reportable security vulnerabilities were found in the application code after 
 - Raw reports can contain sensitive local evidence. Keep `reports/` ignored and add a visible report-retention control in a future version.
 - User-supplied AI keys are local machine secrets. Do not add an MDP Studio shared API key to public desktop builds.
 - Administrator mode improves scan coverage, but the app intentionally requests `asInvoker` to avoid unnecessary privilege escalation.
-- Electron Builder writes `builder-debug.yml`, `latest.yml`, and `win-unpacked` into `release/` for local debugging/update metadata. The GitHub workflow uploads only the setup executable, setup blockmap, and portable executable.
+- Electron Builder writes `builder-debug.yml`, `latest.yml`, and `win-unpacked` into `release/` for local debugging/update metadata. The GitHub workflow uploads `latest.yml` because installed builds need it for auto-update checks.
+- Until code signing is configured, auto-update should be treated as beta-channel convenience rather than broad public trust. The updater relies on GitHub release provenance and Electron update integrity metadata, but Windows publisher trust still needs a signing certificate.
 - Detection quality claims should stay tied to measured seeded-corpus results. `docs/GAP_ADDENDUM.md` tracks the eval harness and scorecard as follow-on work.
 
 ## Commands

@@ -89,7 +89,7 @@ The GUI provides:
 - Evidence cards for each finding
 - Plain-English finding explanations with non-destructive review actions
 - Deterministic recommended next steps
-- GitHub Releases update check with a manual download button when a newer version exists
+- GitHub Releases update check with installer auto-update for the installed Windows build
 - Optional bring-your-own-key AI explanations and recommendations
 - JSON and PDF export
 - No automatic deletion or remediation
@@ -170,7 +170,9 @@ The GitHub release build is Windows-first. It bundles the Python scanner as a Py
 
 Current public downloads are published from GitHub Releases. RMM Hunter beta releases are unsigned until SignPath or another trusted signing route is configured, so Windows may show `Unknown publisher` or Microsoft Defender SmartScreen warnings. Verify release artifacts with the bundled `SHA256SUMS.txt`, `rmm-hunter-release-manifest.json`, and `VERIFY_RELEASE.md` files.
 
-The desktop app can check the official GitHub Releases page for newer versions. Update checks do not send scan reports or artifacts. When an update is available, the app opens the release page only after the user clicks the update/download action.
+The installed Windows app can check GitHub Releases for newer versions, download the NSIS installer update, and restart to install it after the user clicks the update action. Update checks do not send scan reports or artifacts. Portable builds can still check for updates, but they must be replaced manually from the release page.
+
+Builds older than `0.1.2` only opened the GitHub release page. Install `0.1.2` manually once, then later installed builds can use the in-app download and restart-to-install flow.
 
 The Windows app icon is tracked at `gui/assets/icon.ico`, with SVG/PNG sources beside it. Regenerate it from `gui/assets/icon.svg` with ImageMagick:
 
@@ -205,7 +207,7 @@ Build Windows installer and portable artifacts:
 npm.cmd run dist
 ```
 
-Release packaging passes `--publish never` to Electron Builder. The GitHub workflow creates the draft GitHub release explicitly after artifacts are built.
+Release packaging passes `--publish never` to Electron Builder. The GitHub workflow creates the draft GitHub release explicitly after artifacts are built and uploads `latest.yml` so installed NSIS builds can auto-update from GitHub Releases.
 
 Package only, after `npm.cmd run build:scanner` has already produced the scanner executable:
 
@@ -222,13 +224,13 @@ GitHub Actions workflow:
 - `.github/workflows/release.yml`
 - manual `workflow_dispatch`
 - automatic draft release when pushing a `v*` tag
-- release assets include `SHA256SUMS.txt`, `rmm-hunter-release-manifest.json`, and `VERIFY_RELEASE.md`
+- release assets include `SHA256SUMS.txt`, `rmm-hunter-release-manifest.json`, `VERIFY_RELEASE.md`, and `latest.yml`
 
 Example tag flow after committing:
 
 ```powershell
-git tag v0.1.1
-git push origin v0.1.1
+git tag v0.1.2
+git push origin v0.1.2
 ```
 
 RMM Hunter is released under the Apache License 2.0. The npm package remains marked `private` to prevent accidental registry publishing.

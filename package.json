@@ -1,6 +1,6 @@
 {
   "name": "rmm-hunter",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Windows desktop scanner for unauthorized remote access tools and living-off-the-land traces.",
   "main": "gui/main.js",
   "author": "Meidie <meidie@mdpstudio.com.au>",
@@ -35,6 +35,13 @@
     "directories": {
       "output": "release"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "MDP-Studio",
+        "repo": "rmm-hunter"
+      }
+    ],
     "files": [
       "gui/**/*",
       "rmm_hunter.py",
@@ -84,5 +91,8 @@
   "devDependencies": {
     "electron": "42.0.0",
     "electron-builder": "^26.8.1"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.3"
   }
 }

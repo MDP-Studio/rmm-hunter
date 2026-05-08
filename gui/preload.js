@@ -7,6 +7,11 @@ contextBridge.exposeInMainWorld("rmmHunter", {
     ipcRenderer.on("scan:progress", listener);
     return () => ipcRenderer.removeListener("scan:progress", listener);
   },
+  onUpdateStatus: (callback) => {
+    const listener = (_event, payload) => callback(payload);
+    ipcRenderer.on("updates:status", listener);
+    return () => ipcRenderer.removeListener("updates:status", listener);
+  },
   exportJson: (report) => ipcRenderer.invoke("report:exportJson", report),
   exportPdf: (report) => ipcRenderer.invoke("report:exportPdf", report),
   getAiSettings: () => ipcRenderer.invoke("ai:getSettings"),
@@ -15,5 +20,7 @@ contextBridge.exposeInMainWorld("rmmHunter", {
   explainReport: (report) => ipcRenderer.invoke("ai:explainReport", report),
   showPath: (targetPath) => ipcRenderer.invoke("path:show", targetPath),
   checkUpdates: () => ipcRenderer.invoke("updates:check"),
+  downloadUpdate: () => ipcRenderer.invoke("updates:download"),
+  installUpdate: () => ipcRenderer.invoke("updates:install"),
   openUpdate: (releaseUrl) => ipcRenderer.invoke("updates:openRelease", releaseUrl)
 });

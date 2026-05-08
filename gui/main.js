@@ -1,4 +1,5 @@
 const { app, BrowserWindow, dialog, ipcMain, safeStorage, shell } = require("electron");
+const { autoUpdater } = require("electron-updater");
 const childProcess = require("node:child_process");
 const fs = require("node:fs");
 const http = require("node:http");
@@ -77,8 +78,19 @@ const AI_PROVIDERS = Object.freeze({
 });
 
 let mainWindow;
+let updaterState = {
+  status: "idle",
+  currentVersion: APP_VERSION,
+  latestVersion: APP_VERSION,
+  updateAvailable: false,
+  updateDownloaded: false,
+  canAutoUpdate: app.isPackaged,
+  releaseUrl: RELEASES_URL,
+  message: "Update check has not run yet."
+};
 
 configureElectronStorage();
+configureAutoUpdater();
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -149,6 +161,75 @@ function configureElectronStorage() {
   }
 
   app.commandLine.appendSwitch("disable-gpu-shader-disk-cache");
+}
+
+function configureAutoUpdater() {
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.allowPrerelease = true;
+  autoUpdater.allowDowngrade = false;
+
+  autoUpdater.on("checking-for-update", () => {
+    setUpdaterState({
+      status: "checking",
+      updateAvailable: false,
+      updateDownloaded: false,
+      message: "Checking the official GitHub Releases feed."
+    });
+  });
+
+  autoUpdater.on("update-available", (info) => {
+    setUpdaterState({
+      status: "available",
+      latestVersion: normalizeVersion(info?.version) || String(info?.version || APP_VERSION),
+      updateAvailable: true,
+      updateDownloaded: false,
+      releaseName: String(info?.releaseName || info?.version || ""),
+      releaseUrl: releasePageUrl(info?.version),
+      message: `RMM Hunter ${info?.version || "update"} is available.`
+    });
+  });
+
+  autoUpdater.on("update-not-available", (info) => {
+    setUpdaterState({
+      status: "current",
+      latestVersion: normalizeVersion(info?.version) || APP_VERSION,
+      updateAvailable: false,
+      updateDownloaded: false,
+      message: `RMM Hunter ${APP_VERSION} is up to date.`
+    });
+  });
+
+  autoUpdater.on("download-progress", (progress) => {
+    setUpdaterState({
+      status: "downloading",
+      downloadProgress: {
+        percent: Number.isFinite(progress?.percent) ? Math.max(0, Math.min(100, progress.percent)) : 0,
+        transferred: Number.isFinite(progress?.transferred) ? progress.transferred : 0,
+        total: Number.isFinite(progress?.total) ? progress.total : 0,
+        bytesPerSecond: Number.isFinite(progress?.bytesPerSecond) ? progress.bytesPerSecond : 0
+      },
+      message: `Downloading update ${Math.round(progress?.percent || 0)}%.`
+    });
+  });
+
+  autoUpdater.on("update-downloaded", (info) => {
+    setUpdaterState({
+      status: "downloaded",
+      latestVersion: normalizeVersion(info?.version) || updaterState.latestVersion,
+      updateAvailable: true,
+      updateDownloaded: true,
+      message: "Update downloaded. Restart RMM Hunter to install it."
+    });
+  });
+
+  autoUpdater.on("error", (error) => {
+    setUpdaterState({
+      status: "error",
+      updateDownloaded: false,
+      message: updateErrorMessage(error)
+    });
+  });
 }
 
 ipcMain.handle("scan:start", async () => {
@@ -273,6 +354,16 @@ ipcMain.handle("updates:openRelease", async (_event, releaseUrl) => {
   return true;
 });
 
+ipcMain.handle("updates:download", async () => downloadAvailableUpdate());
+
+ipcMain.handle("updates:install", async () => {
+  if (!updaterState.updateDownloaded) {
+    throw new Error("No downloaded update is ready to install.");
+  }
+  autoUpdater.quitAndInstall(false, true);
+  return publicUpdaterState();
+});
+
 function runScanner(args) {
   return new Promise((resolve, reject) => {
     const scanner = resolveScannerProcess(args);
@@ -346,13 +437,55 @@ function sendProgress(stage, detail) {
 }
 
 async function checkForUpdates() {
+  if (!app.isPackaged) {
+    return checkForUpdatesFromGithub();
+  }
+
+  try {
+    await autoUpdater.checkForUpdates();
+  } catch (error) {
+    setUpdaterState({
+      status: "error",
+      message: updateErrorMessage(error)
+    });
+  }
+  return publicUpdaterState();
+}
+
+async function downloadAvailableUpdate() {
+  if (!app.isPackaged) {
+    throw new Error("Automatic update installation is only available from the installed Windows app.");
+  }
+  if (!updaterState.updateAvailable) {
+    throw new Error("No newer RMM Hunter release is available to download.");
+  }
+  setUpdaterState({
+    status: "downloading",
+    message: "Starting update download."
+  });
+  try {
+    await autoUpdater.downloadUpdate();
+  } catch (error) {
+    setUpdaterState({
+      status: "error",
+      message: updateErrorMessage(error)
+    });
+    throw error;
+  }
+  return publicUpdaterState();
+}
+
+async function checkForUpdatesFromGithub() {
   const releases = await fetchGithubReleases();
   const latest = selectLatestRelease(releases);
   if (!latest) {
     return {
+      status: "current",
       currentVersion: APP_VERSION,
       latestVersion: APP_VERSION,
       updateAvailable: false,
+      updateDownloaded: false,
+      canAutoUpdate: false,
       releaseUrl: RELEASES_URL,
       message: "No public GitHub release was found."
     };
@@ -364,15 +497,59 @@ async function checkForUpdates() {
     currentVersion: APP_VERSION,
     latestVersion,
     updateAvailable,
+    updateDownloaded: false,
+    canAutoUpdate: false,
     releaseName: String(latest.name || latest.tag_name || latestVersion),
     releaseUrl: safeReleaseUrl(latest.html_url)?.href || RELEASES_URL,
     publishedAt: latest.published_at || "",
     prerelease: Boolean(latest.prerelease),
     assets: sanitizeReleaseAssets(latest.assets),
+    status: updateAvailable ? "available" : "current",
     message: updateAvailable
       ? `RMM Hunter ${latestVersion} is available.`
       : `RMM Hunter ${APP_VERSION} is up to date.`
   };
+}
+
+function publicUpdaterState() {
+  return {
+    status: updaterState.status,
+    currentVersion: updaterState.currentVersion,
+    latestVersion: updaterState.latestVersion,
+    updateAvailable: updaterState.updateAvailable,
+    updateDownloaded: updaterState.updateDownloaded,
+    canAutoUpdate: updaterState.canAutoUpdate,
+    releaseName: updaterState.releaseName || "",
+    releaseUrl: updaterState.releaseUrl || RELEASES_URL,
+    publishedAt: updaterState.publishedAt || "",
+    prerelease: Boolean(updaterState.prerelease),
+    downloadProgress: updaterState.downloadProgress || null,
+    message: updaterState.message || ""
+  };
+}
+
+function setUpdaterState(nextState) {
+  updaterState = {
+    ...updaterState,
+    ...nextState,
+    currentVersion: APP_VERSION,
+    canAutoUpdate: app.isPackaged,
+    releaseUrl: safeReleaseUrl(nextState.releaseUrl || updaterState.releaseUrl)?.href || RELEASES_URL
+  };
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("updates:status", publicUpdaterState());
+  }
+}
+
+function updateErrorMessage(error) {
+  const message = String(error?.message || error || "Update failed.");
+  if (message.includes("latest.yml") || message.includes("404")) {
+    return "Update metadata was not found. Publish a new GitHub release that includes latest.yml, the installer, and the blockmap.";
+  }
+  if (message.toLowerCase().includes("code signature")) {
+    return "The update could not be verified. Publish a signed release or use the manual GitHub download.";
+  }
+  return message;
 }
 
 function fetchGithubReleases() {
@@ -473,6 +650,12 @@ function sanitizeReleaseAssets(assets) {
     size: Number.isFinite(asset?.size) ? asset.size : 0,
     downloadUrl: String(asset?.browser_download_url || "")
   }));
+}
+
+function releasePageUrl(version) {
+  const normalized = normalizeVersion(version);
+  const url = normalized ? `${RELEASES_URL}/tag/v${normalized}` : RELEASES_URL;
+  return safeReleaseUrl(url)?.href || RELEASES_URL;
 }
 
 function safeReleaseUrl(value) {

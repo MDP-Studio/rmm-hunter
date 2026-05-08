@@ -9,23 +9,24 @@ Download the release asset you want to test from GitHub Releases, plus:
 - `SHA256SUMS.txt`
 - `rmm-hunter-release-manifest.json`
 - `VERIFY_RELEASE.md`
+- `latest.yml` if you are verifying installed-app auto-update metadata
 
 ## 2. Verify SHA256
 
 From the folder containing the downloaded files:
 
 ```powershell
-Get-FileHash .\RMM-Hunter-Setup-0.1.1-x64.exe -Algorithm SHA256
-Get-FileHash .\RMM-Hunter-Portable-0.1.1-x64.exe -Algorithm SHA256
+Get-FileHash .\RMM-Hunter-Setup-<version>-x64.exe -Algorithm SHA256
+Get-FileHash .\RMM-Hunter-Portable-<version>-x64.exe -Algorithm SHA256
 ```
 
-Compare the hashes with `SHA256SUMS.txt` and the matching entries in `rmm-hunter-release-manifest.json`.
+Compare the hashes with `SHA256SUMS.txt` and the matching entries in `rmm-hunter-release-manifest.json`. Installed Windows builds also use the `sha512` value in `latest.yml` for Electron auto-update integrity checks.
 
 ## 3. Verify Authenticode Signature
 
 ```powershell
-Get-AuthenticodeSignature .\RMM-Hunter-Setup-0.1.1-x64.exe | Format-List
-Get-AuthenticodeSignature .\RMM-Hunter-Portable-0.1.1-x64.exe | Format-List
+Get-AuthenticodeSignature .\RMM-Hunter-Setup-<version>-x64.exe | Format-List
+Get-AuthenticodeSignature .\RMM-Hunter-Portable-<version>-x64.exe | Format-List
 ```
 
 Current unsigned beta builds are expected to show:

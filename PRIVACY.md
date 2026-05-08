@@ -25,9 +25,9 @@ Do not publish or send raw scan reports unless you have reviewed them. They can 
 
 ## Update Checks
 
-The desktop app checks the public GitHub Releases API to see whether a newer RMM Hunter version is available. This request does not include scan reports, artifacts, usernames, file paths, event logs, AI settings, or API keys.
+The desktop app checks public GitHub Releases metadata to see whether a newer RMM Hunter version is available. This request does not include scan reports, artifacts, usernames, file paths, event logs, AI settings, or API keys.
 
-GitHub receives normal request metadata such as IP address, time, and user agent. The app opens the GitHub release page only after the user clicks the update/download action.
+If the installed Windows app downloads an update, it downloads the public release installer and update metadata from GitHub Releases. GitHub receives normal request metadata such as IP address, time, and user agent. Portable builds do not install updates automatically.
 
 ## Optional AI Recommendations
 

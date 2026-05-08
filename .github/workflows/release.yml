@@ -95,6 +95,7 @@ jobs:
           path: |
             release/RMM-Hunter-Setup-*.exe
             release/RMM-Hunter-Setup-*.exe.blockmap
+            release/latest.yml
             release/RMM-Hunter-Portable-*.exe
             release/SHA256SUMS.txt
             release/rmm-hunter-release-manifest.json
@@ -111,6 +112,7 @@ jobs:
           $files = @(
             Get-ChildItem -Path release -File -Filter "RMM-Hunter-Setup-*.exe"
             Get-ChildItem -Path release -File -Filter "RMM-Hunter-Setup-*.exe.blockmap"
+            Get-ChildItem -Path release -File -Filter "latest.yml"
             Get-ChildItem -Path release -File -Filter "RMM-Hunter-Portable-*.exe"
             Get-ChildItem -Path release -File -Filter "SHA256SUMS.txt"
             Get-ChildItem -Path release -File -Filter "rmm-hunter-release-manifest.json"

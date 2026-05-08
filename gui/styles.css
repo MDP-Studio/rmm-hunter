@@ -250,6 +250,12 @@ select {
   border-color: #b7c8e2;
 }
 
+.update-panel.downloading,
+.update-panel.downloaded {
+  background: #f7fbff;
+  border-color: #b7c8e2;
+}
+
 .update-panel.current {
   background: var(--green-soft);
   border-color: #bddfcf;

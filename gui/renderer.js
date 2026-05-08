@@ -55,6 +55,7 @@ const desktopBridge = window.rmmHunter || {
     throw new Error("Desktop scanner bridge is unavailable. Start the app with npm.cmd start.");
   },
   onProgress: () => () => {},
+  onUpdateStatus: () => () => {},
   exportJson: async () => null,
   exportPdf: async () => null,
   getAiSettings: async () => ({
@@ -90,6 +91,12 @@ const desktopBridge = window.rmmHunter || {
     releaseUrl: "https://github.com/MDP-Studio/rmm-hunter/releases",
     message: "Desktop scanner bridge is unavailable."
   }),
+  downloadUpdate: async () => {
+    throw new Error("Automatic update installation is only available from the installed Windows app.");
+  },
+  installUpdate: async () => {
+    throw new Error("No downloaded update is ready to install.");
+  },
   openUpdate: async () => false
 };
 
@@ -103,6 +110,14 @@ desktopBridge.onProgress((payload) => {
   progressPanel.classList.remove("hidden");
   progressStage.textContent = payload.stage || "Scanning";
   appendProgress(payload.detail || payload.stage || "Working");
+});
+
+desktopBridge.onUpdateStatus((payload) => {
+  if (payload?.status === "current") {
+    currentUpdate = payload;
+    return;
+  }
+  renderUpdateFromState(payload, { silentCurrent: true });
 });
 
 scanButton.addEventListener("click", async () => {
@@ -148,17 +163,25 @@ checkUpdatesButton.addEventListener("click", () => {
 });
 
 openUpdate.addEventListener("click", async () => {
-  if (!currentUpdate?.releaseUrl) {
+  if (!currentUpdate) {
     return;
   }
   openUpdate.disabled = true;
   try {
-    await desktopBridge.openUpdate(currentUpdate.releaseUrl);
+    if (currentUpdate.updateDownloaded) {
+      await desktopBridge.installUpdate();
+    } else if (currentUpdate.updateAvailable && currentUpdate.canAutoUpdate) {
+      const state = await desktopBridge.downloadUpdate();
+      renderUpdateFromState(state);
+    } else if (currentUpdate.releaseUrl) {
+      await desktopBridge.openUpdate(currentUpdate.releaseUrl);
+    }
   } catch (error) {
     renderUpdatePanel({
       state: "error",
-      title: "Could not open update page",
-      text: error?.message || "Open the GitHub Releases page manually from the README."
+      title: "Update action failed",
+      text: error?.message || "Open the GitHub Releases page manually from the README.",
+      actionMode: "none"
     });
   } finally {
     openUpdate.disabled = false;
@@ -288,34 +311,23 @@ async function checkForUpdates({ silent = false } = {}) {
     renderUpdatePanel({
       state: "checking",
       title: "Checking for updates",
-      text: "Looking at the official GitHub Releases page."
+      text: "Looking at the official GitHub Releases page.",
+      actionMode: "none"
     });
   }
 
   try {
     const update = await desktopBridge.checkUpdates();
-    currentUpdate = update;
-    if (update.updateAvailable) {
-      renderUpdatePanel({
-        state: "available",
-        title: `Update available: ${update.latestVersion}`,
-        text: `You are running ${update.currentVersion}. Download the new release from the official GitHub Releases page.`,
-        releaseUrl: update.releaseUrl
-      });
-    } else if (!silent) {
-      renderUpdatePanel({
-        state: "current",
-        title: "RMM Hunter is up to date",
-        text: update.message || `You are running ${update.currentVersion}.`,
-        releaseUrl: update.releaseUrl
-      });
+    if (update.updateAvailable || !silent) {
+      renderUpdateFromState(update);
     }
   } catch (error) {
     if (!silent) {
       renderUpdatePanel({
         state: "error",
         title: "Could not check for updates",
-        text: error?.message || "Check the GitHub Releases page manually."
+        text: error?.message || "Check the GitHub Releases page manually.",
+        actionMode: "none"
       });
     }
   } finally {
@@ -324,7 +336,71 @@ async function checkForUpdates({ silent = false } = {}) {
   }
 }
 
-function renderUpdatePanel({ state, title, text, releaseUrl }) {
+function renderUpdateFromState(update, { silentCurrent = false } = {}) {
+  currentUpdate = update || currentUpdate;
+  if (!currentUpdate) {
+    return;
+  }
+  if (silentCurrent && currentUpdate.status === "current") {
+    return;
+  }
+
+  const progress = currentUpdate.downloadProgress?.percent;
+  if (currentUpdate.status === "downloading") {
+    renderUpdatePanel({
+      state: "downloading",
+      title: "Downloading update",
+      text: Number.isFinite(progress)
+        ? `Downloading RMM Hunter ${currentUpdate.latestVersion}: ${Math.round(progress)}%.`
+        : currentUpdate.message || "Downloading the update.",
+      actionMode: "none"
+    });
+    return;
+  }
+
+  if (currentUpdate.updateDownloaded || currentUpdate.status === "downloaded") {
+    renderUpdatePanel({
+      state: "downloaded",
+      title: "Update ready to install",
+      text: "Restart RMM Hunter to finish installing the downloaded update.",
+      actionMode: "install"
+    });
+    return;
+  }
+
+  if (currentUpdate.updateAvailable) {
+    renderUpdatePanel({
+      state: "available",
+      title: `Update available: ${currentUpdate.latestVersion}`,
+      text: currentUpdate.canAutoUpdate
+        ? `You are running ${currentUpdate.currentVersion}. Download and install the new release from GitHub Releases.`
+        : `You are running ${currentUpdate.currentVersion}. This build cannot auto-install updates, so open GitHub Releases to download it.`,
+      releaseUrl: currentUpdate.releaseUrl,
+      actionMode: currentUpdate.canAutoUpdate ? "download" : "open"
+    });
+    return;
+  }
+
+  if (currentUpdate.status === "error") {
+    renderUpdatePanel({
+      state: "error",
+      title: "Could not check for updates",
+      text: currentUpdate.message || "Open the GitHub Releases page manually.",
+      actionMode: currentUpdate.releaseUrl ? "open" : "none"
+    });
+    return;
+  }
+
+  renderUpdatePanel({
+    state: "current",
+    title: "RMM Hunter is up to date",
+    text: currentUpdate.message || `You are running ${currentUpdate.currentVersion}.`,
+    releaseUrl: currentUpdate.releaseUrl,
+    actionMode: "open"
+  });
+}
+
+function renderUpdatePanel({ state, title, text, releaseUrl, actionMode = "open" }) {
   updatePanel.className = `update-panel ${state || "current"}`;
   updateStatus.textContent = state === "available" ? "Update available" : "Updates";
   updateTitle.textContent = title;
@@ -332,10 +408,19 @@ function renderUpdatePanel({ state, title, text, releaseUrl }) {
   if (releaseUrl) {
     currentUpdate = { ...(currentUpdate || {}), releaseUrl };
   }
-  const canOpenRelease = Boolean(currentUpdate?.releaseUrl) && state !== "checking" && state !== "error";
-  openUpdate.classList.toggle("hidden", !canOpenRelease);
-  openUpdate.textContent = state === "available" ? "Download update" : "Open release page";
+  openUpdate.classList.toggle("hidden", actionMode === "none");
+  openUpdate.textContent = updateActionText(actionMode);
   updatePanel.classList.remove("hidden");
+}
+
+function updateActionText(actionMode) {
+  if (actionMode === "download") {
+    return "Download and install";
+  }
+  if (actionMode === "install") {
+    return "Restart and install";
+  }
+  return "Open release page";
 }
 
 function setScanning(isScanning) {
