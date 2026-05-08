@@ -5,6 +5,7 @@ const progressLog = document.getElementById("progressLog");
 const verdictPanel = document.getElementById("verdictPanel");
 const verdictText = document.getElementById("verdictText");
 const riskScore = document.getElementById("riskScore");
+const summaryPanel = document.getElementById("summaryPanel");
 const summaryText = document.getElementById("summaryText");
 const findingCount = document.getElementById("findingCount");
 const highCount = document.getElementById("highCount");
@@ -45,6 +46,14 @@ const updateTitle = document.getElementById("updateTitle");
 const updateText = document.getElementById("updateText");
 const openUpdate = document.getElementById("openUpdate");
 const dismissUpdate = document.getElementById("dismissUpdate");
+const externalLinks = {
+  openIssues: "https://github.com/MDP-Studio/rmm-hunter/issues/new/choose",
+  openSecurityPolicy: "https://github.com/MDP-Studio/rmm-hunter/security/policy",
+  openEmail: "mailto:meidie@mdpstudio.com.au?subject=RMM%20Hunter%20feedback",
+  openCoffee: "https://buymeacoffee.com/meidie",
+  openRepo: "https://github.com/MDP-Studio/rmm-hunter",
+  openPrivacy: "https://github.com/MDP-Studio/rmm-hunter/blob/main/PRIVACY.md"
+};
 
 let currentReport = null;
 let currentPaths = null;
@@ -97,7 +106,8 @@ const desktopBridge = window.rmmHunter || {
   installUpdate: async () => {
     throw new Error("No downloaded update is ready to install.");
   },
-  openUpdate: async () => false
+  openUpdate: async () => false,
+  openExternalLink: async () => false
 };
 
 refreshAiSettings().catch((error) => {
@@ -157,6 +167,24 @@ exportPdf.addEventListener("click", async () => {
 });
 
 aiExplain.addEventListener("click", requestAiExplanation);
+
+for (const [buttonId, url] of Object.entries(externalLinks)) {
+  const button = document.getElementById(buttonId);
+  if (button) {
+    button.addEventListener("click", () => {
+      desktopBridge.openExternalLink(url).catch((error) => {
+        appendProgress(error?.message || "Could not open external link.");
+      });
+    });
+  }
+}
+
+document.querySelectorAll("[data-scroll-target]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const target = document.getElementById(button.dataset.scrollTarget);
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+});
 
 checkUpdatesButton.addEventListener("click", () => {
   checkForUpdates({ silent: false });
@@ -582,8 +610,8 @@ function buildAiSettingsStatusText(settings, provider) {
 
 function renderAiSetupNeeded(message) {
   const setupText = message || "Add your own provider API key to generate AI recommendations.";
-  aiPanel.classList.remove("hidden");
-  aiSettings.classList.remove("hidden");
+  aiPanel.classList.add("hidden");
+  aiSettings.classList.add("hidden");
   aiStatus.textContent = "Setup needed";
   aiSummary.textContent = setupText;
   aiNextSteps.replaceChildren(...[
@@ -598,7 +626,7 @@ function renderAiSetupNeeded(message) {
   aiFindingList.replaceChildren();
   aiPrivacyNote.textContent = "No report data was sent to an AI provider.";
   showAiSetupNotice(setupText);
-  openAiSettings({ focusApiKey: true });
+  summaryPanel.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 function showAiSetupNotice(message) {

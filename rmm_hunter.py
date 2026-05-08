@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
-SCANNER_VERSION = "0.1.2"
+SCANNER_VERSION = "0.1.3"
 
 REMOTE_TOOLS: dict[str, tuple[str, ...]] = {
     "ScreenConnect / ConnectWise Control": (
@@ -162,6 +162,14 @@ DEFENDER_SENSITIVE_CONFIG_TERMS = (
     "cloudblocklevel",
     "controlledfolderaccess",
     "disableantispyware",
+)
+
+DEFENDER_ROUTINE_CONFIG_TERMS = (
+    "\\features\\ecsconfigs\\",
+    "mpdisablepropbagnotification",
+    "spynetreportinglocation",
+    "toastorssotrigger",
+    "wdconfighash",
 )
 
 SEVERITY_SCORE = {
@@ -443,6 +451,8 @@ def defender_config_is_sensitive(event: dict[str, Any]) -> bool:
     if event_id in {5001, 5004, 5013}:
         return True
     text = event_data_text(event)
+    if any(term in text for term in DEFENDER_ROUTINE_CONFIG_TERMS):
+        return False
     return any(term in text for term in DEFENDER_SENSITIVE_CONFIG_TERMS)
 
 

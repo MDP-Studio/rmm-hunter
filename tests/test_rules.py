@@ -138,6 +138,35 @@ class RuleTests(unittest.TestCase):
         self.assertEqual(report["findings"][0]["category"], "defender_sensitive_configuration_event")
         self.assertEqual(report["findings"][0]["severity"], "medium")
 
+    def test_internal_defender_notification_key_is_routine(self):
+        collection = {
+            "artifacts": {
+                "installed_programs": [],
+                "services": [],
+                "service_install_events": [],
+                "scheduled_tasks": [],
+                "startup_registry": [],
+                "startup_folders": [],
+                "recent_files": [],
+                "defender_events": [
+                    {
+                        "log_name": "Microsoft-Windows-Windows Defender/Operational",
+                        "id": 5007,
+                        "time_created_utc": "2026-05-07T00:00:00Z",
+                        "message": "Microsoft Defender Antivirus Configuration has changed. New value: HKLM\\SOFTWARE\\Microsoft\\Windows Defender\\Features\\EcsConfigs\\MpDisablePropBagNotification = 0x0",
+                    }
+                ],
+                "powershell_events": [],
+                "process_creation_events": [],
+                "wmi_events": []
+            },
+            "collection_errors": []
+        }
+        report = rmm_hunter.analyze_artifacts(collection)
+
+        self.assertEqual(report["findings"][0]["category"], "defender_routine_configuration_event")
+        self.assertEqual(report["findings"][0]["severity"], "low")
+
     def test_release_manifest_powershell_is_treated_as_self_noise(self):
         collection = {
             "artifacts": {

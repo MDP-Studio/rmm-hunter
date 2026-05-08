@@ -36,7 +36,7 @@ No reportable security vulnerabilities were found in the application code after 
 - Renderer evidence and AI output are inserted as text nodes.
 - Finding review-action buttons only expand local guidance. They do not delete files, stop services, change settings, or execute remediation commands.
 - PDF report HTML escapes report fields and includes a restrictive CSP.
-- Update checks and installer downloads run in the Electron main process through `electron-updater` and GitHub Releases metadata. The renderer CSP remains `connect-src 'none'`, no scan evidence is sent, and external opening is restricted to the official RMM Hunter GitHub release path.
+- Update checks and installer downloads run in the Electron main process through `electron-updater` and GitHub Releases metadata. The renderer CSP remains `connect-src 'none'`, no scan evidence is sent, and external opening is restricted to allowlisted RMM Hunter project links.
 - Optional AI explanations are off by default, send only sanitized/minimized report data, enforce a payload cap, and cannot change the deterministic verdict.
 - AI recommendation setup checks run before provider calls. If an API key is missing, the app shows local setup guidance and sends no report data to an AI provider.
 - AI provider settings support OpenAI, OpenRouter, Groq, and custom OpenAI-compatible endpoints. Saved API keys are encrypted with Electron safe storage when available and are never returned to the renderer after saving.
@@ -47,6 +47,7 @@ No reportable security vulnerabilities were found in the application code after 
 - Release builds bundle a PyInstaller scanner executable so the packaged Electron app does not require Python on the target endpoint.
 - Packaged builds ignore developer scanner override environment variables and prefer the bundled scanner executable.
 - Windows release builds use the tracked `gui/assets/icon.ico` instead of the default Electron icon.
+- The per-user NSIS installer detects existing RMM Hunter installs from the current user's Electron Builder registry keys, reuses the existing install path during upgrades, preserves app data, and blocks older installers from downgrading newer installed versions.
 - `PRIVACY.md` states that reports stay local by default and optional AI sends only sanitized summaries to the user-selected provider.
 - `docs/CODE_SIGNING_POLICY.md` states that RMM Hunter detects breach traces and unauthorized remote management tools, and does not exploit systems, bypass controls, scan networks, delete files, stop services, or change Windows settings by default.
 - The optional mapped export is derived from completed findings and does not feed back into verdict scoring.
@@ -67,13 +68,13 @@ No reportable security vulnerabilities were found in the application code after 
 
 - `npm run release:verify` passed.
 - `npm run dist` produced:
-  - `release/RMM-Hunter-Setup-0.1.2-x64.exe`
-  - `release/RMM-Hunter-Portable-0.1.2-x64.exe`
-  - `release/RMM-Hunter-Setup-0.1.2-x64.exe.blockmap`
+  - `release/RMM-Hunter-Setup-0.1.3-x64.exe`
+  - `release/RMM-Hunter-Portable-0.1.3-x64.exe`
+  - `release/RMM-Hunter-Setup-0.1.3-x64.exe.blockmap`
 - The bundled scanner executable under `release/win-unpacked/resources/bin/rmm-hunter-cli.exe` successfully analyzed the high-risk sample artifact.
 - The unpacked packaged app launched and stayed alive.
 - The portable executable launched and stayed alive.
-- The NSIS installer silently installed to a temp directory, launched the app, found the uninstaller, uninstalled successfully, and removed the temp install directory.
+- The NSIS installer silently repaired the existing per-user `0.1.3` install, preserved the install path, and kept the registry version at `0.1.3`.
 
 ## Release Risks
 

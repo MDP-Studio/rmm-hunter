@@ -24,6 +24,11 @@
           <span id="riskScore">Risk score unavailable</span>
         </div>
 
+        <div class="side-actions" aria-label="Project sections">
+          <button type="button" data-scroll-target="feedbackSection">Feedback</button>
+          <button type="button" data-scroll-target="aboutSection">About</button>
+        </div>
+
         <div class="scope-list" aria-label="Scan coverage">
           <div>Installed apps</div>
           <div>Services</div>
@@ -110,14 +115,6 @@
           </div>
         </section>
 
-        <section class="recommendations-panel hidden" id="recommendationsPanel">
-          <div class="section-heading">
-            <h3>Recommended next steps</h3>
-            <span id="recommendationsHint">Based on deterministic scan rules</span>
-          </div>
-          <ul class="recommendation-list" id="recommendationList"></ul>
-        </section>
-
         <section class="ai-panel hidden" id="aiPanel">
           <div class="section-heading">
             <h3>AI explanation</h3>
@@ -157,6 +154,14 @@
           <p class="privacy-note" id="aiPrivacyNote"></p>
         </section>
 
+        <section class="recommendations-panel hidden" id="recommendationsPanel">
+          <div class="section-heading">
+            <h3>Recommended next steps</h3>
+            <span id="recommendationsHint">Based on deterministic scan rules</span>
+          </div>
+          <ul class="recommendation-list" id="recommendationList"></ul>
+        </section>
+
         <section class="report-paths hidden" id="reportPaths">
           <span>Report files</span>
           <button id="showJsonPath" type="button"></button>
@@ -168,6 +173,46 @@
             <span id="evidenceHint">No findings yet</span>
           </div>
           <div class="evidence-list" id="evidenceList"></div>
+        </section>
+
+        <section class="info-panel" id="feedbackSection">
+          <div class="section-heading">
+            <h3>Feedback</h3>
+            <span>False positives, bugs, and detector ideas</span>
+          </div>
+          <div class="info-grid">
+            <article>
+              <h4>Help improve detections</h4>
+              <p>Open a GitHub issue for false positives, confusing wording, missing RMM tools, or release problems.</p>
+              <div class="inline-actions">
+                <button class="secondary-button" id="openIssues" type="button">Open GitHub issue</button>
+                <button class="secondary-button" id="openSecurityPolicy" type="button">Security policy</button>
+              </div>
+            </article>
+            <article>
+              <h4>Private feedback</h4>
+              <p>Email Meidie if the report contains sensitive paths, client details, or anything that should not be public.</p>
+              <div class="inline-actions">
+                <button class="secondary-button" id="openEmail" type="button">Email feedback</button>
+                <button class="secondary-button support-button" id="openCoffee" type="button">Buy me a coffee</button>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="info-panel" id="aboutSection">
+          <div class="section-heading">
+            <h3>About</h3>
+            <span>Open-source Windows triage tool</span>
+          </div>
+          <div class="about-copy">
+            <p>RMM Hunter is built by Meidie at MDP Studio to help Windows users and small teams review suspicious remote access tools, Defender events, PowerShell activity, services, startup entries, scheduled tasks, and recent installers.</p>
+            <p>The scanner is evidence-only at MVP stage. It does not exploit systems, bypass security, delete files, or automatically remove findings.</p>
+          </div>
+          <div class="inline-actions">
+            <button class="secondary-button" id="openRepo" type="button">GitHub repo</button>
+            <button class="secondary-button" id="openPrivacy" type="button">Privacy policy</button>
+          </div>
         </section>
       </section>
     </main>

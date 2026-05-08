@@ -32,9 +32,9 @@ Target repository: `https://github.com/MDP-Studio/rmm-hunter`
 
 Current local release artifacts:
 
-- `release/RMM-Hunter-Setup-0.1.2-x64.exe`
-- `release/RMM-Hunter-Setup-0.1.2-x64.exe.blockmap`
-- `release/RMM-Hunter-Portable-0.1.2-x64.exe`
+- `release/RMM-Hunter-Setup-0.1.3-x64.exe`
+- `release/RMM-Hunter-Setup-0.1.3-x64.exe.blockmap`
+- `release/RMM-Hunter-Portable-0.1.3-x64.exe`
 
 Electron Builder also creates local debug output:
 
@@ -69,7 +69,8 @@ The GitHub workflow uploads the setup executable, setup blockmap, portable execu
 - Packaged app report path moved to `%LOCALAPPDATA%\RMM Hunter\reports` so installed builds do not write into the install directory.
 - Packaged app now prefers `resources/bin/rmm-hunter-cli.exe`, so target machines do not need Python installed.
 - Packaged app now ignores developer scanner override environment variables, reducing local process-hijack risk in installed builds.
-- AI settings are now bring-your-own-key with OpenAI, OpenRouter, Groq, and custom OpenAI-compatible provider support. No-key clicks open setup and send no report data.
+- AI settings are now bring-your-own-key with OpenAI, OpenRouter, Groq, and custom OpenAI-compatible provider support. No-key clicks show a visible setup notice and send no report data.
+- Feedback and About sections use main-process allowlisted external links for GitHub issues, the security policy, privacy policy, private email, and Buy Me a Coffee.
 - Windows app and installer packaging now use `gui/assets/icon.ico`.
 - Build now creates separate installer and portable filenames.
 - Build now cleans stale release artifacts before packaging.
@@ -87,6 +88,7 @@ The GitHub workflow uploads the setup executable, setup blockmap, portable execu
 - `docs/CODE_SIGNING_POLICY.md` now documents the SignPath-ready signing policy, maintainer roles, signing scope, MFA expectation, release integrity gates, and security-tool scope.
 - GitHub Actions now publishes `SHA256SUMS.txt`, `rmm-hunter-release-manifest.json`, and `VERIFY_RELEASE.md` beside Windows release assets.
 - GitHub Actions now publishes `latest.yml` beside Windows release assets so installed builds can use the official GitHub release as the auto-update feed.
+- The NSIS installer now detects existing installs, reuses the existing install path, shows an update/repair confirmation page, preserves local app data, and blocks obvious downgrades.
 - The CLI now supports `--mapped-out` for profile `rmm-hunter.detection-mapping.v1`, preserving deterministic verdict behavior while adding portable detection labels.
 - `scripts/evaluate_corpus.py` now runs a seeded corpus and fails the verification gate on verdict or expected-category regressions.
 - `docs/DETECTION_MAPPING.md` and `docs/COVERAGE_SCORECARD.md` now document the mapping matrix and current seeded coverage scorecard.
@@ -116,12 +118,12 @@ npm run dist
 Installer smoke test:
 
 ```powershell
-release\RMM-Hunter-Setup-0.1.2-x64.exe /S /D=%TEMP%\RMMHunterInstallTest
+release\RMM-Hunter-Setup-0.1.3-x64.exe /S /D=%TEMP%\RMMHunterInstallTest
 ```
 
 ## Next Release Steps
 
-1. Publish the generated `v0.1.2` draft as an unsigned prerelease with clear SmartScreen wording and verification assets.
+1. Publish the generated `v0.1.3` draft as an unsigned prerelease with clear SmartScreen wording and verification assets.
 2. Confirm GitHub MFA is enabled for the maintainer account.
 3. Apply to SignPath Foundation using the public repository, public release page, privacy policy, and code-signing policy.
 4. After SignPath approval, add the SignPath GitHub Actions signing step and required repository secret.

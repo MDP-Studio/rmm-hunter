@@ -14,6 +14,11 @@ const APP_ICON = path.join(__dirname, "assets", "icon.ico");
 const REPOSITORY_URL = "https://github.com/MDP-Studio/rmm-hunter";
 const RELEASES_URL = "https://github.com/MDP-Studio/rmm-hunter/releases";
 const RELEASES_API_URL = "https://api.github.com/repos/MDP-Studio/rmm-hunter/releases?per_page=10";
+const FEEDBACK_ISSUES_URL = "https://github.com/MDP-Studio/rmm-hunter/issues/new/choose";
+const SECURITY_POLICY_URL = "https://github.com/MDP-Studio/rmm-hunter/security/policy";
+const PRIVACY_POLICY_URL = "https://github.com/MDP-Studio/rmm-hunter/blob/main/PRIVACY.md";
+const BUY_ME_A_COFFEE_URL = "https://buymeacoffee.com/meidie";
+const FEEDBACK_EMAIL_URL = "mailto:meidie@mdpstudio.com.au?subject=RMM%20Hunter%20feedback";
 const APP_TITLE = "RMM Hunter";
 const APP_VERSION = app.getVersion();
 const APP_USER_AGENT = `RMM-Hunter/${APP_VERSION}`;
@@ -354,6 +359,15 @@ ipcMain.handle("updates:openRelease", async (_event, releaseUrl) => {
   return true;
 });
 
+ipcMain.handle("links:openExternal", async (_event, targetUrl) => {
+  const safeUrl = safeProjectExternalUrl(targetUrl);
+  if (!safeUrl) {
+    throw new Error("External link is not on the RMM Hunter allowlist.");
+  }
+  await shell.openExternal(safeUrl.href);
+  return true;
+});
+
 ipcMain.handle("updates:download", async () => downloadAvailableUpdate());
 
 ipcMain.handle("updates:install", async () => {
@@ -666,6 +680,35 @@ function safeReleaseUrl(value) {
       url.protocol === "https:" &&
       url.hostname.toLowerCase() === "github.com" &&
       pathname.startsWith("/mdp-studio/rmm-hunter/releases")
+    ) {
+      return url;
+    }
+  } catch (_error) {
+    return null;
+  }
+  return null;
+}
+
+function safeProjectExternalUrl(value) {
+  const allowedUrls = new Set([
+    REPOSITORY_URL,
+    FEEDBACK_ISSUES_URL,
+    SECURITY_POLICY_URL,
+    PRIVACY_POLICY_URL,
+    BUY_ME_A_COFFEE_URL,
+    FEEDBACK_EMAIL_URL
+  ]);
+
+  try {
+    const url = new URL(value);
+    if (allowedUrls.has(url.href)) {
+      return url;
+    }
+    const pathname = url.pathname.toLowerCase();
+    if (
+      url.protocol === "https:" &&
+      url.hostname.toLowerCase() === "github.com" &&
+      pathname.startsWith("/mdp-studio/rmm-hunter/")
     ) {
       return url;
     }

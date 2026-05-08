@@ -91,10 +91,11 @@ The GUI provides:
 - Deterministic recommended next steps
 - GitHub Releases update check with installer auto-update for the installed Windows build
 - Optional bring-your-own-key AI explanations and recommendations
+- About and feedback sections with GitHub issue, security policy, privacy policy, private email, and donation links
 - JSON and PDF export
 - No automatic deletion or remediation
 
-Optional AI explanations are configured inside the app. Run a scan, click `AI Recommendations`, then choose a provider and paste your own API key when prompted. If no key is configured, the app shows a setup notice beside the summary, focuses the API key field, and does not send report data anywhere.
+Optional AI explanations are configured inside the app. Run a scan, click `AI Recommendations`, then choose a provider and paste your own API key when prompted. If no key is configured, the app shows a setup notice beside the summary and does not send report data anywhere. Use `Open API key field` from that notice to open provider settings.
 
 Built-in provider presets:
 
@@ -172,7 +173,9 @@ Current public downloads are published from GitHub Releases. RMM Hunter beta rel
 
 The installed Windows app can check GitHub Releases for newer versions, download the NSIS installer update, and restart to install it after the user clicks the update action. Update checks do not send scan reports or artifacts. Portable builds can still check for updates, but they must be replaced manually from the release page.
 
-Builds older than `0.1.2` only opened the GitHub release page. Install `0.1.2` manually once, then later installed builds can use the in-app download and restart-to-install flow.
+Builds older than `0.1.2` only opened the GitHub release page. Install `0.1.2` or newer manually once, then later installed builds can use the in-app download and restart-to-install flow.
+
+The per-user NSIS installer detects an existing RMM Hunter install from the current user's registry keys, keeps the existing install location to avoid duplicate app folders, shows an update or repair confirmation page, and keeps local reports, AI settings, and updater state during upgrades. If a newer version is already installed, the installer blocks the older build instead of downgrading it.
 
 The Windows app icon is tracked at `gui/assets/icon.ico`, with SVG/PNG sources beside it. Regenerate it from `gui/assets/icon.svg` with ImageMagick:
 
@@ -229,8 +232,8 @@ GitHub Actions workflow:
 Example tag flow after committing:
 
 ```powershell
-git tag v0.1.2
-git push origin v0.1.2
+git tag v0.1.3
+git push origin v0.1.3
 ```
 
 RMM Hunter is released under the Apache License 2.0. The npm package remains marked `private` to prevent accidental registry publishing.

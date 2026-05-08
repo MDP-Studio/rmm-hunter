@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.3 - 2026-05-08
+
+- Added an NSIS installer upgrade guard that detects an existing RMM Hunter install, reuses its install location, shows an update/repair confirmation page, preserves local app data, and blocks obvious downgrades.
+- Added About and Feedback sections with allowlisted links for GitHub issues, the security policy, privacy policy, private email, and Buy Me a Coffee.
+- Tuned Defender configuration grouping so internal notification keys such as `MpDisablePropBagNotification` stay in routine timeline context instead of being treated as protection changes.
+- Moved generated AI explanations next to the summary action and kept no-key setup prompts visible beside the button.
+
 ## 0.1.2 - 2026-05-08
 
 - Improved AI setup feedback so `AI Recommendations` visibly shows when an API key is needed and focuses the API key field.

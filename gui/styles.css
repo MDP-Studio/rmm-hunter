@@ -137,6 +137,28 @@ select {
   border-color: rgba(255, 116, 124, 0.5);
 }
 
+.side-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.side-actions button {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  color: #dce5f3;
+  cursor: pointer;
+  font-weight: 700;
+  min-height: 38px;
+  padding: 0 12px;
+  text-align: left;
+}
+
+.side-actions button:hover,
+.side-actions button:focus-visible {
+  background: rgba(255, 255, 255, 0.1);
+}
+
 .scope-list {
   display: grid;
   gap: 10px;
@@ -161,6 +183,10 @@ select {
   scrollbar-width: thin;
 }
 
+.workspace > * {
+  flex: 0 0 auto;
+}
+
 .topbar,
 .update-panel,
 .summary-panel,
@@ -168,7 +194,8 @@ select {
 .ai-panel,
 .progress-panel,
 .report-paths,
-.evidence-section {
+.evidence-section,
+.info-panel {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -567,6 +594,54 @@ select {
   padding: 20px;
 }
 
+.info-panel {
+  padding: 20px;
+}
+
+.info-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.info-grid article,
+.about-copy {
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.info-grid h4 {
+  font-size: 16px;
+  margin: 0 0 8px;
+}
+
+.info-grid p,
+.about-copy p {
+  color: #4c5c74;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.about-copy {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.support-button {
+  background: #fff7e7;
+  border-color: #edc777;
+}
+
 .section-heading {
   align-items: center;
   display: flex;
@@ -891,6 +966,10 @@ select {
   }
 
   .settings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .info-grid {
     grid-template-columns: 1fr;
   }
 

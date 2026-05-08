@@ -22,5 +22,6 @@ contextBridge.exposeInMainWorld("rmmHunter", {
   checkUpdates: () => ipcRenderer.invoke("updates:check"),
   downloadUpdate: () => ipcRenderer.invoke("updates:download"),
   installUpdate: () => ipcRenderer.invoke("updates:install"),
-  openUpdate: (releaseUrl) => ipcRenderer.invoke("updates:openRelease", releaseUrl)
+  openUpdate: (releaseUrl) => ipcRenderer.invoke("updates:openRelease", releaseUrl),
+  openExternalLink: (url) => ipcRenderer.invoke("links:openExternal", url)
 });
