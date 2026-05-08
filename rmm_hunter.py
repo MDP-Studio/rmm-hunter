@@ -144,10 +144,25 @@ SELF_EVENT_TERMS = (
     "rmm_hunter.py",
     "rmm_hunter_artifacts",
     "rmm hunter windows collector",
+    "generate-release-manifest.ps1",
 )
 
 DEFENDER_HIGH_RISK_IDS = {1116, 1117, 1118, 1119, 1121, 1122}
 DEFENDER_CONFIG_IDS = {5001, 5004, 5007, 5013}
+DEFENDER_SENSITIVE_CONFIG_TERMS = (
+    "disable",
+    "exclusion",
+    "\\exclusions\\",
+    "realtime",
+    "real-time",
+    "tamper",
+    "puaprotection",
+    "spynetreporting",
+    "submitsamplesconsent",
+    "cloudblocklevel",
+    "controlledfolderaccess",
+    "disableantispyware",
+)
 
 SEVERITY_SCORE = {
     "high": 45,
@@ -331,6 +346,20 @@ RULE_MAPPINGS: dict[str, dict[str, Any]] = {
         },
         "d3fend": [{"id": "D3-PM", "name": "Platform Monitoring"}],
     },
+    "defender_sensitive_configuration_event": {
+        "attack": {
+            "techniques": [{"id": "T1562.001", "name": "Disable or Modify Tools"}],
+            "data_sources": ["Sensor Health: Host Status", "Windows Event Log: Windows Event Log Entry"],
+        },
+        "d3fend": [{"id": "D3-PM", "name": "Platform Monitoring"}],
+    },
+    "defender_routine_configuration_event": {
+        "attack": {
+            "techniques": [],
+            "data_sources": ["Sensor Health: Host Status", "Windows Event Log: Windows Event Log Entry"],
+        },
+        "d3fend": [{"id": "D3-PM", "name": "Platform Monitoring"}],
+    },
 }
 
 
@@ -403,6 +432,18 @@ def event_data_text(event: dict[str, Any]) -> str:
             "provider": event.get("provider"),
         }
     )
+
+
+def defender_config_is_sensitive(event: dict[str, Any]) -> bool:
+    event_id = event.get("id")
+    try:
+        event_id = int(event_id)
+    except (TypeError, ValueError):
+        event_id = None
+    if event_id in {5001, 5004, 5013}:
+        return True
+    text = event_data_text(event)
+    return any(term in text for term in DEFENDER_SENSITIVE_CONFIG_TERMS)
 
 
 def is_self_generated_event_text(text: str) -> bool:
@@ -603,6 +644,112 @@ def make_finding(
             "artifacts": [grouped_artifact],
         }
     )
+
+
+def add_finding_guidance(finding: dict[str, Any]) -> None:
+    tool = str(finding.get("tool") or "the referenced tool")
+    category = str(finding.get("category") or "")
+
+    if category == "recent_remote_tool_file":
+        finding["plain_language"] = (
+            f"An installer or script for {tool} was found in Downloads, Temp, or another recent-file location. "
+            "This does not prove it is installed or active, but it needs an explanation because support-scam and intrusion chains often begin with downloaded remote-access installers."
+        )
+        finding["recommended_actions"] = [
+            f"Ask the device owner or IT provider whether {tool} was intentionally downloaded.",
+            f"Check Installed apps, Services, Startup entries, and Scheduled tasks for {tool} before deciding it is only an installer.",
+            "If nobody recognizes it, preserve this report, run a Defender full scan, and remove the installer only after the timeline is documented.",
+        ]
+    elif category in {
+        "known_rmm_installed_app",
+        "known_rmm_service",
+        "known_rmm_scheduled_task",
+        "known_rmm_startup_registry",
+        "known_rmm_startup_folder",
+        "recent_rmm_service_install",
+    }:
+        finding["plain_language"] = (
+            f"{tool} appears in a place Windows can use to run software. Remote tools can be legitimate for MSP or helpdesk support, "
+            "but unauthorized remote access is a common breach pattern."
+        )
+        finding["recommended_actions"] = [
+            f"Confirm who installed {tool}, when it was installed, and whether it is still approved.",
+            "Compare the timestamps in this card with support calls, invoices, admin work, or suspicious browser activity.",
+            "If unauthorized, preserve the report first, disconnect from untrusted networks if needed, then remove it through normal vendor or Windows uninstall steps.",
+        ]
+    elif category in {"service_from_user_writable_path", "recent_service_install_from_suspicious_path"}:
+        finding["plain_language"] = (
+            "A Windows service appears to run from Downloads, Temp, or another user-writable location. Services normally live under Windows or Program Files, "
+            "so this is stronger evidence than a loose downloaded file."
+        )
+        finding["recommended_actions"] = [
+            "Preserve the JSON/PDF report before changing the service.",
+            "Review the service name, executable path, publisher signature, and creation time.",
+            "If the service is not approved by your IT provider, escalate as an incident and remove it using Windows Services or vendor uninstall guidance after evidence is saved.",
+        ]
+    elif category in {"encoded_powershell", "encoded_powershell_process"}:
+        finding["plain_language"] = (
+            "PowerShell ran with encoded content. Attackers use this to hide commands, although some admin tools also generate encoded PowerShell."
+        )
+        finding["recommended_actions"] = [
+            "Review the script block, parent process, user, and timestamp before running any cleanup.",
+            "If the command is not recognized, preserve the report and run a Defender full scan or offline scan.",
+            "Rotate credentials that may have been exposed around the same time if the command touched browsers, cloud tools, or password files.",
+        ]
+    elif category in {
+        "powershell_policy_or_hidden_window",
+        "powershell_download_cradle",
+        "msiexec_from_browser_or_download_path",
+        "suspicious_wmi_activity",
+    }:
+        finding["plain_language"] = (
+            "This is living-off-the-land activity: normal Windows tools used in a way that can be legitimate for admin work or suspicious in a breach. "
+            "The important question is whether the command, user, timestamp, and file path match expected activity."
+        )
+        finding["recommended_actions"] = [
+            "Compare the timestamp with known installs, updates, support sessions, or your own development work.",
+            "Review the command line and script path. Downloads, Temp, browser-launched installers, and hidden windows deserve extra attention.",
+            "If it is not expected, preserve the report and investigate related Defender, browser, and service events before deleting anything.",
+        ]
+    elif category == "defender_malware_event":
+        finding["plain_language"] = (
+            "Microsoft Defender reported a malware or potentially unwanted software detection and attempted remediation. "
+            "This does not always mean malware is still active, but it is high priority because Defender saw a named threat."
+        )
+        finding["recommended_actions"] = [
+            "Open Windows Security > Protection history and confirm the action says removed, quarantined, or remediated successfully.",
+            "Run a Defender full scan. Use Microsoft Defender Offline scan if the same threat repeats or the machine behaves strangely.",
+            "Review the affected path and command line, then rotate passwords or API keys if the detection touched browsers, cloud config, or credential files.",
+        ]
+    elif category == "defender_sensitive_configuration_event":
+        finding["plain_language"] = (
+            "Defender logged a security-sensitive setting change, such as exclusions, real-time protection, tamper protection, or cloud protection behavior. "
+            "These changes can be legitimate, but they can also weaken protection."
+        )
+        finding["recommended_actions"] = [
+            "Open Windows Security and verify real-time protection, cloud protection, tamper protection, and exclusions.",
+            "Confirm whether an admin, endpoint manager, or security product made the change.",
+            "If unauthorized, restore the setting, preserve this report, and review nearby process and PowerShell events.",
+        ]
+    elif category == "defender_routine_configuration_event":
+        finding["plain_language"] = (
+            "Defender logged a routine configuration or internal hash change. On its own this is often caused by Microsoft Defender updates or normal Windows maintenance, "
+            "but it is useful timeline context when malware or unauthorized admin activity appears nearby."
+        )
+        finding["recommended_actions"] = [
+            "Check whether the timestamp lines up with Windows Update, Defender intelligence updates, or a reboot.",
+            "Prioritize this only if it appears near malware detections, remote-tool installs, exclusions, or protection being disabled.",
+            "Keep the event in the report for timeline context. It usually does not need cleanup by itself.",
+        ]
+    else:
+        finding["plain_language"] = (
+            "This matched a local RMM Hunter rule. It is a review signal, not proof by itself. Confirm ownership, timestamp, path, and whether the activity was expected."
+        )
+        finding["recommended_actions"] = [
+            "Ask the device owner or IT provider whether this activity is expected.",
+            "Compare the finding timestamp with known installs, support sessions, updates, or admin work.",
+            "Preserve the report before making changes so the timeline remains available.",
+        ]
 
 
 def analyze_artifacts(collection: dict[str, Any]) -> dict[str, Any]:
@@ -939,15 +1086,20 @@ def analyze_artifacts(collection: dict[str, Any]) -> dict[str, Any]:
                 confidence=0.88,
             )
         elif event_id in DEFENDER_CONFIG_IDS:
+            is_sensitive_config = defender_config_is_sensitive(event)
             make_finding(
                 findings,
-                severity="medium",
-                category="defender_configuration_event",
-                title="Defender configuration change observed",
-                reason="Recent Defender configuration changes can be benign, but should be reviewed during an RMM investigation.",
+                severity="medium" if is_sensitive_config else "low",
+                category="defender_sensitive_configuration_event" if is_sensitive_config else "defender_routine_configuration_event",
+                title="Defender protection setting changed" if is_sensitive_config else "Defender routine configuration change observed",
+                reason=(
+                    "A security-sensitive Defender setting appears to have changed and should be confirmed."
+                    if is_sensitive_config
+                    else "Defender logged an internal or routine configuration change. Keep it as timeline context, especially near malware or RMM activity."
+                ),
                 source="defender_events",
                 artifact=event,
-                confidence=0.7,
+                confidence=0.72 if is_sensitive_config else 0.5,
             )
 
     category_scores: dict[str, int] = {}
@@ -968,6 +1120,7 @@ def analyze_artifacts(collection: dict[str, Any]) -> dict[str, Any]:
         finding.pop("_dedupe_key", None)
         finding.pop("_dedupe_keys", None)
         finding.pop("_group_key", None)
+        add_finding_guidance(finding)
 
     artifact_counts = {
         key: len(value) if isinstance(value, list) else 0
@@ -1029,9 +1182,13 @@ def build_recommendations(verdict: str, findings: list[dict[str, Any]]) -> list[
             "Run a Microsoft Defender full scan or offline scan and review protection history for the same timestamps shown in this report."
         )
 
-    if any("defender_configuration" in category for category in categories):
+    if any("defender_sensitive_configuration" in category for category in categories):
         recommendations.append(
             "Review Defender configuration changes and verify whether they came from Windows, an admin tool, or an unauthorized process."
+        )
+    elif any("defender_routine_configuration" in category for category in categories):
+        recommendations.append(
+            "Keep routine Defender configuration changes in the timeline, but prioritize malware detections, remote-tool artifacts, and security-sensitive Defender setting changes."
         )
 
     if any("powershell" in category or "msiexec" in category or "wmi" in category for category in categories):
@@ -1106,6 +1263,13 @@ def render_human_summary(report: dict[str, Any]) -> str:
             lines.append(f"- [{finding['severity'].upper()}] {finding['title']}{tool}")
             lines.append(f"  ID: {finding['id']}")
             lines.append(f"  Reason: {finding['reason']}")
+            if finding.get("plain_language"):
+                lines.append(f"  What this means: {single_line(finding['plain_language'])}")
+            actions = finding.get("recommended_actions") or []
+            if actions:
+                lines.append("  Suggested actions:")
+                for action in actions:
+                    lines.append(f"    - {single_line(action)}")
             for artifact in finding.get("artifacts", []):
                 lines.append("  Artifact:")
                 for key, value in artifact.items():
@@ -1216,6 +1380,8 @@ def build_mapped_detection_export(report: dict[str, Any]) -> dict[str, Any]:
                 "confidence": finding.get("confidence"),
                 "tool": finding.get("tool"),
                 "reason": finding.get("reason"),
+                "plain_language": finding.get("plain_language"),
+                "recommended_actions": finding.get("recommended_actions") or [],
                 "artifact_count": finding.get("artifact_count") or len(artifacts),
                 "mapping": mapping,
                 "interoperability": {

@@ -34,6 +34,7 @@ No reportable security vulnerabilities were found in the application code after 
 - The preload bridge exposes only scanner, export, AI explanation, and report reveal actions.
 - Report reveal is restricted to the app reports directory.
 - Renderer evidence and AI output are inserted as text nodes.
+- Finding review-action buttons only expand local guidance. They do not delete files, stop services, change settings, or execute remediation commands.
 - PDF report HTML escapes report fields and includes a restrictive CSP.
 - Optional AI explanations are off by default, send only sanitized/minimized report data, enforce a payload cap, and cannot change the deterministic verdict.
 - AI recommendation setup checks run before provider calls. If an API key is missing, the app shows local setup guidance and sends no report data to an AI provider.

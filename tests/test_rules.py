@@ -23,6 +23,8 @@ class RuleTests(unittest.TestCase):
         self.assertIn("known_rmm_service", categories)
         self.assertIn("service_from_user_writable_path", categories)
         self.assertIn("encoded_powershell", categories)
+        self.assertTrue(all(finding.get("plain_language") for finding in report["findings"]))
+        self.assertTrue(all(finding.get("recommended_actions") for finding in report["findings"]))
 
     def test_known_program_files_rmm_needs_review_not_high_by_itself(self):
         collection = {
@@ -104,6 +106,63 @@ class RuleTests(unittest.TestCase):
 
         self.assertEqual(len(report["findings"]), 1)
         self.assertEqual(report["findings"][0]["artifact_count"], 2)
+        self.assertEqual(report["findings"][0]["category"], "defender_routine_configuration_event")
+        self.assertEqual(report["findings"][0]["severity"], "low")
+
+    def test_sensitive_defender_config_changes_stay_medium(self):
+        collection = {
+            "artifacts": {
+                "installed_programs": [],
+                "services": [],
+                "service_install_events": [],
+                "scheduled_tasks": [],
+                "startup_registry": [],
+                "startup_folders": [],
+                "recent_files": [],
+                "defender_events": [
+                    {
+                        "log_name": "Microsoft-Windows-Windows Defender/Operational",
+                        "id": 5007,
+                        "time_created_utc": "2026-05-07T00:00:00Z",
+                        "message": "Microsoft Defender Antivirus Configuration has changed. New value: HKLM\\Software\\Microsoft\\Windows Defender\\Exclusions\\Paths\\C:\\Temp = 0x0",
+                    }
+                ],
+                "powershell_events": [],
+                "process_creation_events": [],
+                "wmi_events": []
+            },
+            "collection_errors": []
+        }
+        report = rmm_hunter.analyze_artifacts(collection)
+
+        self.assertEqual(report["findings"][0]["category"], "defender_sensitive_configuration_event")
+        self.assertEqual(report["findings"][0]["severity"], "medium")
+
+    def test_release_manifest_powershell_is_treated_as_self_noise(self):
+        collection = {
+            "artifacts": {
+                "installed_programs": [],
+                "services": [],
+                "service_install_events": [],
+                "scheduled_tasks": [],
+                "startup_registry": [],
+                "startup_folders": [],
+                "recent_files": [],
+                "defender_events": [],
+                "powershell_events": [
+                    {
+                        "id": 4104,
+                        "message": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\generate-release-manifest.ps1 -ReleaseDir release",
+                    }
+                ],
+                "process_creation_events": [],
+                "wmi_events": []
+            },
+            "collection_errors": []
+        }
+        report = rmm_hunter.analyze_artifacts(collection)
+
+        self.assertEqual(report["findings"], [])
 
     def test_mapped_detection_export_preserves_verdict_and_mappings(self):
         sample = json.loads((ROOT / "tests" / "sample_artifacts_high_risk.json").read_text(encoding="utf-8"))
@@ -113,6 +172,8 @@ class RuleTests(unittest.TestCase):
         self.assertEqual(mapped["profile"], "rmm-hunter.detection-mapping.v1")
         self.assertEqual(mapped["verdict"], report["verdict"])
         self.assertEqual(mapped["risk_score"], report["risk_score"])
+        self.assertTrue(all("plain_language" in finding for finding in mapped["findings"]))
+        self.assertTrue(all("recommended_actions" in finding for finding in mapped["findings"]))
         rule_ids = {finding["rule_id"] for finding in mapped["findings"]}
         self.assertIn("known_rmm_service", rule_ids)
         sigma_tags = {

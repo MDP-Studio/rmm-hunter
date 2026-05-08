@@ -515,6 +515,48 @@ function renderFindingCard(finding) {
   reason.className = "reason";
   reason.textContent = finding.reason || "";
 
+  const guidance = getFindingGuidance(finding);
+  const explanation = document.createElement("div");
+  explanation.className = "finding-explanation";
+  const explanationLabel = document.createElement("strong");
+  explanationLabel.textContent = "What this means";
+  const explanationText = document.createElement("p");
+  explanationText.textContent = guidance.plainLanguage;
+  explanation.append(explanationLabel, explanationText);
+
+  const actionPanelId = `finding-actions-${finding.id || Math.random().toString(36).slice(2)}`;
+  const actions = document.createElement("div");
+  actions.className = "finding-actions hidden";
+  actions.id = actionPanelId;
+  const actionsTitle = document.createElement("strong");
+  actionsTitle.textContent = "Suggested review actions";
+  const actionList = document.createElement("ol");
+  actionList.replaceChildren(...guidance.actions.map((text) => {
+    const item = document.createElement("li");
+    item.textContent = text;
+    return item;
+  }));
+  const actionNote = document.createElement("p");
+  actionNote.className = "safe-action-note";
+  actionNote.textContent = "No automatic deletion or system changes are performed from this button.";
+  actions.append(actionsTitle, actionList, actionNote);
+
+  const cardActions = document.createElement("div");
+  cardActions.className = "evidence-card-actions";
+  const actionToggle = document.createElement("button");
+  actionToggle.className = "secondary-button compact-button";
+  actionToggle.type = "button";
+  actionToggle.textContent = "Review actions";
+  actionToggle.setAttribute("aria-expanded", "false");
+  actionToggle.setAttribute("aria-controls", actionPanelId);
+  actionToggle.addEventListener("click", () => {
+    const expanded = actionToggle.getAttribute("aria-expanded") === "true";
+    actionToggle.setAttribute("aria-expanded", String(!expanded));
+    actionToggle.textContent = expanded ? "Review actions" : "Hide actions";
+    actions.classList.toggle("hidden", expanded);
+  });
+  cardActions.append(actionToggle);
+
   const count = document.createElement("p");
   count.className = "artifact-count";
   count.textContent = `${finding.artifact_count || 1} artifact${(finding.artifact_count || 1) === 1 ? "" : "s"} in this finding. The first artifact is shown below.`;
@@ -523,8 +565,24 @@ function renderFindingCard(finding) {
   artifactTable.className = "artifact-table";
   artifactTable.append(...rows);
 
-  card.append(title, reason, count, artifactTable);
+  card.append(title, reason, explanation, cardActions, actions, count, artifactTable);
   return card;
+}
+
+function getFindingGuidance(finding) {
+  const actions = Array.isArray(finding.recommended_actions)
+    ? finding.recommended_actions.filter(Boolean)
+    : [];
+  return {
+    plainLanguage: finding.plain_language || "This matched a local RMM Hunter rule. It is a review signal, not proof by itself. Confirm ownership, timestamp, path, and whether the activity was expected.",
+    actions: actions.length
+      ? actions
+      : [
+          "Ask the device owner or IT provider whether this activity is expected.",
+          "Compare the finding timestamp with known installs, support sessions, updates, or admin work.",
+          "Preserve the report before making changes so the timeline remains available."
+        ]
+  };
 }
 
 function renderEmptyFindingCard() {

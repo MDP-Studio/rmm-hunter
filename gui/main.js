@@ -572,12 +572,19 @@ function buildPdfHtml(report) {
         .slice(0, 8)
         .map(([key, value]) => `<div><strong>${escapeHtml(key)}:</strong> ${escapeHtml(formatPdfValue(value))}</div>`)
         .join("");
+      const actionRows = Array.isArray(finding.recommended_actions)
+        ? finding.recommended_actions.map((item) => `<li>${escapeHtml(item)}</li>`).join("")
+        : "";
+      const guidance = finding.plain_language
+        ? `<div class="guidance"><strong>What this means:</strong><p>${escapeHtml(finding.plain_language)}</p>${actionRows ? `<strong>Suggested review actions:</strong><ol>${actionRows}</ol>` : ""}</div>`
+        : "";
       return `
         <section class="finding ${escapeHtml(finding.severity || "low")}">
           <h3>${escapeHtml(finding.title || "Finding")}</h3>
           <p><strong>Severity:</strong> ${escapeHtml(finding.severity || "unknown")}</p>
           <p><strong>Artifacts in finding:</strong> ${escapeHtml(String(finding.artifact_count || 1))}</p>
           <p>${escapeHtml(finding.reason || "")}</p>
+          ${guidance}
           <div class="artifact">${artifactBits}</div>
         </section>
       `;
@@ -618,7 +625,10 @@ function buildPdfHtml(report) {
           .finding.high { border-left-color: #c53232; }
           .finding.medium { border-left-color: #b97800; }
           .finding.low { border-left-color: #4b6fa8; }
-          .artifact { background: #f7f8fa; border-radius: 6px; font-family: Consolas, monospace; font-size: 10px; margin-top: 10px; padding: 10px; }
+          .guidance { background: #f7f8fa; border-radius: 6px; margin: 10px 0; padding: 10px; }
+          .guidance ol { margin: 6px 0 0; padding-left: 20px; }
+          .guidance li { margin: 4px 0; }
+          .artifact { background: #f7f8fa; border-radius: 6px; font-family: Consolas, monospace; font-size: 10px; margin-top: 10px; overflow-wrap: anywhere; padding: 10px; white-space: pre-wrap; }
           .note { color: #5c6678; font-size: 12px; }
         </style>
       </head>
@@ -692,6 +702,8 @@ function sanitizeReportForAi(report) {
       tool: sanitizeScalar(finding.tool),
       confidence: Number.isFinite(finding.confidence) ? finding.confidence : null,
       reason: sanitizeScalar(finding.reason),
+      plain_language: sanitizeScalar(finding.plain_language),
+      recommended_actions: sanitizeArray(finding.recommended_actions).slice(0, 5),
       artifact_count: Number.isFinite(finding.artifact_count) ? finding.artifact_count : 1,
       artifacts: sanitizeArtifacts(finding.artifacts).slice(0, 3)
     }))

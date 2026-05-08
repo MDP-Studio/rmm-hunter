@@ -87,6 +87,7 @@ The GUI provides:
 - Progress screen during collection and analysis
 - Dashboard verdict: `clean`, `needs_review`, or `high_risk`
 - Evidence cards for each finding
+- Plain-English finding explanations with non-destructive review actions
 - Deterministic recommended next steps
 - Optional bring-your-own-key AI explanations and recommendations
 - JSON and PDF export

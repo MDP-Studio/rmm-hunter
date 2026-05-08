@@ -661,6 +661,57 @@ select {
   margin: 8px 0 12px;
 }
 
+.finding-explanation,
+.finding-actions {
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  color: #263044;
+  margin: 0 0 12px;
+  padding: 12px;
+}
+
+.finding-explanation strong,
+.finding-actions strong {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+}
+
+.finding-explanation p,
+.finding-actions p {
+  line-height: 1.45;
+  margin: 0;
+}
+
+.finding-actions ol {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.finding-actions li {
+  line-height: 1.45;
+  margin: 5px 0;
+}
+
+.safe-action-note {
+  color: #586274;
+  font-size: 13px;
+  margin-top: 10px !important;
+}
+
+.evidence-card-actions {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.compact-button {
+  min-height: 36px;
+  padding: 8px 12px;
+}
+
 .artifact-table {
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid rgba(0, 0, 0, 0.08);

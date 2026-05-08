@@ -39,13 +39,15 @@ rmm-hunter.detection-mapping.v1
 | `encoded_powershell_process` | Process creation events | High | T1059.001 PowerShell, T1027 Obfuscated Files or Information | D3-PA Process Analysis |
 | `suspicious_wmi_activity` | WMI events | Medium | T1047 Windows Management Instrumentation | D3-PA Process Analysis |
 | `defender_malware_event` | Defender events | High | Defensive event, no direct behavior technique assigned | D3-PM Platform Monitoring |
-| `defender_configuration_event` | Defender events | Medium | T1562.001 Disable or Modify Tools | D3-PM Platform Monitoring |
+| `defender_sensitive_configuration_event` | Defender events | Medium | T1562.001 Disable or Modify Tools | D3-PM Platform Monitoring |
+| `defender_routine_configuration_event` | Defender events | Low | Defensive timeline event, no direct behavior technique assigned | D3-PM Platform Monitoring |
 
 ## Interoperability Fields
 
 Each mapped finding includes:
 
 - `rule_id`: stable rule category from the deterministic report
+- `plain_language` and `recommended_actions`: operator-facing guidance copied from the deterministic finding
 - `mapping.attack.techniques`: ATT&CK technique IDs and names where grounded in collected evidence
 - `mapping.attack.data_sources`: evidence data-source labels
 - `mapping.d3fend`: defensive analysis concepts
