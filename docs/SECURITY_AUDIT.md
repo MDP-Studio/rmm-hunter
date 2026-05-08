@@ -1,6 +1,6 @@
 # Security Audit
 
-Date: 2026-05-07
+Date: 2026-05-08
 
 ## Scope
 
@@ -36,6 +36,7 @@ No reportable security vulnerabilities were found in the application code after 
 - Renderer evidence and AI output are inserted as text nodes.
 - PDF report HTML escapes report fields and includes a restrictive CSP.
 - Optional AI explanations are off by default, send only sanitized/minimized report data, enforce a payload cap, and cannot change the deterministic verdict.
+- AI recommendation setup checks run before provider calls. If an API key is missing, the app shows local setup guidance and sends no report data to an AI provider.
 - AI provider settings support OpenAI, OpenRouter, Groq, and custom OpenAI-compatible endpoints. Saved API keys are encrypted with Electron safe storage when available and are never returned to the renderer after saving.
 - Preset provider endpoints are fixed in application code so a modified settings file cannot redirect a saved preset-provider key to another host.
 - AI endpoint validation requires HTTPS unless the endpoint is localhost.

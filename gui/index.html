@@ -86,6 +86,13 @@
             <button class="secondary-button" id="exportJson" type="button" disabled>Export JSON</button>
             <button class="secondary-button" id="exportPdf" type="button" disabled>Export PDF</button>
           </div>
+          <div class="ai-setup-notice hidden" id="aiSetupNotice" role="status" aria-live="polite">
+            <div>
+              <strong>AI setup needed</strong>
+              <span id="aiSetupNoticeText">Add your own provider API key to generate AI recommendations.</span>
+            </div>
+            <button class="link-button" id="aiSetupJump" type="button">Open API key field</button>
+          </div>
         </section>
 
         <section class="recommendations-panel hidden" id="recommendationsPanel">

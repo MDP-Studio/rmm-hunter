@@ -453,6 +453,32 @@ select {
   width: 100%;
 }
 
+.ai-setup-notice {
+  align-items: center;
+  background: var(--blue-soft);
+  border: 1px solid #b7c8e2;
+  border-radius: 8px;
+  color: #25344b;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 12px 14px;
+  width: 100%;
+}
+
+.ai-setup-notice strong {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+.ai-setup-notice span {
+  color: #4c5c74;
+  display: block;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
 .report-paths {
   align-items: center;
   display: flex;
@@ -563,12 +589,14 @@ select {
 .evidence-list {
   display: grid;
   gap: 12px;
+  min-width: 0;
 }
 
 .evidence-card {
   border: 1px solid var(--line);
   border-left: 6px solid var(--blue);
   border-radius: 8px;
+  min-width: 0;
   padding: 14px;
 }
 
@@ -592,16 +620,20 @@ select {
   display: flex;
   gap: 12px;
   justify-content: space-between;
+  min-width: 0;
 }
 
 .evidence-title h4 {
   font-size: 16px;
   letter-spacing: 0;
   margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .pill {
   border-radius: 999px;
+  flex: 0 0 auto;
   font-size: 12px;
   font-weight: 800;
   padding: 4px 8px;
@@ -633,10 +665,13 @@ select {
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 6px;
+  box-sizing: border-box;
   display: grid;
   font-family: Consolas, "Courier New", monospace;
   font-size: 12px;
   gap: 0;
+  max-width: 100%;
+  min-width: 0;
   overflow: hidden;
 }
 
@@ -650,6 +685,7 @@ select {
 .artifact-row {
   display: grid;
   grid-template-columns: 170px minmax(0, 1fr);
+  min-width: 0;
 }
 
 .artifact-row + .artifact-row {
@@ -658,6 +694,7 @@ select {
 
 .artifact-key,
 .artifact-value {
+  min-width: 0;
   padding: 8px 10px;
 }
 
@@ -670,6 +707,8 @@ select {
 .artifact-value {
   color: #202633;
   overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .hidden {
@@ -727,7 +766,20 @@ select {
     flex-direction: column;
   }
 
+  .ai-setup-notice {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .settings-grid {
     grid-template-columns: 1fr;
+  }
+
+  .artifact-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .artifact-key {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   }
 }

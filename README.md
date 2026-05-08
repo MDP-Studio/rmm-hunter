@@ -92,7 +92,7 @@ The GUI provides:
 - JSON and PDF export
 - No automatic deletion or remediation
 
-Optional AI explanations are configured inside the app. Run a scan, click `AI Recommendations`, then choose a provider and paste your own API key when prompted. If no key is configured, the app opens the AI settings panel and does not send report data anywhere.
+Optional AI explanations are configured inside the app. Run a scan, click `AI Recommendations`, then choose a provider and paste your own API key when prompted. If no key is configured, the app shows a setup notice beside the summary, focuses the API key field, and does not send report data anywhere.
 
 Built-in provider presets:
 

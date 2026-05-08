@@ -21,6 +21,9 @@ const aiSummary = document.getElementById("aiSummary");
 const aiNextSteps = document.getElementById("aiNextSteps");
 const aiFindingList = document.getElementById("aiFindingList");
 const aiPrivacyNote = document.getElementById("aiPrivacyNote");
+const aiSetupNotice = document.getElementById("aiSetupNotice");
+const aiSetupNoticeText = document.getElementById("aiSetupNoticeText");
+const aiSetupJump = document.getElementById("aiSetupJump");
 const aiSettingsToggle = document.getElementById("aiSettingsToggle");
 const aiSettings = document.getElementById("aiSettings");
 const aiProvider = document.getElementById("aiProvider");
@@ -122,6 +125,10 @@ exportPdf.addEventListener("click", async () => {
 
 aiExplain.addEventListener("click", requestAiExplanation);
 
+aiSetupJump.addEventListener("click", () => {
+  openAiSettings({ focusApiKey: true });
+});
+
 aiSettingsToggle.addEventListener("click", async () => {
   aiPanel.classList.remove("hidden");
   aiSettings.classList.toggle("hidden");
@@ -151,7 +158,10 @@ aiSaveSettings.addEventListener("click", async () => {
       : "Provider settings saved. Add an API key before using cloud AI recommendations.";
 
     if (currentReport && (settings.hasApiKey || !settings.requiresApiKey)) {
+      hideAiSetupNotice();
       await requestAiExplanation();
+    } else if (currentReport) {
+      showAiSetupNotice(settings.setupReason || "Add your own provider API key to generate AI recommendations.");
     }
   } catch (error) {
     aiSettingsStatus.textContent = error?.message || "AI settings could not be saved.";
@@ -180,24 +190,34 @@ async function requestAiExplanation() {
   }
 
   aiExplain.disabled = true;
-  aiExplain.textContent = "Generating...";
-  aiPanel.classList.remove("hidden");
-  aiStatus.textContent = "Preparing sanitized report";
-  aiSummary.textContent = "Sending a minimized, redacted report summary to the AI explanation layer if an API key is configured.";
-  aiNextSteps.replaceChildren();
-  aiFindingList.replaceChildren();
-  aiPrivacyNote.textContent = "";
+  aiExplain.textContent = "Checking AI setup...";
+  hideAiSetupNotice();
 
   try {
-    await refreshAiSettings();
+    const settings = await refreshAiSettings();
+    if (settings.setupRequired || (settings.requiresApiKey && !settings.hasApiKey)) {
+      renderAiSetupNeeded(settings.setupReason || "Add your own provider API key to generate AI recommendations.");
+      return;
+    }
+
+    aiExplain.textContent = "Generating...";
+    aiPanel.classList.remove("hidden");
+    aiStatus.textContent = "Preparing sanitized report";
+    aiSummary.textContent = "Sending a minimized, redacted report summary to the AI explanation layer.";
+    aiNextSteps.replaceChildren();
+    aiFindingList.replaceChildren();
+    aiPrivacyNote.textContent = "";
+
     const explanation = await desktopBridge.explainReport(currentReport);
     currentReport.ai_explanation = explanation;
     renderAiExplanation(explanation);
     if (explanation.needs_setup) {
-      aiSettings.classList.remove("hidden");
-      aiSettingsStatus.textContent = explanation.summary || "Add AI settings to continue.";
+      renderAiSetupNeeded(explanation.summary || "Add AI settings to continue.");
+    } else {
+      hideAiSetupNotice();
     }
   } catch (error) {
+    hideAiSetupNotice();
     renderAiExplanation({
       available: false,
       summary: error?.message || "AI recommendations could not be generated.",
@@ -249,6 +269,7 @@ function resetResults() {
   recommendationList.replaceChildren();
   aiPanel.classList.add("hidden");
   aiSettings.classList.add("hidden");
+  hideAiSetupNotice();
   aiStatus.textContent = "Optional";
   aiSummary.textContent = "";
   aiNextSteps.replaceChildren();
@@ -286,6 +307,7 @@ function renderReport(report, paths) {
   exportJson.disabled = false;
   exportPdf.disabled = false;
   aiExplain.disabled = false;
+  hideAiSetupNotice();
 
   if (paths?.json) {
     reportPaths.classList.remove("hidden");
@@ -372,10 +394,55 @@ function buildAiSettingsStatusText(settings, provider) {
   return `${provider.label || "AI"} is ready for your API key.`;
 }
 
+function renderAiSetupNeeded(message) {
+  const setupText = message || "Add your own provider API key to generate AI recommendations.";
+  aiPanel.classList.remove("hidden");
+  aiSettings.classList.remove("hidden");
+  aiStatus.textContent = "Setup needed";
+  aiSummary.textContent = setupText;
+  aiNextSteps.replaceChildren(...[
+    "Choose a provider.",
+    "Paste your own API key.",
+    "Save settings to generate AI recommendations."
+  ].map((text) => {
+    const item = document.createElement("li");
+    item.textContent = text;
+    return item;
+  }));
+  aiFindingList.replaceChildren();
+  aiPrivacyNote.textContent = "No report data was sent to an AI provider.";
+  showAiSetupNotice(setupText);
+  openAiSettings({ focusApiKey: true });
+}
+
+function showAiSetupNotice(message) {
+  aiSetupNoticeText.textContent = message || "Add your own provider API key to generate AI recommendations.";
+  aiSetupNotice.classList.remove("hidden");
+  aiSetupJump.focus({ preventScroll: true });
+}
+
+function hideAiSetupNotice() {
+  aiSetupNotice.classList.add("hidden");
+}
+
+function openAiSettings({ focusApiKey = false } = {}) {
+  aiPanel.classList.remove("hidden");
+  aiSettings.classList.remove("hidden");
+  requestAnimationFrame(() => {
+    aiSettings.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (focusApiKey) {
+      setTimeout(() => {
+        aiApiKey.focus({ preventScroll: true });
+      }, 250);
+    }
+  });
+}
+
 function renderAiExplanation(explanation) {
   aiPanel.classList.remove("hidden");
   if (explanation.available && !explanation.needs_setup) {
     aiSettings.classList.add("hidden");
+    hideAiSetupNotice();
   }
   aiStatus.textContent = explanation.available ? `${explanation.provider || "AI"} ${explanation.model || ""}`.trim() : "Not enabled";
   aiSummary.textContent = explanation.summary || "No AI explanation was returned.";
