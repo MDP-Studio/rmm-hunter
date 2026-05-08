@@ -89,6 +89,7 @@ The GUI provides:
 - Evidence cards for each finding
 - Plain-English finding explanations with non-destructive review actions
 - Deterministic recommended next steps
+- GitHub Releases update check with a manual download button when a newer version exists
 - Optional bring-your-own-key AI explanations and recommendations
 - JSON and PDF export
 - No automatic deletion or remediation
@@ -168,6 +169,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\collect_windows.ps1 -Outpu
 The GitHub release build is Windows-first. It bundles the Python scanner as a PyInstaller executable, then packages the Electron desktop app with Electron Builder.
 
 Current public downloads are published from GitHub Releases. RMM Hunter beta releases are unsigned until SignPath or another trusted signing route is configured, so Windows may show `Unknown publisher` or Microsoft Defender SmartScreen warnings. Verify release artifacts with the bundled `SHA256SUMS.txt`, `rmm-hunter-release-manifest.json`, and `VERIFY_RELEASE.md` files.
+
+The desktop app can check the official GitHub Releases page for newer versions. Update checks do not send scan reports or artifacts. When an update is available, the app opens the release page only after the user clicks the update/download action.
 
 The Windows app icon is tracked at `gui/assets/icon.ico`, with SVG/PNG sources beside it. Regenerate it from `gui/assets/icon.svg` with ImageMagick:
 

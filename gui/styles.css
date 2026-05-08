@@ -162,6 +162,7 @@ select {
 }
 
 .topbar,
+.update-panel,
 .summary-panel,
 .recommendations-panel,
 .ai-panel,
@@ -190,6 +191,14 @@ select {
   line-height: 1.45;
   margin-top: 6px;
   max-width: 680px;
+}
+
+.topbar-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
 }
 
 .primary-button,
@@ -226,6 +235,49 @@ select {
 .secondary-button:disabled {
   color: #a1a9b7;
   cursor: not-allowed;
+}
+
+.update-panel {
+  align-items: center;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  padding: 18px;
+}
+
+.update-panel.available {
+  background: #f7fbff;
+  border-color: #b7c8e2;
+}
+
+.update-panel.current {
+  background: var(--green-soft);
+  border-color: #bddfcf;
+}
+
+.update-panel.error {
+  background: var(--red-soft);
+  border-color: #f0bdc2;
+}
+
+.update-panel h3 {
+  font-size: 18px;
+  margin: 4px 0 4px;
+}
+
+.update-panel p {
+  color: #4f5a6d;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.update-actions {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
 }
 
 .progress-panel {
@@ -813,6 +865,16 @@ select {
   }
 
   .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .topbar-actions,
+  .update-actions {
+    justify-content: flex-start;
+  }
+
+  .update-panel {
     align-items: flex-start;
     flex-direction: column;
   }

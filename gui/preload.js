@@ -13,5 +13,7 @@ contextBridge.exposeInMainWorld("rmmHunter", {
   saveAiSettings: (settings) => ipcRenderer.invoke("ai:saveSettings", settings),
   clearAiKey: () => ipcRenderer.invoke("ai:clearKey"),
   explainReport: (report) => ipcRenderer.invoke("ai:explainReport", report),
-  showPath: (targetPath) => ipcRenderer.invoke("path:show", targetPath)
+  showPath: (targetPath) => ipcRenderer.invoke("path:show", targetPath),
+  checkUpdates: () => ipcRenderer.invoke("updates:check"),
+  openUpdate: (releaseUrl) => ipcRenderer.invoke("updates:openRelease", releaseUrl)
 });

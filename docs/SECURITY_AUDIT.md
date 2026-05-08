@@ -36,6 +36,7 @@ No reportable security vulnerabilities were found in the application code after 
 - Renderer evidence and AI output are inserted as text nodes.
 - Finding review-action buttons only expand local guidance. They do not delete files, stop services, change settings, or execute remediation commands.
 - PDF report HTML escapes report fields and includes a restrictive CSP.
+- Update checks run in the Electron main process against the public GitHub Releases API. The renderer CSP remains `connect-src 'none'`, no scan evidence is sent, and external opening is restricted to the official RMM Hunter GitHub release path.
 - Optional AI explanations are off by default, send only sanitized/minimized report data, enforce a payload cap, and cannot change the deterministic verdict.
 - AI recommendation setup checks run before provider calls. If an API key is missing, the app shows local setup guidance and sends no report data to an AI provider.
 - AI provider settings support OpenAI, OpenRouter, Groq, and custom OpenAI-compatible endpoints. Saved API keys are encrypted with Electron safe storage when available and are never returned to the renderer after saving.

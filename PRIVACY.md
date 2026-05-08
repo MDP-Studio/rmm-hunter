@@ -23,6 +23,12 @@ RMM Hunter does not transfer scan reports, artifacts, telemetry, analytics, or u
 
 Do not publish or send raw scan reports unless you have reviewed them. They can contain sensitive local system details.
 
+## Update Checks
+
+The desktop app checks the public GitHub Releases API to see whether a newer RMM Hunter version is available. This request does not include scan reports, artifacts, usernames, file paths, event logs, AI settings, or API keys.
+
+GitHub receives normal request metadata such as IP address, time, and user agent. The app opens the GitHub release page only after the user clicks the update/download action.
+
 ## Optional AI Recommendations
 
 The AI recommendation feature is optional and off unless the user configures an AI provider key or matching environment variable and clicks the AI recommendation action.

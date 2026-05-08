@@ -11,7 +11,11 @@ const ROOT_DIR = path.resolve(__dirname, "..");
 const APP_FILE = path.join(__dirname, "index.html");
 const APP_ICON = path.join(__dirname, "assets", "icon.ico");
 const REPOSITORY_URL = "https://github.com/MDP-Studio/rmm-hunter";
+const RELEASES_URL = "https://github.com/MDP-Studio/rmm-hunter/releases";
+const RELEASES_API_URL = "https://api.github.com/repos/MDP-Studio/rmm-hunter/releases?per_page=10";
 const APP_TITLE = "RMM Hunter";
+const APP_VERSION = app.getVersion();
+const APP_USER_AGENT = `RMM-Hunter/${APP_VERSION}`;
 const DEFAULT_AI_PROVIDER = "openai";
 const DEFAULT_OPENAI_MODEL = "gpt-5-mini";
 const MAX_AI_REPORT_BYTES = 120000;
@@ -258,6 +262,17 @@ ipcMain.handle("path:show", async (_event, targetPath) => {
   shell.showItemInFolder(targetPath);
 });
 
+ipcMain.handle("updates:check", async () => checkForUpdates());
+
+ipcMain.handle("updates:openRelease", async (_event, releaseUrl) => {
+  const safeUrl = safeReleaseUrl(releaseUrl || RELEASES_URL);
+  if (!safeUrl) {
+    throw new Error("Update URL is not an allowed RMM Hunter release page.");
+  }
+  await shell.openExternal(safeUrl.href);
+  return true;
+});
+
 function runScanner(args) {
   return new Promise((resolve, reject) => {
     const scanner = resolveScannerProcess(args);
@@ -328,6 +343,153 @@ function sendProgress(stage, detail) {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send("scan:progress", { stage, detail, time: new Date().toISOString() });
   }
+}
+
+async function checkForUpdates() {
+  const releases = await fetchGithubReleases();
+  const latest = selectLatestRelease(releases);
+  if (!latest) {
+    return {
+      currentVersion: APP_VERSION,
+      latestVersion: APP_VERSION,
+      updateAvailable: false,
+      releaseUrl: RELEASES_URL,
+      message: "No public GitHub release was found."
+    };
+  }
+
+  const latestVersion = releaseVersion(latest) || APP_VERSION;
+  const updateAvailable = compareVersions(latestVersion, APP_VERSION) > 0;
+  return {
+    currentVersion: APP_VERSION,
+    latestVersion,
+    updateAvailable,
+    releaseName: String(latest.name || latest.tag_name || latestVersion),
+    releaseUrl: safeReleaseUrl(latest.html_url)?.href || RELEASES_URL,
+    publishedAt: latest.published_at || "",
+    prerelease: Boolean(latest.prerelease),
+    assets: sanitizeReleaseAssets(latest.assets),
+    message: updateAvailable
+      ? `RMM Hunter ${latestVersion} is available.`
+      : `RMM Hunter ${APP_VERSION} is up to date.`
+  };
+}
+
+function fetchGithubReleases() {
+  return new Promise((resolve, reject) => {
+    const url = new URL(RELEASES_API_URL);
+    const request = https.request(
+      {
+        protocol: url.protocol,
+        hostname: url.hostname,
+        path: `${url.pathname}${url.search}`,
+        method: "GET",
+        headers: {
+          "Accept": "application/vnd.github+json",
+          "User-Agent": APP_USER_AGENT
+        },
+        timeout: 15000
+      },
+      (response) => {
+        let data = "";
+        response.on("data", (chunk) => {
+          data += chunk;
+        });
+        response.on("end", () => {
+          if (response.statusCode < 200 || response.statusCode >= 300) {
+            reject(new Error(`GitHub update check failed with HTTP ${response.statusCode}.`));
+            return;
+          }
+          try {
+            const parsed = JSON.parse(data);
+            resolve(Array.isArray(parsed) ? parsed : []);
+          } catch (error) {
+            reject(new Error(`GitHub update response could not be parsed. ${error.message}`));
+          }
+        });
+      }
+    );
+    request.on("timeout", () => {
+      request.destroy(new Error("GitHub update check timed out."));
+    });
+    request.on("error", reject);
+    request.end();
+  });
+}
+
+function selectLatestRelease(releases) {
+  return releases
+    .filter((release) => release && !release.draft && releaseVersion(release))
+    .sort((a, b) => compareVersions(releaseVersion(b), releaseVersion(a)))[0] || null;
+}
+
+function releaseVersion(release) {
+  return normalizeVersion(release?.tag_name) || normalizeVersion(release?.name);
+}
+
+function normalizeVersion(value) {
+  const match = String(value || "").match(/v?(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)/);
+  return match ? match[1] : "";
+}
+
+function compareVersions(left, right) {
+  const a = parseVersion(left);
+  const b = parseVersion(right);
+  for (let index = 0; index < 3; index += 1) {
+    if (a.parts[index] !== b.parts[index]) {
+      return a.parts[index] > b.parts[index] ? 1 : -1;
+    }
+  }
+  if (a.prerelease === b.prerelease) {
+    return 0;
+  }
+  if (!a.prerelease) {
+    return 1;
+  }
+  if (!b.prerelease) {
+    return -1;
+  }
+  return a.prerelease.localeCompare(b.prerelease);
+}
+
+function parseVersion(value) {
+  const [core, prerelease = ""] = String(value || "0.0.0").split(/[+-]/);
+  const parts = core.split(".").slice(0, 3).map((part) => {
+    const parsed = Number.parseInt(part, 10);
+    return Number.isFinite(parsed) ? parsed : 0;
+  });
+  while (parts.length < 3) {
+    parts.push(0);
+  }
+  return { parts, prerelease };
+}
+
+function sanitizeReleaseAssets(assets) {
+  if (!Array.isArray(assets)) {
+    return [];
+  }
+  return assets.slice(0, 12).map((asset) => ({
+    name: String(asset?.name || ""),
+    size: Number.isFinite(asset?.size) ? asset.size : 0,
+    downloadUrl: String(asset?.browser_download_url || "")
+  }));
+}
+
+function safeReleaseUrl(value) {
+  try {
+    const url = new URL(value);
+    const pathname = url.pathname.toLowerCase();
+    if (
+      url.protocol === "https:" &&
+      url.hostname.toLowerCase() === "github.com" &&
+      pathname.startsWith("/mdp-studio/rmm-hunter/releases")
+    ) {
+      return url;
+    }
+  } catch (_error) {
+    return null;
+  }
+  return null;
 }
 
 function splitLines(text) {
@@ -949,7 +1111,7 @@ function sendAiRequest({ config, body }) {
       "Accept": "application/json",
       "Content-Type": "application/json",
       "Content-Length": Buffer.byteLength(bodyText),
-      "User-Agent": `${APP_TITLE}/0.1.0`,
+      "User-Agent": APP_USER_AGENT,
       ...config.extraHeaders
     };
 

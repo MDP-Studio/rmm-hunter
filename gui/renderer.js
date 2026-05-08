@@ -38,10 +38,18 @@ const exportJson = document.getElementById("exportJson");
 const exportPdf = document.getElementById("exportPdf");
 const reportPaths = document.getElementById("reportPaths");
 const showJsonPath = document.getElementById("showJsonPath");
+const checkUpdatesButton = document.getElementById("checkUpdates");
+const updatePanel = document.getElementById("updatePanel");
+const updateStatus = document.getElementById("updateStatus");
+const updateTitle = document.getElementById("updateTitle");
+const updateText = document.getElementById("updateText");
+const openUpdate = document.getElementById("openUpdate");
+const dismissUpdate = document.getElementById("dismissUpdate");
 
 let currentReport = null;
 let currentPaths = null;
 let currentAiSettings = null;
+let currentUpdate = null;
 const desktopBridge = window.rmmHunter || {
   startScan: async () => {
     throw new Error("Desktop scanner bridge is unavailable. Start the app with npm.cmd start.");
@@ -74,12 +82,22 @@ const desktopBridge = window.rmmHunter || {
     finding_explanations: [],
     privacy_note: "No report data was sent to an AI provider."
   }),
-  showPath: async () => null
+  showPath: async () => null,
+  checkUpdates: async () => ({
+    currentVersion: "0.0.0",
+    latestVersion: "0.0.0",
+    updateAvailable: false,
+    releaseUrl: "https://github.com/MDP-Studio/rmm-hunter/releases",
+    message: "Desktop scanner bridge is unavailable."
+  }),
+  openUpdate: async () => false
 };
 
 refreshAiSettings().catch((error) => {
   aiSettingsStatus.textContent = error?.message || "AI settings could not be loaded.";
 });
+
+checkForUpdates({ silent: true }).catch(() => {});
 
 desktopBridge.onProgress((payload) => {
   progressPanel.classList.remove("hidden");
@@ -124,6 +142,32 @@ exportPdf.addEventListener("click", async () => {
 });
 
 aiExplain.addEventListener("click", requestAiExplanation);
+
+checkUpdatesButton.addEventListener("click", () => {
+  checkForUpdates({ silent: false });
+});
+
+openUpdate.addEventListener("click", async () => {
+  if (!currentUpdate?.releaseUrl) {
+    return;
+  }
+  openUpdate.disabled = true;
+  try {
+    await desktopBridge.openUpdate(currentUpdate.releaseUrl);
+  } catch (error) {
+    renderUpdatePanel({
+      state: "error",
+      title: "Could not open update page",
+      text: error?.message || "Open the GitHub Releases page manually from the README."
+    });
+  } finally {
+    openUpdate.disabled = false;
+  }
+});
+
+dismissUpdate.addEventListener("click", () => {
+  updatePanel.classList.add("hidden");
+});
 
 aiSetupJump.addEventListener("click", () => {
   openAiSettings({ focusApiKey: true });
@@ -236,6 +280,63 @@ showJsonPath.addEventListener("click", () => {
     desktopBridge.showPath(currentPaths.json);
   }
 });
+
+async function checkForUpdates({ silent = false } = {}) {
+  checkUpdatesButton.disabled = true;
+  checkUpdatesButton.textContent = "Checking...";
+  if (!silent) {
+    renderUpdatePanel({
+      state: "checking",
+      title: "Checking for updates",
+      text: "Looking at the official GitHub Releases page."
+    });
+  }
+
+  try {
+    const update = await desktopBridge.checkUpdates();
+    currentUpdate = update;
+    if (update.updateAvailable) {
+      renderUpdatePanel({
+        state: "available",
+        title: `Update available: ${update.latestVersion}`,
+        text: `You are running ${update.currentVersion}. Download the new release from the official GitHub Releases page.`,
+        releaseUrl: update.releaseUrl
+      });
+    } else if (!silent) {
+      renderUpdatePanel({
+        state: "current",
+        title: "RMM Hunter is up to date",
+        text: update.message || `You are running ${update.currentVersion}.`,
+        releaseUrl: update.releaseUrl
+      });
+    }
+  } catch (error) {
+    if (!silent) {
+      renderUpdatePanel({
+        state: "error",
+        title: "Could not check for updates",
+        text: error?.message || "Check the GitHub Releases page manually."
+      });
+    }
+  } finally {
+    checkUpdatesButton.disabled = false;
+    checkUpdatesButton.textContent = "Check updates";
+  }
+}
+
+function renderUpdatePanel({ state, title, text, releaseUrl }) {
+  updatePanel.className = `update-panel ${state || "current"}`;
+  updateStatus.textContent = state === "available" ? "Update available" : "Updates";
+  updateTitle.textContent = title;
+  updateText.textContent = text;
+  if (releaseUrl) {
+    currentUpdate = { ...(currentUpdate || {}), releaseUrl };
+  }
+  const canOpenRelease = Boolean(currentUpdate?.releaseUrl) && state !== "checking" && state !== "error";
+  openUpdate.classList.toggle("hidden", !canOpenRelease);
+  openUpdate.textContent = state === "available" ? "Download update" : "Open release page";
+  updatePanel.classList.remove("hidden");
+}
 
 function setScanning(isScanning) {
   scanButton.disabled = isScanning;
