@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.4 - 2026-05-08
+
+- Added deterministic artifact context for PowerShell URLs/domains, Defender threat names, remediation actions, affected resources, and Defender setting old/new values.
+- Updated AI instructions to explain exact artifact context when present and to separate known evidence from unknown delivery source.
+- Expanded GUI and PDF evidence rows so the first artifact shows the most useful context before raw event excerpts.
+
 ## 0.1.3 - 2026-05-08
 
 - Added an NSIS installer upgrade guard that detects an existing RMM Hunter install, reuses its install location, shows an update/repair confirmation page, preserves local app data, and blocks obvious downgrades.

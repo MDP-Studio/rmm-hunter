@@ -32,9 +32,9 @@ Target repository: `https://github.com/MDP-Studio/rmm-hunter`
 
 Current local release artifacts:
 
-- `release/RMM-Hunter-Setup-0.1.3-x64.exe`
-- `release/RMM-Hunter-Setup-0.1.3-x64.exe.blockmap`
-- `release/RMM-Hunter-Portable-0.1.3-x64.exe`
+- `release/RMM-Hunter-Setup-0.1.4-x64.exe`
+- `release/RMM-Hunter-Setup-0.1.4-x64.exe.blockmap`
+- `release/RMM-Hunter-Portable-0.1.4-x64.exe`
 
 Electron Builder also creates local debug output:
 
@@ -71,6 +71,7 @@ The GitHub workflow uploads the setup executable, setup blockmap, portable execu
 - Packaged app now ignores developer scanner override environment variables, reducing local process-hijack risk in installed builds.
 - AI settings are now bring-your-own-key with OpenAI, OpenRouter, Groq, and custom OpenAI-compatible provider support. No-key clicks show a visible setup notice and send no report data.
 - Feedback and About sections use main-process allowlisted external links for GitHub issues, the security policy, privacy policy, private email, and Buy Me a Coffee.
+- Finding artifacts now include extracted PowerShell domains/URLs, Defender threat/action/result fields, affected resources, and Defender old/new setting values where available.
 - Windows app and installer packaging now use `gui/assets/icon.ico`.
 - Build now creates separate installer and portable filenames.
 - Build now cleans stale release artifacts before packaging.
@@ -118,12 +119,12 @@ npm run dist
 Installer smoke test:
 
 ```powershell
-release\RMM-Hunter-Setup-0.1.3-x64.exe /S /D=%TEMP%\RMMHunterInstallTest
+release\RMM-Hunter-Setup-0.1.4-x64.exe /S /D=%TEMP%\RMMHunterInstallTest
 ```
 
 ## Next Release Steps
 
-1. Publish the generated `v0.1.3` draft as an unsigned prerelease with clear SmartScreen wording and verification assets.
+1. Publish the generated `v0.1.4` draft as an unsigned prerelease with clear SmartScreen wording and verification assets.
 2. Confirm GitHub MFA is enabled for the maintainer account.
 3. Apply to SignPath Foundation using the public repository, public release page, privacy policy, and code-signing policy.
 4. After SignPath approval, add the SignPath GitHub Actions signing step and required repository secret.

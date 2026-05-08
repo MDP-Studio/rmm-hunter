@@ -696,7 +696,7 @@ function renderFindingCard(finding) {
 
   const artifact = Array.isArray(finding.artifacts) && finding.artifacts[0] ? finding.artifacts[0] : {};
   const rows = Object.entries(artifact)
-    .slice(0, 10)
+    .slice(0, 14)
     .map(([key, value]) => {
       const row = document.createElement("div");
       row.className = "artifact-row";

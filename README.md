@@ -88,6 +88,7 @@ The GUI provides:
 - Dashboard verdict: `clean`, `needs_review`, or `high_risk`
 - Evidence cards for each finding
 - Plain-English finding explanations with non-destructive review actions
+- Extracted context for PowerShell URLs/domains, Defender threat actions, affected resources, and Defender setting changes
 - Deterministic recommended next steps
 - GitHub Releases update check with installer auto-update for the installed Windows build
 - Optional bring-your-own-key AI explanations and recommendations
@@ -232,8 +233,8 @@ GitHub Actions workflow:
 Example tag flow after committing:
 
 ```powershell
-git tag v0.1.3
-git push origin v0.1.3
+git tag v0.1.4
+git push origin v0.1.4
 ```
 
 RMM Hunter is released under the Apache License 2.0. The npm package remains marked `private` to prevent accidental registry publishing.

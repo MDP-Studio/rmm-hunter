@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
-SCANNER_VERSION = "0.1.3"
+SCANNER_VERSION = "0.1.4"
 
 REMOTE_TOOLS: dict[str, tuple[str, ...]] = {
     "ScreenConnect / ConnectWise Control": (
@@ -146,6 +146,8 @@ SELF_EVENT_TERMS = (
     "rmm hunter windows collector",
     "generate-release-manifest.ps1",
 )
+
+URL_PATTERN = re.compile(r"https?://[^\s'\"<>]+", re.IGNORECASE)
 
 DEFENDER_HIGH_RISK_IDS = {1116, 1117, 1118, 1119, 1121, 1122}
 DEFENDER_CONFIG_IDS = {5001, 5004, 5007, 5013}
@@ -442,6 +444,107 @@ def event_data_text(event: dict[str, Any]) -> str:
     )
 
 
+def compact_text(value: Any, limit: int = 500) -> str:
+    text = " ".join(str(value or "").split())
+    if len(text) <= limit:
+        return text
+    return f"{text[:limit]}...[truncated]"
+
+
+def extract_urls(text: str, limit: int = 5) -> list[str]:
+    urls: list[str] = []
+    for match in URL_PATTERN.findall(text or ""):
+        cleaned = match.rstrip(").,;]'\"")
+        if cleaned not in urls:
+            urls.append(cleaned)
+        if len(urls) >= limit:
+            break
+    return urls
+
+
+def domain_from_url(url: str) -> str:
+    match = re.match(r"(?i)^https?://([^/:?#]+)", url)
+    return match.group(1).lower() if match else ""
+
+
+def extract_domains(urls: Iterable[str]) -> list[str]:
+    domains: list[str] = []
+    for url in urls:
+        domain = domain_from_url(url)
+        if domain and domain not in domains:
+            domains.append(domain)
+    return domains
+
+
+def parse_registry_setting(value: Any) -> dict[str, str]:
+    text = compact_text(value, 1000)
+    if not text:
+        return {}
+
+    path_part, separator, data_part = text.partition("=")
+    detail = {"path": compact_text(path_part.strip(), 500)}
+    if separator:
+        detail["value"] = compact_text(data_part.strip(), 500)
+    return detail
+
+
+def build_artifact_context(source: str, item: dict[str, Any]) -> dict[str, Any]:
+    text = event_data_text(item)
+    urls = extract_urls(text)
+    domains = extract_domains(urls)
+    context: dict[str, Any] = {}
+
+    if urls and source != "defender_events":
+        context["network_urls"] = urls
+        context["network_domains"] = domains
+        if "powershell" in source:
+            context["detail"] = f"PowerShell referenced {', '.join(domains)}"
+
+    data = item.get("data")
+    if source == "defender_events" and isinstance(data, dict):
+        threat_name = data.get("Threat Name")
+        action_name = data.get("Action Name")
+        error_description = data.get("Error Description")
+        resource = data.get("Path") or data.get("Resource") or data.get("Resources")
+
+        if threat_name:
+            context["threat_name"] = compact_text(threat_name, 200)
+        if action_name:
+            context["defender_action"] = compact_text(action_name, 120)
+        if error_description:
+            context["defender_result"] = compact_text(error_description, 240)
+        if data.get("Detection Time"):
+            context["detection_time_utc"] = compact_text(data.get("Detection Time"), 80)
+        if data.get("Source Name"):
+            context["detection_source"] = compact_text(data.get("Source Name"), 120)
+        if resource:
+            context["affected_resource"] = compact_text(resource, 700)
+            affected_urls = extract_urls(str(resource))
+            if affected_urls:
+                context["affected_urls"] = affected_urls
+                context["affected_domains"] = extract_domains(affected_urls)
+
+        old_setting = parse_registry_setting(data.get("Old Value"))
+        new_setting = parse_registry_setting(data.get("New Value"))
+        if old_setting:
+            context["old_setting_path"] = old_setting.get("path")
+            if old_setting.get("value"):
+                context["old_setting_value"] = old_setting.get("value")
+        if new_setting:
+            context["new_setting_path"] = new_setting.get("path")
+            if new_setting.get("value"):
+                context["new_setting_value"] = new_setting.get("value")
+            context.setdefault("detail", f"Defender setting changed: {new_setting.get('path')}")
+
+        if threat_name and action_name:
+            context.setdefault(
+                "detail",
+                f"Defender reported {compact_text(threat_name, 120)} and action was {compact_text(action_name, 80)}",
+            )
+
+    return {key: value for key, value in context.items() if value not in (None, "", [])}
+
+
 def defender_config_is_sensitive(event: dict[str, Any]) -> bool:
     event_id = event.get("id")
     try:
@@ -549,6 +652,7 @@ def compact_artifact(source: str, item: dict[str, Any]) -> dict[str, Any]:
         "provider",
     )
     artifact = {"source": source}
+    artifact.update(build_artifact_context(source, item))
     for key in keys:
         value = item.get(key)
         if value not in (None, "", []):

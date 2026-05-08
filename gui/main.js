@@ -957,7 +957,7 @@ function buildPdfHtml(report) {
       const artifact = Array.isArray(finding.artifacts) && finding.artifacts[0] ? finding.artifacts[0] : {};
       const artifactBits = Object.entries(artifact)
         .filter(([key]) => !["message_excerpt", "event_data"].includes(key))
-        .slice(0, 8)
+        .slice(0, 12)
         .map(([key, value]) => `<div><strong>${escapeHtml(key)}:</strong> ${escapeHtml(formatPdfValue(value))}</div>`)
         .join("");
       const actionRows = Array.isArray(finding.recommended_actions)
@@ -1107,6 +1107,21 @@ function sanitizeArtifacts(artifacts) {
     const cleaned = {};
     const allowedKeys = [
       "source",
+      "detail",
+      "network_urls",
+      "network_domains",
+      "affected_urls",
+      "affected_domains",
+      "threat_name",
+      "defender_action",
+      "defender_result",
+      "detection_time_utc",
+      "detection_source",
+      "affected_resource",
+      "old_setting_path",
+      "old_setting_value",
+      "new_setting_path",
+      "new_setting_value",
       "display_name",
       "name",
       "task_name",
@@ -1266,6 +1281,9 @@ function buildAiInstructions() {
     "Never change or override the deterministic verdict.",
     "Do not tell the user to delete artifacts automatically.",
     "Base the answer only on the sanitized JSON report.",
+    "Use exact artifact context when present, including domains, URLs, Defender threat names, Defender action/result, affected resource, and old/new setting values.",
+    "If a domain, path, or command appears related to a project or admin task, say it may be expected only if the user recognizes it; do not assume it is malicious.",
+    "For Defender malware events, separate what is known from the report from what cannot be proven, such as the original website or delivery source when browser history/process telemetry is absent.",
     "Use concise plain English and practical incident-triage steps.",
     "If evidence is ambiguous, say it needs owner or IT-provider confirmation.",
     "Return only valid JSON using the requested schema."

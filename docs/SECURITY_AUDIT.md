@@ -40,6 +40,7 @@ No reportable security vulnerabilities were found in the application code after 
 - Optional AI explanations are off by default, send only sanitized/minimized report data, enforce a payload cap, and cannot change the deterministic verdict.
 - AI recommendation setup checks run before provider calls. If an API key is missing, the app shows local setup guidance and sends no report data to an AI provider.
 - AI provider settings support OpenAI, OpenRouter, Groq, and custom OpenAI-compatible endpoints. Saved API keys are encrypted with Electron safe storage when available and are never returned to the renderer after saving.
+- AI prompts receive extracted artifact context, not raw full logs, and are instructed to separate known evidence from unproven delivery source.
 - Preset provider endpoints are fixed in application code so a modified settings file cannot redirect a saved preset-provider key to another host.
 - AI endpoint validation requires HTTPS unless the endpoint is localhost.
 - Python invokes the collector with an argument array, not shell string concatenation.
@@ -68,13 +69,13 @@ No reportable security vulnerabilities were found in the application code after 
 
 - `npm run release:verify` passed.
 - `npm run dist` produced:
-  - `release/RMM-Hunter-Setup-0.1.3-x64.exe`
-  - `release/RMM-Hunter-Portable-0.1.3-x64.exe`
-  - `release/RMM-Hunter-Setup-0.1.3-x64.exe.blockmap`
+  - `release/RMM-Hunter-Setup-0.1.4-x64.exe`
+  - `release/RMM-Hunter-Portable-0.1.4-x64.exe`
+  - `release/RMM-Hunter-Setup-0.1.4-x64.exe.blockmap`
 - The bundled scanner executable under `release/win-unpacked/resources/bin/rmm-hunter-cli.exe` successfully analyzed the high-risk sample artifact.
 - The unpacked packaged app launched and stayed alive.
 - The portable executable launched and stayed alive.
-- The NSIS installer silently repaired the existing per-user `0.1.3` install, preserved the install path, and kept the registry version at `0.1.3`.
+- The NSIS installer silently upgraded the existing per-user install to `0.1.4`, preserved the install path, and kept reports/settings in the local app data directory.
 
 ## Release Risks
 
