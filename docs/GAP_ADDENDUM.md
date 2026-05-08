@@ -13,6 +13,15 @@ This addendum captures the highest-leverage gaps to close before expanding RMM H
 | Coverage measurement | P2 | High | Add a repeatable eval harness and release scorecard. |
 | ATT&CK and D3FEND mapping | P2 | Medium | Ship an evidence source to rule to technique matrix. |
 
+## Implementation Status
+
+| Gap | Status in 0.1.1 | Remaining work |
+| --- | --- | --- |
+| Release trust and provenance | Partially addressed with workflow-generated `SHA256SUMS.txt`, `rmm-hunter-release-manifest.json`, and `VERIFY_RELEASE.md`. | Complete SignPath or another trusted signing route, then test SmartScreen and install friction on 3 clean Windows hosts. |
+| Detection interoperability | Addressed for the first slice with `--mapped-out` and profile `rmm-hunter.detection-mapping.v1`. | Validate 20 representative findings in one SIEM or TI workflow before adding full Sigma, STIX, or MISP exporters. |
+| Coverage measurement | Addressed for the first slice with `scripts/evaluate_corpus.py`, `tests/corpus/manifest.json`, and `docs/COVERAGE_SCORECARD.md`. | Expand the seeded corpus and publish scorecard deltas in release notes. |
+| ATT&CK and D3FEND mapping | Addressed for the first slice with `docs/DETECTION_MAPPING.md` and matching mappings in the mapped export. | Review mappings with an external analyst and remove any label that is not grounded in actual evidence. |
+
 ## Release Trust And Provenance
 
 Why it matters: security tools are more likely to be blocked, quarantined, or distrusted when they are unsigned and lack clear build provenance.

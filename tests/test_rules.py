@@ -105,6 +105,24 @@ class RuleTests(unittest.TestCase):
         self.assertEqual(len(report["findings"]), 1)
         self.assertEqual(report["findings"][0]["artifact_count"], 2)
 
+    def test_mapped_detection_export_preserves_verdict_and_mappings(self):
+        sample = json.loads((ROOT / "tests" / "sample_artifacts_high_risk.json").read_text(encoding="utf-8"))
+        report = rmm_hunter.analyze_artifacts(sample)
+        mapped = rmm_hunter.build_mapped_detection_export(report)
+
+        self.assertEqual(mapped["profile"], "rmm-hunter.detection-mapping.v1")
+        self.assertEqual(mapped["verdict"], report["verdict"])
+        self.assertEqual(mapped["risk_score"], report["risk_score"])
+        rule_ids = {finding["rule_id"] for finding in mapped["findings"]}
+        self.assertIn("known_rmm_service", rule_ids)
+        sigma_tags = {
+            tag
+            for finding in mapped["findings"]
+            for tag in finding["interoperability"]["sigma_tags"]
+        }
+        self.assertIn("attack.t1219", sigma_tags)
+        self.assertIn("attack.t1059.001", sigma_tags)
+
 
 if __name__ == "__main__":
     unittest.main()

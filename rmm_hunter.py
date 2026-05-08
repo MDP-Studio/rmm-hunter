@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
-SCANNER_VERSION = "0.1.0"
+SCANNER_VERSION = "0.1.1"
 
 REMOTE_TOOLS: dict[str, tuple[str, ...]] = {
     "ScreenConnect / ConnectWise Control": (
@@ -153,6 +153,184 @@ SEVERITY_SCORE = {
     "high": 45,
     "medium": 20,
     "low": 5,
+}
+
+RULE_MAPPINGS: dict[str, dict[str, Any]] = {
+    "known_rmm_installed_app": {
+        "attack": {
+            "techniques": [{"id": "T1219", "name": "Remote Access Software"}],
+            "data_sources": ["Software: Software Discovery"],
+        },
+        "d3fend": [{"id": "D3-PM", "name": "Platform Monitoring"}],
+    },
+    "known_rmm_service": {
+        "attack": {
+            "techniques": [
+                {"id": "T1219", "name": "Remote Access Software"},
+                {"id": "T1543.003", "name": "Windows Service"},
+            ],
+            "data_sources": ["Service: Service Metadata", "Process: Process Metadata"],
+        },
+        "d3fend": [{"id": "D3-SBV", "name": "Service Binary Verification"}],
+    },
+    "service_from_user_writable_path": {
+        "attack": {
+            "techniques": [{"id": "T1543.003", "name": "Windows Service"}],
+            "data_sources": ["Service: Service Metadata", "File: File Metadata"],
+        },
+        "d3fend": [{"id": "D3-SBV", "name": "Service Binary Verification"}],
+    },
+    "unsigned_nonstandard_service": {
+        "attack": {
+            "techniques": [{"id": "T1543.003", "name": "Windows Service"}],
+            "data_sources": ["Service: Service Metadata", "File: File Metadata"],
+        },
+        "d3fend": [{"id": "D3-SBV", "name": "Service Binary Verification"}],
+    },
+    "recent_rmm_service_install": {
+        "attack": {
+            "techniques": [
+                {"id": "T1219", "name": "Remote Access Software"},
+                {"id": "T1543.003", "name": "Windows Service"},
+            ],
+            "data_sources": ["Service: Service Creation", "Windows Event Log: Windows Event Log Entry"],
+        },
+        "d3fend": [{"id": "D3-SBV", "name": "Service Binary Verification"}],
+    },
+    "recent_service_install_from_suspicious_path": {
+        "attack": {
+            "techniques": [{"id": "T1543.003", "name": "Windows Service"}],
+            "data_sources": ["Service: Service Creation", "File: File Metadata"],
+        },
+        "d3fend": [{"id": "D3-SBV", "name": "Service Binary Verification"}],
+    },
+    "known_rmm_scheduled_task": {
+        "attack": {
+            "techniques": [
+                {"id": "T1219", "name": "Remote Access Software"},
+                {"id": "T1053.005", "name": "Scheduled Task"},
+            ],
+            "data_sources": ["Scheduled Job: Scheduled Job Metadata"],
+        },
+        "d3fend": [{"id": "D3-SJA", "name": "Scheduled Job Analysis"}],
+    },
+    "scheduled_task_from_suspicious_path": {
+        "attack": {
+            "techniques": [{"id": "T1053.005", "name": "Scheduled Task"}],
+            "data_sources": ["Scheduled Job: Scheduled Job Metadata", "File: File Metadata"],
+        },
+        "d3fend": [{"id": "D3-SJA", "name": "Scheduled Job Analysis"}],
+    },
+    "known_rmm_startup_registry": {
+        "attack": {
+            "techniques": [
+                {"id": "T1219", "name": "Remote Access Software"},
+                {"id": "T1547.001", "name": "Registry Run Keys / Startup Folder"},
+            ],
+            "data_sources": ["Windows Registry: Windows Registry Key Modification"],
+        },
+        "d3fend": [{"id": "D3-PM", "name": "Platform Monitoring"}],
+    },
+    "startup_registry_suspicious_path": {
+        "attack": {
+            "techniques": [{"id": "T1547.001", "name": "Registry Run Keys / Startup Folder"}],
+            "data_sources": ["Windows Registry: Windows Registry Key Modification", "File: File Metadata"],
+        },
+        "d3fend": [{"id": "D3-PM", "name": "Platform Monitoring"}],
+    },
+    "known_rmm_startup_folder": {
+        "attack": {
+            "techniques": [
+                {"id": "T1219", "name": "Remote Access Software"},
+                {"id": "T1547.001", "name": "Registry Run Keys / Startup Folder"},
+            ],
+            "data_sources": ["File: File Metadata"],
+        },
+        "d3fend": [{"id": "D3-PM", "name": "Platform Monitoring"}],
+    },
+    "unsigned_startup_folder_item": {
+        "attack": {
+            "techniques": [{"id": "T1547.001", "name": "Registry Run Keys / Startup Folder"}],
+            "data_sources": ["File: File Metadata"],
+        },
+        "d3fend": [{"id": "D3-PM", "name": "Platform Monitoring"}],
+    },
+    "recent_remote_tool_file": {
+        "attack": {
+            "techniques": [{"id": "T1219", "name": "Remote Access Software"}],
+            "data_sources": ["File: File Creation", "File: File Metadata"],
+        },
+        "d3fend": [{"id": "D3-FA", "name": "File Analysis"}],
+    },
+    "odd_unsigned_recent_executable": {
+        "attack": {
+            "techniques": [{"id": "T1027", "name": "Obfuscated Files or Information"}],
+            "data_sources": ["File: File Metadata"],
+        },
+        "d3fend": [{"id": "D3-FA", "name": "File Analysis"}],
+    },
+    "encoded_powershell": {
+        "attack": {
+            "techniques": [
+                {"id": "T1059.001", "name": "PowerShell"},
+                {"id": "T1027", "name": "Obfuscated Files or Information"},
+            ],
+            "data_sources": ["Script: Script Execution", "Windows Event Log: Windows Event Log Entry"],
+        },
+        "d3fend": [{"id": "D3-SEA", "name": "Script Execution Analysis"}],
+    },
+    "powershell_download_cradle": {
+        "attack": {
+            "techniques": [{"id": "T1059.001", "name": "PowerShell"}],
+            "data_sources": ["Script: Script Execution", "Network Traffic: Network Connection Creation"],
+        },
+        "d3fend": [{"id": "D3-SEA", "name": "Script Execution Analysis"}],
+    },
+    "powershell_policy_or_hidden_window": {
+        "attack": {
+            "techniques": [{"id": "T1059.001", "name": "PowerShell"}],
+            "data_sources": ["Script: Script Execution", "Process: Process Creation"],
+        },
+        "d3fend": [{"id": "D3-SEA", "name": "Script Execution Analysis"}],
+    },
+    "msiexec_from_browser_or_download_path": {
+        "attack": {
+            "techniques": [{"id": "T1218.007", "name": "Msiexec"}],
+            "data_sources": ["Process: Process Creation", "Command: Command Execution"],
+        },
+        "d3fend": [{"id": "D3-PA", "name": "Process Analysis"}],
+    },
+    "encoded_powershell_process": {
+        "attack": {
+            "techniques": [
+                {"id": "T1059.001", "name": "PowerShell"},
+                {"id": "T1027", "name": "Obfuscated Files or Information"},
+            ],
+            "data_sources": ["Process: Process Creation", "Command: Command Execution"],
+        },
+        "d3fend": [{"id": "D3-PA", "name": "Process Analysis"}],
+    },
+    "suspicious_wmi_activity": {
+        "attack": {
+            "techniques": [{"id": "T1047", "name": "Windows Management Instrumentation"}],
+            "data_sources": ["WMI: WMI Creation", "Process: Process Creation"],
+        },
+        "d3fend": [{"id": "D3-PA", "name": "Process Analysis"}],
+    },
+    "defender_malware_event": {
+        "attack": {
+            "techniques": [],
+            "data_sources": ["Malware Repository: Malware Metadata", "Windows Event Log: Windows Event Log Entry"],
+        },
+        "d3fend": [{"id": "D3-PM", "name": "Platform Monitoring"}],
+    },
+    "defender_configuration_event": {
+        "attack": {
+            "techniques": [{"id": "T1562.001", "name": "Disable or Modify Tools"}],
+            "data_sources": ["Sensor Health: Host Status", "Windows Event Log: Windows Event Log Entry"],
+        },
+        "d3fend": [{"id": "D3-PM", "name": "Platform Monitoring"}],
+    },
 }
 
 
@@ -964,6 +1142,107 @@ def render_human_summary(report: dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def mapping_for_category(category: str) -> dict[str, Any]:
+    mapping = RULE_MAPPINGS.get(category) or {
+        "attack": {
+            "techniques": [],
+            "data_sources": [],
+        },
+        "d3fend": [],
+    }
+    return json.loads(json.dumps(mapping))
+
+
+def sigma_tags_for_mapping(mapping: dict[str, Any]) -> list[str]:
+    techniques = ((mapping.get("attack") or {}).get("techniques") or [])
+    tags = []
+    for technique in techniques:
+        technique_id = str((technique or {}).get("id") or "").lower()
+        if technique_id:
+            tags.append(f"attack.{technique_id}")
+    return tags
+
+
+def stix_observable_hints(finding: dict[str, Any]) -> list[str]:
+    sources = {str(artifact.get("source") or "") for artifact in finding.get("artifacts", []) if isinstance(artifact, dict)}
+    hints: set[str] = set()
+    if sources & {"installed_programs"}:
+        hints.add("software")
+    if sources & {"services", "process_creation_events", "powershell_events", "wmi_events"}:
+        hints.add("process")
+    if sources & {"recent_files", "startup_folders"}:
+        hints.add("file")
+    if sources & {"startup_registry"}:
+        hints.add("windows-registry-key")
+    if sources & {"scheduled_tasks"}:
+        hints.add("x-windows-scheduled-task")
+    if sources & {"defender_events", "service_install_events"}:
+        hints.add("x-windows-event-log-entry")
+    return sorted(hints)
+
+
+def misp_attribute_hints(finding: dict[str, Any]) -> list[str]:
+    hints: set[str] = set()
+    for artifact in finding.get("artifacts", []):
+        if not isinstance(artifact, dict):
+            continue
+        if any(key in artifact for key in ("path", "directory", "path_name", "executable_path", "install_location")):
+            hints.add("filename")
+        if artifact.get("signature"):
+            hints.add("text")
+        if artifact.get("message_excerpt") or artifact.get("event_data"):
+            hints.add("comment")
+    return sorted(hints)
+
+
+def build_mapped_detection_export(report: dict[str, Any]) -> dict[str, Any]:
+    mapped_findings = []
+    for finding in report.get("findings") or []:
+        if not isinstance(finding, dict):
+            continue
+        category = str(finding.get("category") or "")
+        mapping = mapping_for_category(category)
+        artifacts = [
+            artifact
+            for artifact in finding.get("artifacts", [])
+            if isinstance(artifact, dict)
+        ]
+        mapped_findings.append(
+            {
+                "finding_id": finding.get("id"),
+                "rule_id": category,
+                "title": finding.get("title"),
+                "severity": finding.get("severity"),
+                "confidence": finding.get("confidence"),
+                "tool": finding.get("tool"),
+                "reason": finding.get("reason"),
+                "artifact_count": finding.get("artifact_count") or len(artifacts),
+                "mapping": mapping,
+                "interoperability": {
+                    "sigma_tags": sigma_tags_for_mapping(mapping),
+                    "stix_observable_hints": stix_observable_hints(finding),
+                    "misp_attribute_hints": misp_attribute_hints(finding),
+                },
+                "evidence": {
+                    "artifact_sources": sorted({str(artifact.get("source")) for artifact in artifacts if artifact.get("source")}),
+                    "artifacts": artifacts,
+                },
+            }
+        )
+
+    return {
+        "schema_version": "1.0",
+        "profile": "rmm-hunter.detection-mapping.v1",
+        "scanner": report.get("scanner"),
+        "source_report_schema_version": report.get("schema_version"),
+        "verdict": report.get("verdict"),
+        "risk_score": report.get("risk_score"),
+        "summary": report.get("summary"),
+        "finding_count": len(mapped_findings),
+        "findings": mapped_findings,
+    }
+
+
 def single_line(value: Any) -> str:
     return " ".join(str(value).split())
 
@@ -1037,6 +1316,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--artifacts-out", type=Path, default=default_artifacts, help="Raw collector artifact output path.")
     parser.add_argument("--json-out", type=Path, default=default_json_report, help="Final JSON report path.")
     parser.add_argument("--summary-out", type=Path, default=default_summary, help="Human summary output path.")
+    parser.add_argument(
+        "--mapped-out",
+        type=Path,
+        help="Optional mapped detection export path for SIEM/TI workflows. Does not change verdict calculation.",
+    )
     parser.add_argument("--print-summary", action="store_true", help="Print the human summary to stdout.")
     return parser.parse_args(argv)
 
@@ -1059,6 +1343,8 @@ def main(argv: list[str] | None = None) -> int:
         summary = render_human_summary(report)
         write_json(args.json_out, report)
         write_text(args.summary_out, summary)
+        if args.mapped_out:
+            write_json(args.mapped_out, build_mapped_detection_export(report))
 
         if args.print_summary:
             print(summary, end="")
@@ -1066,6 +1352,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Verdict: {report['verdict']}")
             print(f"JSON report: {args.json_out}")
             print(f"Summary: {args.summary_out}")
+            if args.mapped_out:
+                print(f"Mapped detection export: {args.mapped_out}")
             if not args.input:
                 print(f"Raw artifacts: {args.artifacts_out}")
         return 0

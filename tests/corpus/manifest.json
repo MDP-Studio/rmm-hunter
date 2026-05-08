@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "cases": [
+    {
+      "id": "clean-baseline",
+      "path": "tests/corpus/clean_baseline.json",
+      "expected_verdict": "clean",
+      "expected_categories": []
+    },
+    {
+      "id": "authorized-teamviewer-program-files",
+      "path": "tests/corpus/authorized_teamviewer_program_files.json",
+      "expected_verdict": "needs_review",
+      "expected_categories": ["known_rmm_installed_app"]
+    },
+    {
+      "id": "high-risk-download-service-encoded-powershell",
+      "path": "tests/sample_artifacts_high_risk.json",
+      "expected_verdict": "high_risk",
+      "expected_categories": ["known_rmm_service", "service_from_user_writable_path", "encoded_powershell"]
+    }
+  ]
+}

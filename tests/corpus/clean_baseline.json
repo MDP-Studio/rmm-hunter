@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0",
+  "scanner": {
+    "name": "Synthetic collector",
+    "version": "0.0.0",
+    "collected_at_utc": "2026-05-08T00:00:00Z",
+    "hostname": "CLEAN-LAB"
+  },
+  "collection": {
+    "lookback_days": 14
+  },
+  "artifacts": {
+    "installed_programs": [],
+    "services": [],
+    "service_install_events": [],
+    "scheduled_tasks": [],
+    "startup_registry": [],
+    "startup_folders": [],
+    "recent_files": [],
+    "defender_events": [],
+    "powershell_events": [],
+    "process_creation_events": [],
+    "wmi_events": []
+  },
+  "collection_errors": []
+}

@@ -53,8 +53,8 @@ Never commit Microsoft, certificate authority, or signing credentials to the rep
 After a signed build:
 
 ```powershell
-Get-AuthenticodeSignature .\release\RMM-Hunter-Setup-0.1.0-x64.exe
-Get-AuthenticodeSignature .\release\RMM-Hunter-Portable-0.1.0-x64.exe
+Get-AuthenticodeSignature .\release\RMM-Hunter-Setup-*-x64.exe
+Get-AuthenticodeSignature .\release\RMM-Hunter-Portable-*-x64.exe
 ```
 
 Expected result:
@@ -62,6 +62,8 @@ Expected result:
 ```text
 Status : Valid
 ```
+
+Release builds also generate `SHA256SUMS.txt`, `rmm-hunter-release-manifest.json`, and `VERIFY_RELEASE.md` beside the Windows artifacts. See `docs/VERIFY_RELEASE.md` for the full download verification workflow.
 
 ## Icon
 

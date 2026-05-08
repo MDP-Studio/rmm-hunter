@@ -148,6 +148,14 @@ Analyze an existing collector artifact file:
 python .\rmm_hunter.py --input .\reports\rmm_hunter_artifacts_20260507T000000Z.json
 ```
 
+Write an optional mapped detection export for SOC or threat-intelligence workflows:
+
+```powershell
+python .\rmm_hunter.py --input .\reports\rmm_hunter_artifacts_20260507T000000Z.json --mapped-out .\reports\rmm_hunter_mapped.json
+```
+
+The mapped export does not change the deterministic `clean`, `needs_review`, or `high_risk` verdict. It adds rule IDs, ATT&CK/D3FEND mappings, Sigma-style tags, and STIX/MISP object hints for downstream tooling.
+
 Run the PowerShell collector only:
 
 ```powershell
@@ -158,7 +166,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\collect_windows.ps1 -Outpu
 
 The GitHub release build is Windows-first. It bundles the Python scanner as a PyInstaller executable, then packages the Electron desktop app with Electron Builder.
 
-Current public downloads are published from GitHub Releases. RMM Hunter v0.1.0 is an unsigned beta release, so Windows may show `Unknown publisher` or Microsoft Defender SmartScreen warnings. Verify release artifacts against the hashes shown on GitHub Releases when testing unsigned builds.
+Current public downloads are published from GitHub Releases. RMM Hunter beta releases are unsigned until SignPath or another trusted signing route is configured, so Windows may show `Unknown publisher` or Microsoft Defender SmartScreen warnings. Verify release artifacts with the bundled `SHA256SUMS.txt`, `rmm-hunter-release-manifest.json`, and `VERIFY_RELEASE.md` files.
 
 The Windows app icon is tracked at `gui/assets/icon.ico`, with SVG/PNG sources beside it. Regenerate it from `gui/assets/icon.svg` with ImageMagick:
 
@@ -179,6 +187,12 @@ Run the full local verification gate:
 ```powershell
 npm.cmd run release:verify
 pip-audit -r requirements-build.txt
+```
+
+Run the seeded coverage corpus directly:
+
+```powershell
+python .\scripts\evaluate_corpus.py --manifest .\tests\corpus\manifest.json
 ```
 
 Build Windows installer and portable artifacts:
@@ -204,12 +218,13 @@ GitHub Actions workflow:
 - `.github/workflows/release.yml`
 - manual `workflow_dispatch`
 - automatic draft release when pushing a `v*` tag
+- release assets include `SHA256SUMS.txt`, `rmm-hunter-release-manifest.json`, and `VERIFY_RELEASE.md`
 
 Example tag flow after committing:
 
 ```powershell
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.1
+git push origin v0.1.1
 ```
 
 RMM Hunter is released under the Apache License 2.0. The npm package remains marked `private` to prevent accidental registry publishing.
@@ -220,7 +235,7 @@ RMM Hunter's code signing policy is documented in `docs/CODE_SIGNING_POLICY.md`.
 
 Current status:
 
-- v0.1.0 artifacts are unsigned beta builds.
+- Current beta artifacts are unsigned builds.
 - Future signed open-source releases are intended to use SignPath Foundation if the project is accepted.
 - Signing credentials and API tokens must never be committed to the repository.
 - Maintainers and signing approvers must keep multi-factor authentication enabled for GitHub and SignPath accounts.
@@ -259,9 +274,12 @@ Full privacy policy: `PRIVACY.md`
 - `LICENSE`: Apache License 2.0 terms
 - `docs/CODE_SIGNING.md`: Windows signing and icon setup
 - `docs/CODE_SIGNING_POLICY.md`: SignPath-ready project signing policy
+- `docs/VERIFY_RELEASE.md`: SHA256, Authenticode, and release provenance checks
 - `PRIVACY.md`: local report handling and optional AI data handling
 - `docs/SECURITY_AUDIT.md`: current security audit summary
 - `docs/GAP_ADDENDUM.md`: release trust, interoperability, coverage, and mapping gaps
+- `docs/DETECTION_MAPPING.md`: rule-to-ATT&CK/D3FEND matrix and mapped export profile
+- `docs/COVERAGE_SCORECARD.md`: seeded corpus scorecard and coverage boundaries
 - `RELEASE_CHECKLIST.md`: GitHub release readiness checklist
 - `CHANGELOG.md`: release notes
 
@@ -284,6 +302,13 @@ Near-term roadmap discipline:
 4. Map evidence to ATT&CK and D3FEND only when the mapping is grounded in collected artifacts and rule logic.
 
 See `docs/GAP_ADDENDUM.md` for the current gap addendum.
+
+Implemented gap slices in `0.1.1`:
+
+- Release provenance: workflow-generated checksums, manifest, and verification guide.
+- Interoperability: optional mapped detection export.
+- Coverage measurement: seeded eval corpus and scorecard.
+- Operator mapping: evidence-to-rule-to-ATT&CK/D3FEND matrix.
 
 ## References
 

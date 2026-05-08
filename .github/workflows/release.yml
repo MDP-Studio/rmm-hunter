@@ -77,6 +77,17 @@ jobs:
           Write-Output "::error title=Electron Builder failed::$tail"
           exit 1
 
+      - name: Generate release verification files
+        shell: pwsh
+        run: |
+          .\scripts\generate-release-manifest.ps1 `
+            -ReleaseDir release `
+            -SourceRef "${{ github.ref_name }}" `
+            -SourceSha "${{ github.sha }}" `
+            -Repository "${{ github.repository }}" `
+            -RunId "${{ github.run_id }}" `
+            -RunUrl "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7
         with:
@@ -85,6 +96,9 @@ jobs:
             release/RMM-Hunter-Setup-*.exe
             release/RMM-Hunter-Setup-*.exe.blockmap
             release/RMM-Hunter-Portable-*.exe
+            release/SHA256SUMS.txt
+            release/rmm-hunter-release-manifest.json
+            release/VERIFY_RELEASE.md
           if-no-files-found: error
 
       - name: Create draft GitHub release
@@ -98,6 +112,9 @@ jobs:
             Get-ChildItem -Path release -File -Filter "RMM-Hunter-Setup-*.exe"
             Get-ChildItem -Path release -File -Filter "RMM-Hunter-Setup-*.exe.blockmap"
             Get-ChildItem -Path release -File -Filter "RMM-Hunter-Portable-*.exe"
+            Get-ChildItem -Path release -File -Filter "SHA256SUMS.txt"
+            Get-ChildItem -Path release -File -Filter "rmm-hunter-release-manifest.json"
+            Get-ChildItem -Path release -File -Filter "VERIFY_RELEASE.md"
           ) | Select-Object -ExpandProperty FullName
 
           $existingDraft = gh release view $tag --json isDraft --jq ".isDraft" 2>$null

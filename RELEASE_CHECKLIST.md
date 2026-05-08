@@ -14,6 +14,7 @@ Use this checklist before creating a GitHub release.
 - [ ] Confirm `docs/CODE_SIGNING_POLICY.md` reflects maintainer roles, signing scope, and SignPath status.
 - [ ] Confirm `PRIVACY.md` reflects local report handling and optional AI provider data handling.
 - [ ] Confirm `docs/GAP_ADDENDUM.md` reflects the current release-trust, interoperability, coverage, and mapping gaps.
+- [ ] Confirm `docs/VERIFY_RELEASE.md`, `docs/DETECTION_MAPPING.md`, and `docs/COVERAGE_SCORECARD.md` are current.
 - [ ] Confirm no secrets or raw scan reports are tracked.
 
 ## Local Verification
@@ -22,6 +23,7 @@ Use this checklist before creating a GitHub release.
 - [ ] `python -m pip install -r requirements-build.txt`
 - [ ] `npm run release:verify`
 - [ ] `pip-audit -r requirements-build.txt`
+- [ ] `python scripts/evaluate_corpus.py --manifest tests/corpus/manifest.json`
 - [ ] `npm run dist`
 
 ## Windows Smoke Test
@@ -45,6 +47,7 @@ Use this checklist before creating a GitHub release.
 - [ ] Wait for the `Build Windows Release` workflow to finish.
 - [ ] Download and smoke-test the workflow artifacts.
 - [ ] Confirm installer and portable artifacts show the RMM Hunter icon.
+- [ ] Confirm release includes `SHA256SUMS.txt`, `rmm-hunter-release-manifest.json`, and `VERIFY_RELEASE.md`.
 - [ ] Edit the draft GitHub release notes with known limitations.
 - [ ] Include SHA256 hashes and Authenticode verification guidance beside release assets.
 - [ ] For signed candidates, test SmartScreen, Defender, browser download, and installer friction on 3 clean Windows hosts.

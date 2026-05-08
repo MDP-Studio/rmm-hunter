@@ -1,6 +1,6 @@
 {
   "name": "rmm-hunter",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Windows desktop scanner for unauthorized remote access tools and living-off-the-land traces.",
   "main": "gui/main.js",
   "author": "Meidie <meidie@mdpstudio.com.au>",
@@ -19,7 +19,7 @@
     "start": "electron .",
     "clean": "node scripts/clean-release.js",
     "check:js": "node --check gui/main.js && node --check gui/preload.js && node --check gui/renderer.js && node --check scripts/build-scanner.js && node --check scripts/clean-release.js",
-    "check:py": "python -m py_compile rmm_hunter.py && python -m unittest discover -v",
+    "check:py": "python -m py_compile rmm_hunter.py scripts/evaluate_corpus.py && python -m unittest discover -v && python scripts/evaluate_corpus.py --manifest tests/corpus/manifest.json",
     "check": "npm run check:js && npm run check:py",
     "test": "python -m unittest discover -v",
     "build:scanner": "node scripts/build-scanner.js",

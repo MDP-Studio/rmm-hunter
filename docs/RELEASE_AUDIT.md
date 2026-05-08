@@ -16,6 +16,7 @@ Reviewed:
 - dependency security
 - privacy policy and SignPath-ready code-signing policy
 - gap addendum for release trust, interoperability, coverage measurement, and ATT&CK/D3FEND mapping
+- release verification assets, mapped detection export, seeded corpus eval, and mapping matrix
 - GitHub Actions release workflow
 - Windows installer, portable executable, and bundled scanner executable
 
@@ -31,9 +32,9 @@ Target repository: `https://github.com/MDP-Studio/rmm-hunter`
 
 Current local release artifacts:
 
-- `release/RMM-Hunter-Setup-0.1.0-x64.exe`
-- `release/RMM-Hunter-Setup-0.1.0-x64.exe.blockmap`
-- `release/RMM-Hunter-Portable-0.1.0-x64.exe`
+- `release/RMM-Hunter-Setup-0.1.1-x64.exe`
+- `release/RMM-Hunter-Setup-0.1.1-x64.exe.blockmap`
+- `release/RMM-Hunter-Portable-0.1.1-x64.exe`
 
 Electron Builder also creates local debug output:
 
@@ -53,6 +54,7 @@ The GitHub workflow uploads only the setup executable, setup blockmap, and porta
 | npm audit | Pass | 0 vulnerabilities for all dependencies. |
 | production npm audit | Pass | 0 vulnerabilities with `--omit=dev`. |
 | Python build dependency audit | Pass | `pip-audit -r requirements-build.txt` found no known vulnerabilities. |
+| seeded corpus evaluation | Pass | `scripts/evaluate_corpus.py` checks clean, needs-review, and high-risk seeded artifacts. |
 | secret-pattern scan | Pass | Only documented API-key placeholder examples and runtime key-handling code were found outside ignored/generated folders. |
 | PyInstaller scanner build | Pass | Bundled `rmm-hunter-cli.exe` created successfully. |
 | Bundled scanner behavior | Pass | Packaged scanner analyzed the high-risk sample artifact successfully. |
@@ -83,6 +85,10 @@ The GitHub workflow uploads only the setup executable, setup blockmap, and porta
 - `docs/CODE_SIGNING.md` now documents the unsigned status, future Microsoft Artifact Signing setup, and icon regeneration commands.
 - `PRIVACY.md` now documents local report handling and optional AI provider data handling.
 - `docs/CODE_SIGNING_POLICY.md` now documents the SignPath-ready signing policy, maintainer roles, signing scope, MFA expectation, release integrity gates, and security-tool scope.
+- GitHub Actions now publishes `SHA256SUMS.txt`, `rmm-hunter-release-manifest.json`, and `VERIFY_RELEASE.md` beside Windows release assets.
+- The CLI now supports `--mapped-out` for profile `rmm-hunter.detection-mapping.v1`, preserving deterministic verdict behavior while adding portable detection labels.
+- `scripts/evaluate_corpus.py` now runs a seeded corpus and fails the verification gate on verdict or expected-category regressions.
+- `docs/DETECTION_MAPPING.md` and `docs/COVERAGE_SCORECARD.md` now document the mapping matrix and current seeded coverage scorecard.
 
 ## Residual Release Risks
 
@@ -90,6 +96,7 @@ The GitHub workflow uploads only the setup executable, setup blockmap, and porta
 - GitHub MFA status cannot be verified through the current CLI response. The maintainer must confirm MFA in GitHub account settings before applying to SignPath.
 - Release trust and provenance remain the biggest external trust gap. Do not prioritize new detector breadth ahead of signing, verification instructions, and clean-host friction testing.
 - Detection interoperability, coverage measurement, and ATT&CK/D3FEND mapping are documented in `docs/GAP_ADDENDUM.md` as follow-on work after release trust.
+- The current coverage scorecard is intentionally small. Treat it as a regression harness, not efficacy proof.
 - Do not publish an app build that embeds an MDP Studio AI provider key. Desktop users should supply their own key unless a server-side paid AI service is added later.
 - Source is licensed under Apache-2.0. The package remains `private` to prevent accidental npm publishing.
 - Electron Builder currently includes deprecated transitive build-time packages, although `npm audit` reports no vulnerabilities.
@@ -101,18 +108,19 @@ The GitHub workflow uploads only the setup executable, setup blockmap, and porta
 npm run release:verify
 npm audit --omit=dev --audit-level=moderate
 uvx pip-audit==2.10.0 -r requirements-build.txt
+python scripts/evaluate_corpus.py --manifest tests/corpus/manifest.json
 npm run dist
 ```
 
 Installer smoke test:
 
 ```powershell
-release\RMM-Hunter-Setup-0.1.0-x64.exe /S /D=%TEMP%\RMMHunterInstallTest
+release\RMM-Hunter-Setup-0.1.1-x64.exe /S /D=%TEMP%\RMMHunterInstallTest
 ```
 
 ## Next Release Steps
 
-1. Publish the generated `v0.1.0` draft as an unsigned prerelease with clear SmartScreen wording.
+1. Publish the generated `v0.1.1` draft as an unsigned prerelease with clear SmartScreen wording and verification assets.
 2. Confirm GitHub MFA is enabled for the maintainer account.
 3. Apply to SignPath Foundation using the public repository, public release page, privacy policy, and code-signing policy.
 4. After SignPath approval, add the SignPath GitHub Actions signing step and required repository secret.

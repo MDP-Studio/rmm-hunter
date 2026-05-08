@@ -8,7 +8,7 @@ https://github.com/MDP-Studio/rmm-hunter
 
 ## Current Status
 
-RMM Hunter v0.1.0 artifacts are unsigned beta builds. They are suitable for testing, but Windows may show `Unknown publisher` or Microsoft Defender SmartScreen warnings.
+Current RMM Hunter beta artifacts are unsigned builds. They are suitable for testing, but Windows may show `Unknown publisher` or Microsoft Defender SmartScreen warnings.
 
 The project intends to use SignPath Foundation for free open-source Windows code signing if accepted. When enabled, release artifacts will state:
 
