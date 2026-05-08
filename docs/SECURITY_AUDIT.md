@@ -12,6 +12,7 @@ Reviewed the RMM Hunter Windows MVP:
 - npm dependency tree
 - release packaging path
 - privacy and code-signing policy documentation
+- roadmap gap documentation for release trust, interoperability, coverage measurement, and mapping
 
 Excluded generated folders and local scan output:
 
@@ -74,6 +75,7 @@ No reportable security vulnerabilities were found in the application code after 
 - User-supplied AI keys are local machine secrets. Do not add an MDP Studio shared API key to public desktop builds.
 - Administrator mode improves scan coverage, but the app intentionally requests `asInvoker` to avoid unnecessary privilege escalation.
 - Electron Builder writes `builder-debug.yml`, `latest.yml`, and `win-unpacked` into `release/` for local debugging/update metadata. The GitHub workflow uploads only the setup executable, setup blockmap, and portable executable.
+- Detection quality claims should stay tied to measured seeded-corpus results. `docs/GAP_ADDENDUM.md` tracks the eval harness and scorecard as follow-on work.
 
 ## Commands
 

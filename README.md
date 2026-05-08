@@ -261,6 +261,7 @@ Full privacy policy: `PRIVACY.md`
 - `docs/CODE_SIGNING_POLICY.md`: SignPath-ready project signing policy
 - `PRIVACY.md`: local report handling and optional AI data handling
 - `docs/SECURITY_AUDIT.md`: current security audit summary
+- `docs/GAP_ADDENDUM.md`: release trust, interoperability, coverage, and mapping gaps
 - `RELEASE_CHECKLIST.md`: GitHub release readiness checklist
 - `CHANGELOG.md`: release notes
 
@@ -274,6 +275,15 @@ Fast validation experiment:
 2. Track false positives for each source: services, tasks, startup keys, recent files, logs.
 3. Add an allowlist file only after the first false-positive pass.
 4. Package as a signed release once the CLI output is stable and a Windows code-signing option is configured.
+
+Near-term roadmap discipline:
+
+1. Prioritize release trust and provenance before broadening detector coverage.
+2. Add optional interoperable exports only after the core finding schema is stable.
+3. Measure coverage with a seeded corpus and release scorecard before making broad efficacy claims.
+4. Map evidence to ATT&CK and D3FEND only when the mapping is grounded in collected artifacts and rule logic.
+
+See `docs/GAP_ADDENDUM.md` for the current gap addendum.
 
 ## References
 

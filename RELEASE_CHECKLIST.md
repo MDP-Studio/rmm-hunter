@@ -13,6 +13,7 @@ Use this checklist before creating a GitHub release.
 - [ ] Confirm `docs/CODE_SIGNING.md` reflects the current signing status.
 - [ ] Confirm `docs/CODE_SIGNING_POLICY.md` reflects maintainer roles, signing scope, and SignPath status.
 - [ ] Confirm `PRIVACY.md` reflects local report handling and optional AI provider data handling.
+- [ ] Confirm `docs/GAP_ADDENDUM.md` reflects the current release-trust, interoperability, coverage, and mapping gaps.
 - [ ] Confirm no secrets or raw scan reports are tracked.
 
 ## Local Verification
@@ -45,6 +46,8 @@ Use this checklist before creating a GitHub release.
 - [ ] Download and smoke-test the workflow artifacts.
 - [ ] Confirm installer and portable artifacts show the RMM Hunter icon.
 - [ ] Edit the draft GitHub release notes with known limitations.
+- [ ] Include SHA256 hashes and Authenticode verification guidance beside release assets.
+- [ ] For signed candidates, test SmartScreen, Defender, browser download, and installer friction on 3 clean Windows hosts.
 - [ ] Publish the draft release.
 
 ## Known Limitations To Mention

@@ -15,6 +15,7 @@ Reviewed:
 - Windows icon and unsigned signing status
 - dependency security
 - privacy policy and SignPath-ready code-signing policy
+- gap addendum for release trust, interoperability, coverage measurement, and ATT&CK/D3FEND mapping
 - GitHub Actions release workflow
 - Windows installer, portable executable, and bundled scanner executable
 
@@ -87,6 +88,8 @@ The GitHub workflow uploads only the setup executable, setup blockmap, and porta
 
 - Windows artifacts are unsigned. Expect SmartScreen friction until SignPath Foundation, Microsoft Artifact Signing, or another trusted signing option is configured.
 - GitHub MFA status cannot be verified through the current CLI response. The maintainer must confirm MFA in GitHub account settings before applying to SignPath.
+- Release trust and provenance remain the biggest external trust gap. Do not prioritize new detector breadth ahead of signing, verification instructions, and clean-host friction testing.
+- Detection interoperability, coverage measurement, and ATT&CK/D3FEND mapping are documented in `docs/GAP_ADDENDUM.md` as follow-on work after release trust.
 - Do not publish an app build that embeds an MDP Studio AI provider key. Desktop users should supply their own key unless a server-side paid AI service is added later.
 - Source is licensed under Apache-2.0. The package remains `private` to prevent accidental npm publishing.
 - Electron Builder currently includes deprecated transitive build-time packages, although `npm audit` reports no vulnerabilities.
@@ -113,3 +116,5 @@ release\RMM-Hunter-Setup-0.1.0-x64.exe /S /D=%TEMP%\RMMHunterInstallTest
 2. Confirm GitHub MFA is enabled for the maintainer account.
 3. Apply to SignPath Foundation using the public repository, public release page, privacy policy, and code-signing policy.
 4. After SignPath approval, add the SignPath GitHub Actions signing step and required repository secret.
+5. Test one signed release candidate on 3 clean Windows hosts and record SmartScreen, Defender, browser, and installer friction.
+6. Add interoperable output and coverage scorecards only after release provenance is fixed.
