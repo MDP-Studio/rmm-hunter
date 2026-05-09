@@ -246,6 +246,119 @@ class RuleTests(unittest.TestCase):
         self.assertIn("Exclusions\\Paths", config_artifact["new_setting_path"])
         self.assertEqual(config_artifact["new_setting_value"], "0x0")
 
+    def test_system_trust_health_flags_stale_defender_and_signature_failure(self):
+        collection = {
+            "artifacts": {
+                "installed_programs": [],
+                "services": [],
+                "service_install_events": [],
+                "scheduled_tasks": [],
+                "startup_registry": [],
+                "startup_folders": [],
+                "recent_files": [],
+                "defender_status": [
+                    {
+                        "am_service_enabled": True,
+                        "antivirus_enabled": True,
+                        "real_time_protection_enabled": True,
+                        "behavior_monitor_enabled": True,
+                        "ioav_protection_enabled": True,
+                        "on_access_protection_enabled": True,
+                        "antivirus_signature_age_days": 4,
+                        "antivirus_signature_version": "1.449.1.0",
+                        "exclusion_path_count": 1,
+                        "exclusion_path_samples": ["C:\\Users\\meidi\\Downloads\\*"],
+                    }
+                ],
+                "code_signing_trust": [
+                    {
+                        "check": "windows_binary_signature",
+                        "name": "notepad.exe",
+                        "path": "C:\\Windows\\System32\\notepad.exe",
+                        "status": "NotTrusted",
+                        "status_message": "A certificate chain processed, but terminated in a root certificate which is not trusted.",
+                    }
+                ],
+                "trusted_root_store": [
+                    {
+                        "check": "trusted_root_store_summary",
+                        "store": "LocalMachine\\Root",
+                        "scope": "local_machine",
+                        "total_count": 120,
+                        "expired_count": 0,
+                        "private_key_count": 0,
+                    }
+                ],
+                "defender_events": [],
+                "powershell_events": [],
+                "process_creation_events": [],
+                "wmi_events": []
+            },
+            "collection_errors": []
+        }
+        report = rmm_hunter.analyze_artifacts(collection)
+        categories = {finding["category"] for finding in report["findings"]}
+        statuses = {check["check"]: check["status"] for check in report["system_trust_health"]}
+
+        self.assertEqual(report["verdict"], "high_risk")
+        self.assertIn("defender_health_issue", categories)
+        self.assertIn("trust_validation_issue", categories)
+        self.assertEqual(statuses["defender_security_intelligence_age"], "needs_review")
+        self.assertEqual(statuses["windows_code_signing_validation"], "high_risk")
+
+    def test_healthy_system_trust_checks_do_not_create_findings(self):
+        collection = {
+            "artifacts": {
+                "installed_programs": [],
+                "services": [],
+                "service_install_events": [],
+                "scheduled_tasks": [],
+                "startup_registry": [],
+                "startup_folders": [],
+                "recent_files": [],
+                "defender_status": [
+                    {
+                        "am_service_enabled": True,
+                        "antivirus_enabled": True,
+                        "real_time_protection_enabled": True,
+                        "behavior_monitor_enabled": True,
+                        "ioav_protection_enabled": True,
+                        "on_access_protection_enabled": True,
+                        "antivirus_signature_age_days": 0.25,
+                        "antivirus_signature_version": "1.449.1.0",
+                    }
+                ],
+                "code_signing_trust": [
+                    {
+                        "check": "windows_binary_signature",
+                        "name": "notepad.exe",
+                        "path": "C:\\Windows\\System32\\notepad.exe",
+                        "status": "Valid",
+                    }
+                ],
+                "trusted_root_store": [
+                    {
+                        "check": "trusted_root_store_summary",
+                        "store": "LocalMachine\\Root",
+                        "scope": "local_machine",
+                        "total_count": 120,
+                        "expired_count": 0,
+                        "private_key_count": 0,
+                    }
+                ],
+                "defender_events": [],
+                "powershell_events": [],
+                "process_creation_events": [],
+                "wmi_events": []
+            },
+            "collection_errors": []
+        }
+        report = rmm_hunter.analyze_artifacts(collection)
+
+        self.assertEqual(report["verdict"], "clean")
+        self.assertEqual(report["findings"], [])
+        self.assertTrue(all(check["status"] == "ok" for check in report["system_trust_health"]))
+
     def test_release_manifest_powershell_is_treated_as_self_noise(self):
         collection = {
             "artifacts": {

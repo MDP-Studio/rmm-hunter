@@ -16,6 +16,9 @@ const evidenceHint = document.getElementById("evidenceHint");
 const aiExplain = document.getElementById("aiExplain");
 const recommendationsPanel = document.getElementById("recommendationsPanel");
 const recommendationList = document.getElementById("recommendationList");
+const trustHealthPanel = document.getElementById("trustHealthPanel");
+const trustHealthHint = document.getElementById("trustHealthHint");
+const trustHealthList = document.getElementById("trustHealthList");
 const aiPanel = document.getElementById("aiPanel");
 const aiStatus = document.getElementById("aiStatus");
 const aiSummary = document.getElementById("aiSummary");
@@ -481,6 +484,8 @@ function resetResults() {
   aiExplain.disabled = true;
   recommendationsPanel.classList.add("hidden");
   recommendationList.replaceChildren();
+  trustHealthPanel.classList.add("hidden");
+  trustHealthList.replaceChildren();
   aiPanel.classList.add("hidden");
   aiSettings.classList.add("hidden");
   hideAiSetupNotice();
@@ -512,6 +517,7 @@ function renderReport(report, paths) {
   lowCount.textContent = String(severityCounts.low);
   evidenceHint.textContent = findings.length ? `${findings.length} grouped findings, ${evidenceTotal} artifacts` : "No findings";
   renderRecommendations(report.recommendations || []);
+  renderTrustHealth(report.system_trust_health || []);
 
   evidenceList.replaceChildren(...findings.map(renderFindingCard));
   if (!findings.length) {
@@ -542,6 +548,62 @@ function renderRecommendations(recommendations) {
     item.textContent = text;
     return item;
   }));
+}
+
+function renderTrustHealth(checks) {
+  trustHealthList.replaceChildren();
+  if (!Array.isArray(checks) || !checks.length) {
+    trustHealthPanel.classList.add("hidden");
+    return;
+  }
+
+  trustHealthPanel.classList.remove("hidden");
+  const needsAttention = checks.filter((check) => ["needs_review", "high_risk"].includes(check?.status)).length;
+  const unknown = checks.filter((check) => check?.status === "unknown").length;
+  trustHealthHint.textContent = needsAttention
+    ? `${needsAttention} check${needsAttention === 1 ? "" : "s"} need review`
+    : unknown
+      ? `${unknown} check${unknown === 1 ? "" : "s"} could not be confirmed`
+      : "All collected trust checks look healthy";
+  trustHealthList.replaceChildren(...checks.map(renderTrustHealthCheck));
+}
+
+function renderTrustHealthCheck(check) {
+  const status = check?.status || "unknown";
+  const card = document.createElement("article");
+  card.className = `trust-health-card ${status}`;
+
+  const header = document.createElement("div");
+  header.className = "trust-health-header";
+
+  const title = document.createElement("h4");
+  title.textContent = check?.title || "Trust health check";
+
+  const pill = document.createElement("span");
+  pill.className = `pill ${status === "high_risk" ? "high" : status === "needs_review" ? "medium" : status === "ok" ? "clean" : "low"}`;
+  pill.textContent = formatTrustStatus(status);
+
+  header.append(title, pill);
+
+  const detail = document.createElement("p");
+  detail.textContent = check?.detail || "";
+
+  const action = document.createElement("p");
+  action.className = "trust-health-action";
+  action.textContent = check?.recommended_action || "Review this check before making remediation decisions.";
+
+  card.append(header, detail, action);
+  return card;
+}
+
+function formatTrustStatus(status) {
+  if (status === "high_risk") {
+    return "high risk";
+  }
+  if (status === "needs_review") {
+    return "needs review";
+  }
+  return status || "unknown";
 }
 
 async function refreshAiSettings() {

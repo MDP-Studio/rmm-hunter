@@ -1,6 +1,6 @@
 # Security Audit
 
-Date: 2026-05-08
+Date: 2026-05-09
 
 ## Scope
 
@@ -14,6 +14,7 @@ Reviewed the RMM Hunter Windows MVP:
 - privacy and code-signing policy documentation
 - roadmap gap documentation for release trust, interoperability, coverage measurement, and mapping
 - mapped detection export, release verification manifest generation, and seeded corpus evaluation
+- System Trust Health collection and reporting for Defender state, Windows Authenticode validation, and trusted root store signals
 
 Excluded generated folders and local scan output:
 
@@ -35,12 +36,14 @@ No reportable security vulnerabilities were found in the application code after 
 - Report reveal is restricted to the app reports directory.
 - Renderer evidence and AI output are inserted as text nodes.
 - Finding review-action buttons only expand local guidance. They do not delete files, stop services, change settings, or execute remediation commands.
+- System Trust Health checks are report-only. They collect Defender status, code-signing validation results, and trusted-root summaries, but do not repair certificates, modify exclusions, or change Defender settings.
 - PDF report HTML escapes report fields and includes a restrictive CSP.
 - Update checks and installer downloads run in the Electron main process through `electron-updater` and GitHub Releases metadata. The renderer CSP remains `connect-src 'none'`, no scan evidence is sent, and external opening is restricted to allowlisted RMM Hunter project links.
 - Optional AI explanations are off by default, send only sanitized/minimized report data, enforce a payload cap, and cannot change the deterministic verdict.
 - AI recommendation setup checks run before provider calls. If an API key is missing, the app shows local setup guidance and sends no report data to an AI provider.
 - AI provider settings support OpenAI, OpenRouter, Groq, and custom OpenAI-compatible endpoints. Saved API keys are encrypted with Electron safe storage when available and are never returned to the renderer after saving.
 - AI prompts receive extracted artifact context, not raw full logs, and are instructed to separate known evidence from unproven delivery source.
+- AI prompts receive minimized System Trust Health context so recommendations can account for stale Defender intelligence, weak protections, broad exclusions, or broken signature validation without changing the deterministic verdict.
 - Preset provider endpoints are fixed in application code so a modified settings file cannot redirect a saved preset-provider key to another host.
 - AI endpoint validation requires HTTPS unless the endpoint is localhost.
 - Python invokes the collector with an argument array, not shell string concatenation.
@@ -64,18 +67,20 @@ No reportable security vulnerabilities were found in the application code after 
 - Build Python dependencies are pinned in `requirements-build.txt` and should be checked with `pip-audit -r requirements-build.txt` or `uvx pip-audit==2.10.0 -r requirements-build.txt`.
 - `uvx pip-audit==2.10.0 -r requirements-build.txt` passed with no known vulnerabilities.
 - `python scripts/evaluate_corpus.py --manifest tests/corpus/manifest.json` passed against the seeded corpus.
+- System Trust Health smoke analysis confirmed Defender protections were enabled, security intelligence was recent, Windows code-signing validation passed for 3 known Windows binaries, and the trusted root store was readable on the test machine.
 
 ## Release Verification Performed
 
 - `npm run release:verify` passed.
 - `npm run dist` produced:
-  - `release/RMM-Hunter-Setup-0.1.4-x64.exe`
-  - `release/RMM-Hunter-Portable-0.1.4-x64.exe`
-  - `release/RMM-Hunter-Setup-0.1.4-x64.exe.blockmap`
+  - `release/RMM-Hunter-Setup-0.1.5-x64.exe`
+  - `release/RMM-Hunter-Portable-0.1.5-x64.exe`
+  - `release/RMM-Hunter-Setup-0.1.5-x64.exe.blockmap`
 - The bundled scanner executable under `release/win-unpacked/resources/bin/rmm-hunter-cli.exe` successfully analyzed the high-risk sample artifact.
+- The bundled scanner executable successfully analyzed a local trust-health smoke artifact and preserved the System Trust Health section in the text report.
 - The unpacked packaged app launched and stayed alive.
 - The portable executable launched and stayed alive.
-- The NSIS installer silently upgraded the existing per-user install to `0.1.4`, preserved the install path, and kept reports/settings in the local app data directory.
+- The NSIS installer silently upgraded the existing per-user install to `0.1.5`, preserved the install path, and kept reports/settings in the local app data directory.
 
 ## Release Risks
 

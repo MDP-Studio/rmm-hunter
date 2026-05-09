@@ -25,6 +25,7 @@
         </div>
 
         <div class="side-actions" aria-label="Project sections">
+          <button type="button" data-scroll-target="trustHealthPanel">Trust health</button>
           <button type="button" data-scroll-target="feedbackSection">Feedback</button>
           <button type="button" data-scroll-target="aboutSection">About</button>
         </div>
@@ -36,6 +37,7 @@
           <div>Scheduled tasks</div>
           <div>Event logs</div>
           <div>Recent installers</div>
+          <div>System trust health</div>
         </div>
       </aside>
 
@@ -160,6 +162,14 @@
             <span id="recommendationsHint">Based on deterministic scan rules</span>
           </div>
           <ul class="recommendation-list" id="recommendationList"></ul>
+        </section>
+
+        <section class="trust-health-panel hidden" id="trustHealthPanel">
+          <div class="section-heading">
+            <h3>System Trust Health</h3>
+            <span id="trustHealthHint">Defender and Windows trust checks</span>
+          </div>
+          <div class="trust-health-list" id="trustHealthList"></div>
         </section>
 
         <section class="report-paths hidden" id="reportPaths">

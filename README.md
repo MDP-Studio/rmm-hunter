@@ -1,6 +1,6 @@
 # RMM Hunter
 
-Standalone Windows scanner for unauthorized remote access tools and living-off-the-land traces.
+Standalone Windows scanner for unauthorized remote access tools, living-off-the-land traces, and local trust-health signals that affect incident confidence.
 
 Created and maintained by Meidie. Published by MDP Studio.
 
@@ -30,6 +30,7 @@ Threat actors frequently abuse legitimate remote monitoring and management tools
 - Is it running as a service or scheduled task?
 - Did it appear from `Downloads`, `Temp`, or another user-writable path?
 - Are there recent service-install, PowerShell, Defender, WMI, or process-creation traces that need review?
+- Is Defender and Windows code-signing trust healthy enough to interpret security evidence confidently?
 
 ## Current Scope
 
@@ -42,6 +43,9 @@ Windows MVP:
 - Startup registry keys and startup folders
 - Recent installer and script files in Downloads and Temp locations
 - Defender events where available
+- Defender health, security intelligence age, and suspicious exclusions where available
+- Windows code-signing validation checks against known signed Windows binaries
+- Trusted root store summary and unusual trusted-root private-key signals
 - PowerShell Operational and Windows PowerShell logs where available
 - Security process creation events where available, event ID `4688`
 - WMI Activity events where available
@@ -89,6 +93,7 @@ The GUI provides:
 - Evidence cards for each finding
 - Plain-English finding explanations with non-destructive review actions
 - Extracted context for PowerShell URLs/domains, Defender threat actions, affected resources, and Defender setting changes
+- System Trust Health cards for Defender state, security intelligence age, broad exclusions, code-signing validation, and trusted-root-store review
 - Deterministic recommended next steps
 - GitHub Releases update check with installer auto-update for the installed Windows build
 - Optional bring-your-own-key AI explanations and recommendations
@@ -233,8 +238,8 @@ GitHub Actions workflow:
 Example tag flow after committing:
 
 ```powershell
-git tag v0.1.4
-git push origin v0.1.4
+git tag v0.1.5
+git push origin v0.1.5
 ```
 
 RMM Hunter is released under the Apache License 2.0. The npm package remains marked `private` to prevent accidental registry publishing.

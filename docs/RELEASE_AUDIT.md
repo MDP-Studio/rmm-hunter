@@ -1,6 +1,6 @@
 # Release Audit
 
-Date: 2026-05-08
+Date: 2026-05-09
 
 ## Scope
 
@@ -10,6 +10,7 @@ Reviewed:
 
 - Windows scanner CLI and collector
 - Electron desktop app
+- System Trust Health dashboard and report output
 - optional AI explanation path
 - JSON/PDF export
 - Windows icon and unsigned signing status
@@ -32,9 +33,9 @@ Target repository: `https://github.com/MDP-Studio/rmm-hunter`
 
 Current local release artifacts:
 
-- `release/RMM-Hunter-Setup-0.1.4-x64.exe`
-- `release/RMM-Hunter-Setup-0.1.4-x64.exe.blockmap`
-- `release/RMM-Hunter-Portable-0.1.4-x64.exe`
+- `release/RMM-Hunter-Setup-0.1.5-x64.exe`
+- `release/RMM-Hunter-Setup-0.1.5-x64.exe.blockmap`
+- `release/RMM-Hunter-Portable-0.1.5-x64.exe`
 
 Electron Builder also creates local debug output:
 
@@ -50,7 +51,7 @@ The GitHub workflow uploads the setup executable, setup blockmap, portable execu
 | --- | --- | --- |
 | JavaScript syntax | Pass | `gui` and `scripts` JS files checked with `node --check`. |
 | Python compile | Pass | `python -m py_compile rmm_hunter.py`. |
-| Unit tests | Pass | 4 tests passed. |
+| Unit tests | Pass | 12 tests passed. |
 | npm audit | Pass | 0 vulnerabilities for all dependencies. |
 | production npm audit | Pass | 0 vulnerabilities with `--omit=dev`. |
 | Python build dependency audit | Pass | `pip-audit -r requirements-build.txt` found no known vulnerabilities. |
@@ -58,6 +59,8 @@ The GitHub workflow uploads the setup executable, setup blockmap, portable execu
 | secret-pattern scan | Pass | Only documented API-key placeholder examples and runtime key-handling code were found outside ignored/generated folders. |
 | PyInstaller scanner build | Pass | Bundled `rmm-hunter-cli.exe` created successfully. |
 | Bundled scanner behavior | Pass | Packaged scanner analyzed the high-risk sample artifact successfully. |
+| System Trust Health smoke | Pass | Collector/analyzer produced trust-health checks for Defender state, Defender intelligence age, code-signing validation, and trusted-root summary. |
+| Browser UI smoke | Pass | Localhost dashboard loaded, trust-health panel existed in the DOM, navigation worked, and console errors/warnings were 0. |
 | Electron Builder release build | Pass | Setup and portable Windows artifacts generated. |
 | Unpacked packaged app launch | Pass | App launched and stayed alive. |
 | Portable launch | Pass | Portable executable launched and stayed alive. |
@@ -72,6 +75,7 @@ The GitHub workflow uploads the setup executable, setup blockmap, portable execu
 - AI settings are now bring-your-own-key with OpenAI, OpenRouter, Groq, and custom OpenAI-compatible provider support. No-key clicks show a visible setup notice and send no report data.
 - Feedback and About sections use main-process allowlisted external links for GitHub issues, the security policy, privacy policy, private email, and Buy Me a Coffee.
 - Finding artifacts now include extracted PowerShell domains/URLs, Defender threat/action/result fields, affected resources, and Defender old/new setting values where available.
+- System Trust Health now reports Defender protection state, security intelligence age, broad exclusions, Windows code-signing validation, and trusted-root-store review without changing system settings.
 - Windows app and installer packaging now use `gui/assets/icon.ico`.
 - Build now creates separate installer and portable filenames.
 - Build now cleans stale release artifacts before packaging.
@@ -119,12 +123,12 @@ npm run dist
 Installer smoke test:
 
 ```powershell
-release\RMM-Hunter-Setup-0.1.4-x64.exe /S /D=%TEMP%\RMMHunterInstallTest
+release\RMM-Hunter-Setup-0.1.5-x64.exe /S
 ```
 
 ## Next Release Steps
 
-1. Publish the generated `v0.1.4` draft as an unsigned prerelease with clear SmartScreen wording and verification assets.
+1. Publish the generated `v0.1.5` draft as an unsigned prerelease with clear SmartScreen wording and verification assets.
 2. Confirm GitHub MFA is enabled for the maintainer account.
 3. Apply to SignPath Foundation using the public repository, public release page, privacy policy, and code-signing policy.
 4. After SignPath approval, add the SignPath GitHub Actions signing step and required repository secret.

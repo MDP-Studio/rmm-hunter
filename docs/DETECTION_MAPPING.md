@@ -41,6 +41,9 @@ rmm-hunter.detection-mapping.v1
 | `defender_malware_event` | Defender events | High | Defensive event, no direct behavior technique assigned | D3-PM Platform Monitoring |
 | `defender_sensitive_configuration_event` | Defender events | Medium | T1562.001 Disable or Modify Tools | D3-PM Platform Monitoring |
 | `defender_routine_configuration_event` | Defender events | Low | Defensive timeline event, no direct behavior technique assigned | D3-PM Platform Monitoring |
+| `defender_health_issue` | Defender status and preferences | Medium or high depending on protection impact | T1562.001 Disable or Modify Tools | D3-PM Platform Monitoring |
+| `trust_validation_issue` | Windows Authenticode validation | High when known signed Windows binaries fail validation | Defensive trust-health event, no direct behavior technique assigned | D3-SBV Service Binary Verification |
+| `trusted_root_store_issue` | Windows trusted root stores | Medium | T1553.004 Install Root Certificate | D3-PM Platform Monitoring |
 
 ## Interoperability Fields
 

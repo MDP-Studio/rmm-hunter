@@ -191,6 +191,7 @@ select {
 .update-panel,
 .summary-panel,
 .recommendations-panel,
+.trust-health-panel,
 .ai-panel,
 .progress-panel,
 .report-paths,
@@ -471,6 +472,7 @@ select {
 }
 
 .recommendations-panel,
+.trust-health-panel,
 .ai-panel {
   padding: 20px;
 }
@@ -786,6 +788,64 @@ select {
 .pill.low {
   background: #315f9f;
   color: #fff;
+}
+
+.pill.clean {
+  background: #267a4f;
+  color: #fff;
+}
+
+.trust-health-list {
+  display: grid;
+  gap: 10px;
+}
+
+.trust-health-card {
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.trust-health-card.ok {
+  border-left-color: var(--green);
+}
+
+.trust-health-card.needs_review {
+  background: var(--amber-soft);
+  border-left-color: var(--amber);
+}
+
+.trust-health-card.high_risk {
+  background: var(--red-soft);
+  border-left-color: var(--red);
+}
+
+.trust-health-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.trust-health-card h4 {
+  font-size: 15px;
+  letter-spacing: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.trust-health-card p {
+  color: #384355;
+  line-height: 1.45;
+  margin: 8px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.trust-health-action {
+  color: #586274 !important;
+  font-size: 13px;
 }
 
 .reason {

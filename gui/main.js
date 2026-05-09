@@ -951,6 +951,7 @@ function buildPdfHtml(report) {
   const counts = report.artifact_counts || {};
   const metadata = report.collection_metadata || {};
   const recommendations = Array.isArray(report.recommendations) ? report.recommendations : [];
+  const trustHealth = Array.isArray(report.system_trust_health) ? report.system_trust_health : [];
   const aiExplanation = report.ai_explanation || null;
   const rows = findings
     .map((finding) => {
@@ -984,6 +985,16 @@ function buildPdfHtml(report) {
     .map(([key, value]) => `<tr><td>${escapeHtml(key)}</td><td>${escapeHtml(String(value))}</td></tr>`)
     .join("");
   const recommendationRows = recommendations.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+  const trustRows = trustHealth
+    .map((check) => `
+      <section class="trust ${escapeHtml(check.status || "unknown")}">
+        <h3>${escapeHtml(check.title || "Trust health check")}</h3>
+        <p><strong>Status:</strong> ${escapeHtml(check.status || "unknown")}</p>
+        <p>${escapeHtml(check.detail || "")}</p>
+        <p class="note">${escapeHtml(check.recommended_action || "")}</p>
+      </section>
+    `)
+    .join("");
   const aiRows = aiExplanation
     ? `
         <h2>AI Explanation</h2>
@@ -1013,6 +1024,10 @@ function buildPdfHtml(report) {
           .finding.high { border-left-color: #c53232; }
           .finding.medium { border-left-color: #b97800; }
           .finding.low { border-left-color: #4b6fa8; }
+          .trust { border: 1px solid #d8dde6; border-left: 5px solid #9aa3b2; border-radius: 8px; margin: 10px 0; padding: 12px; page-break-inside: avoid; }
+          .trust.ok { border-left-color: #267a4f; }
+          .trust.needs_review { border-left-color: #b97800; }
+          .trust.high_risk { border-left-color: #c53232; }
           .guidance { background: #f7f8fa; border-radius: 6px; margin: 10px 0; padding: 10px; }
           .guidance ol { margin: 6px 0 0; padding-left: 20px; }
           .guidance li { margin: 4px 0; }
@@ -1032,6 +1047,8 @@ function buildPdfHtml(report) {
         <h2>Recommended Next Steps</h2>
         <ul>${recommendationRows || "<li>No recommendations available.</li>"}</ul>
         ${aiRows}
+        <h2>System Trust Health</h2>
+        ${trustRows || "<p>No trust-health checks were returned.</p>"}
         <h2>Artifact Counts</h2>
         <table>${countRows}</table>
         <h2>Findings</h2>
@@ -1077,6 +1094,7 @@ function sanitizeReportForAi(report) {
     risk_score: Number.isFinite(report?.risk_score) ? report.risk_score : null,
     summary: sanitizeScalar(report?.summary),
     recommendations: sanitizeArray(report?.recommendations).slice(0, 8),
+    system_trust_health: sanitizeTrustHealth(report?.system_trust_health).slice(0, 12),
     artifact_counts: sanitizeRecord(report?.artifact_counts || {}),
     collection: {
       lookback_days: report?.collection?.lookback_days ?? null,
@@ -1096,6 +1114,28 @@ function sanitizeReportForAi(report) {
       artifacts: sanitizeArtifacts(finding.artifacts).slice(0, 3)
     }))
   };
+}
+
+function sanitizeTrustHealth(checks) {
+  if (!Array.isArray(checks)) {
+    return [];
+  }
+
+  return checks.map((check) => sanitizeRecord({
+    check: check?.check,
+    status: check?.status,
+    title: check?.title,
+    detail: check?.detail,
+    recommended_action: check?.recommended_action,
+    affected_components: check?.affected_components,
+    affected_items: check?.affected_items,
+    suspicious_exclusions: check?.suspicious_exclusions,
+    age_days: check?.age_days,
+    signature_version: check?.signature_version,
+    exclusion_count: check?.exclusion_count,
+    total_roots: check?.total_roots,
+    current_user_roots: check?.current_user_roots
+  }));
 }
 
 function sanitizeArtifacts(artifacts) {
@@ -1122,6 +1162,19 @@ function sanitizeArtifacts(artifacts) {
       "old_setting_value",
       "new_setting_path",
       "new_setting_value",
+      "check",
+      "status",
+      "title",
+      "recommended_action",
+      "finding_category",
+      "affected_components",
+      "affected_items",
+      "suspicious_exclusions",
+      "age_days",
+      "signature_version",
+      "exclusion_count",
+      "total_roots",
+      "current_user_roots",
       "display_name",
       "name",
       "task_name",
@@ -1282,6 +1335,7 @@ function buildAiInstructions() {
     "Do not tell the user to delete artifacts automatically.",
     "Base the answer only on the sanitized JSON report.",
     "Use exact artifact context when present, including domains, URLs, Defender threat names, Defender action/result, affected resource, and old/new setting values.",
+    "Use System Trust Health checks to explain whether Defender state, security intelligence age, exclusions, Windows code-signing validation, or trusted-root-store signals affect confidence in the findings.",
     "If a domain, path, or command appears related to a project or admin task, say it may be expected only if the user recognizes it; do not assume it is malicious.",
     "For Defender malware events, separate what is known from the report from what cannot be proven, such as the original website or delivery source when browser history/process telemetry is absent.",
     "Use concise plain English and practical incident-triage steps.",

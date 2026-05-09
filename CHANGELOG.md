@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.5 - 2026-05-09
+
+- Added System Trust Health checks for Defender protection state, security intelligence age, broad exclusions, Windows code-signing validation, and trusted-root-store review.
+- Added trust-health findings so weak Defender or Windows trust state is called out separately from RMM and malware evidence.
+- Added GUI and PDF trust-health sections so users can see whether local security evidence is healthy, stale, weakened, or not collected.
+- Updated AI sanitization and instructions so AI recommendations account for trust-health context without changing deterministic verdicts.
+
 ## 0.1.4 - 2026-05-08
 
 - Added deterministic artifact context for PowerShell URLs/domains, Defender threat names, remediation actions, affected resources, and Defender setting old/new values.

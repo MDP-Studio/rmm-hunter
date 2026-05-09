@@ -152,6 +152,219 @@ function Get-SignatureSummary {
     }
 }
 
+function Get-ObjectPropertyValue {
+    param(
+        [AllowNull()]$Object,
+        [string]$Name
+    )
+
+    if ($null -eq $Object) {
+        return $null
+    }
+
+    $property = $Object.PSObject.Properties[$Name]
+    if ($null -eq $property) {
+        return $null
+    }
+
+    return $property.Value
+}
+
+function ConvertTo-AgeDays {
+    param($Value)
+
+    if ($null -eq $Value) {
+        return $null
+    }
+
+    try {
+        $timestamp = ([datetime]$Value).ToUniversalTime()
+        return [Math]::Round(((Get-Date).ToUniversalTime() - $timestamp).TotalDays, 2)
+    }
+    catch {
+        return $null
+    }
+}
+
+function Get-LimitedStringArray {
+    param(
+        [AllowNull()]$Value,
+        [int]$Max = 20
+    )
+
+    $items = @()
+    if ($null -eq $Value) {
+        return @()
+    }
+
+    foreach ($item in @($Value)) {
+        $text = [string]$item
+        if (-not [string]::IsNullOrWhiteSpace($text)) {
+            $items += Limit-Text $text 1000
+        }
+    }
+
+    return @($items | Select-Object -First $Max)
+}
+
+function Get-ValueCount {
+    param([AllowNull()]$Value)
+
+    if ($null -eq $Value) {
+        return 0
+    }
+
+    return @($Value | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }).Count
+}
+
+function Get-DefenderStatusArtifacts {
+    $items = @()
+
+    try {
+        $status = Get-MpComputerStatus -ErrorAction Stop
+        $preference = $null
+        try {
+            $preference = Get-MpPreference -ErrorAction Stop
+        }
+        catch {
+            Add-CollectionError -Source "defender_preference" -Message $_.Exception.Message
+        }
+
+        $items += [ordered]@{
+            check = "defender_status"
+            source_command = "Get-MpComputerStatus"
+            am_service_enabled = Get-ObjectPropertyValue $status "AMServiceEnabled"
+            antivirus_enabled = Get-ObjectPropertyValue $status "AntivirusEnabled"
+            real_time_protection_enabled = Get-ObjectPropertyValue $status "RealTimeProtectionEnabled"
+            behavior_monitor_enabled = Get-ObjectPropertyValue $status "BehaviorMonitorEnabled"
+            ioav_protection_enabled = Get-ObjectPropertyValue $status "IoavProtectionEnabled"
+            on_access_protection_enabled = Get-ObjectPropertyValue $status "OnAccessProtectionEnabled"
+            is_tamper_protected = Get-ObjectPropertyValue $status "IsTamperProtected"
+            nis_enabled = Get-ObjectPropertyValue $status "NISEnabled"
+            computer_state = [string](Get-ObjectPropertyValue $status "ComputerState")
+            product_status = [string](Get-ObjectPropertyValue $status "ProductStatus")
+            am_product_version = [string](Get-ObjectPropertyValue $status "AMProductVersion")
+            am_engine_version = [string](Get-ObjectPropertyValue $status "AMEngineVersion")
+            am_service_version = [string](Get-ObjectPropertyValue $status "AMServiceVersion")
+            antivirus_signature_version = [string](Get-ObjectPropertyValue $status "AntivirusSignatureVersion")
+            antivirus_signature_last_updated_utc = ConvertTo-IsoUtc (Get-ObjectPropertyValue $status "AntivirusSignatureLastUpdated")
+            antivirus_signature_age_days = ConvertTo-AgeDays (Get-ObjectPropertyValue $status "AntivirusSignatureLastUpdated")
+            antispyware_signature_version = [string](Get-ObjectPropertyValue $status "AntispywareSignatureVersion")
+            antispyware_signature_last_updated_utc = ConvertTo-IsoUtc (Get-ObjectPropertyValue $status "AntispywareSignatureLastUpdated")
+            nis_signature_version = [string](Get-ObjectPropertyValue $status "NISSignatureVersion")
+            nis_signature_last_updated_utc = ConvertTo-IsoUtc (Get-ObjectPropertyValue $status "NISSignatureLastUpdated")
+            quick_scan_age_days = Get-ObjectPropertyValue $status "QuickScanAge"
+            full_scan_age_days = Get-ObjectPropertyValue $status "FullScanAge"
+            pua_protection = Get-ObjectPropertyValue $preference "PUAProtection"
+            cloud_block_level = Get-ObjectPropertyValue $preference "CloudBlockLevel"
+            maps_reporting = Get-ObjectPropertyValue $preference "MAPSReporting"
+            submit_samples_consent = Get-ObjectPropertyValue $preference "SubmitSamplesConsent"
+            disable_realtime_monitoring = Get-ObjectPropertyValue $preference "DisableRealtimeMonitoring"
+            exclusion_path_count = Get-ValueCount (Get-ObjectPropertyValue $preference "ExclusionPath")
+            exclusion_path_samples = Get-LimitedStringArray (Get-ObjectPropertyValue $preference "ExclusionPath") 20
+            exclusion_process_count = Get-ValueCount (Get-ObjectPropertyValue $preference "ExclusionProcess")
+            exclusion_process_samples = Get-LimitedStringArray (Get-ObjectPropertyValue $preference "ExclusionProcess") 20
+            exclusion_extension_count = Get-ValueCount (Get-ObjectPropertyValue $preference "ExclusionExtension")
+            exclusion_extension_samples = Get-LimitedStringArray (Get-ObjectPropertyValue $preference "ExclusionExtension") 20
+            exclusion_ip_address_count = Get-ValueCount (Get-ObjectPropertyValue $preference "ExclusionIpAddress")
+            exclusion_ip_address_samples = Get-LimitedStringArray (Get-ObjectPropertyValue $preference "ExclusionIpAddress") 20
+        }
+    }
+    catch {
+        Add-CollectionError -Source "defender_status" -Message $_.Exception.Message
+    }
+
+    return @($items)
+}
+
+function Get-CodeSigningTrustArtifacts {
+    $items = @()
+    $candidatePaths = @(
+        (Join-Path $env:WINDIR "System32\notepad.exe"),
+        (Join-Path $env:WINDIR "System32\cmd.exe"),
+        (Join-Path $env:WINDIR "System32\WindowsPowerShell\v1.0\powershell.exe")
+    ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
+
+    foreach ($candidatePath in $candidatePaths) {
+        try {
+            if (-not (Test-Path -LiteralPath $candidatePath -PathType Leaf)) {
+                continue
+            }
+
+            $signature = Get-AuthenticodeSignature -LiteralPath $candidatePath -ErrorAction Stop
+            $subject = $null
+            $issuer = $null
+            $thumbprint = $null
+            if ($null -ne $signature.SignerCertificate) {
+                $subject = $signature.SignerCertificate.Subject
+                $issuer = $signature.SignerCertificate.Issuer
+                $thumbprint = $signature.SignerCertificate.Thumbprint
+            }
+
+            $items += [ordered]@{
+                check = "windows_binary_signature"
+                path = [string]$candidatePath
+                name = [IO.Path]::GetFileName($candidatePath)
+                status = [string]$signature.Status
+                status_message = [string]$signature.StatusMessage
+                signer_subject = $subject
+                signer_issuer = $issuer
+                thumbprint = $thumbprint
+            }
+        }
+        catch {
+            Add-CollectionError -Source "code_signing_trust:$candidatePath" -Message $_.Exception.Message
+        }
+    }
+
+    return @($items)
+}
+
+function Get-TrustedRootStoreArtifacts {
+    $items = @()
+    $stores = @(
+        @{ name = "LocalMachine\Root"; path = "Cert:\LocalMachine\Root"; scope = "local_machine" },
+        @{ name = "CurrentUser\Root"; path = "Cert:\CurrentUser\Root"; scope = "current_user" }
+    )
+
+    foreach ($store in $stores) {
+        try {
+            $certificates = @(Get-ChildItem -Path $store.path -ErrorAction Stop)
+            $expired = @($certificates | Where-Object { $_.NotAfter -lt (Get-Date) })
+            $privateKeyRoots = @($certificates | Where-Object { $_.HasPrivateKey })
+
+            $items += [ordered]@{
+                check = "trusted_root_store_summary"
+                store = $store.name
+                scope = $store.scope
+                total_count = $certificates.Count
+                expired_count = $expired.Count
+                private_key_count = $privateKeyRoots.Count
+            }
+
+            foreach ($certificate in @($privateKeyRoots | Select-Object -First 25)) {
+                $items += [ordered]@{
+                    check = "root_certificate_with_private_key"
+                    store = $store.name
+                    scope = $store.scope
+                    subject = Limit-Text ([string]$certificate.Subject) 1000
+                    issuer = Limit-Text ([string]$certificate.Issuer) 1000
+                    thumbprint = [string]$certificate.Thumbprint
+                    not_before_utc = ConvertTo-IsoUtc $certificate.NotBefore
+                    not_after_utc = ConvertTo-IsoUtc $certificate.NotAfter
+                    signature_algorithm = [string]$certificate.SignatureAlgorithm.FriendlyName
+                    has_private_key = $certificate.HasPrivateKey
+                }
+            }
+        }
+        catch {
+            Add-CollectionError -Source "trusted_root_store:$($store.name)" -Message $_.Exception.Message
+        }
+    }
+
+    return @($items)
+}
+
 function Get-UninstallEntries {
     $sources = @(
         @{ hive = "HKLM"; path = "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*" },
@@ -548,6 +761,9 @@ $report = [ordered]@{
         startup_registry = Get-StartupRegistryArtifacts
         startup_folders = Get-StartupFolderArtifacts
         recent_files = Get-RecentFileArtifacts
+        defender_status = @(Get-DefenderStatusArtifacts)
+        code_signing_trust = @(Get-CodeSigningTrustArtifacts)
+        trusted_root_store = @(Get-TrustedRootStoreArtifacts)
         defender_events = $defenderEvents
         powershell_events = @($powershellOperationalEvents + $windowsPowerShellEvents)
         process_creation_events = $processEvents

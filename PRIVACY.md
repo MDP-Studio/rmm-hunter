@@ -13,6 +13,9 @@ Scan reports can include:
 - startup registry entries
 - recent installer and script filenames from Downloads and Temp paths
 - Defender, PowerShell, Security, WMI, and service-install event excerpts where available
+- Defender health and preference details, including security intelligence age and limited exclusion samples
+- Windows code-signing validation results for known signed Windows binaries
+- trusted root certificate store summaries and unusual root-certificate metadata where available
 - command-line fragments from relevant event logs where available
 
 Reports are written locally on the scanned device. In packaged desktop builds, reports are written under the per-user RMM Hunter profile in `%LOCALAPPDATA%\RMM Hunter\reports`.

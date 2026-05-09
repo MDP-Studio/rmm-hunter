@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
-SCANNER_VERSION = "0.1.4"
+SCANNER_VERSION = "0.1.5"
 
 REMOTE_TOOLS: dict[str, tuple[str, ...]] = {
     "ScreenConnect / ConnectWise Control": (
@@ -172,6 +172,24 @@ DEFENDER_ROUTINE_CONFIG_TERMS = (
     "spynetreportinglocation",
     "toastorssotrigger",
     "wdconfighash",
+)
+
+DEFENDER_PROTECTION_FIELDS = (
+    ("am_service_enabled", "Defender antimalware service"),
+    ("antivirus_enabled", "Defender antivirus"),
+    ("real_time_protection_enabled", "real-time protection"),
+    ("behavior_monitor_enabled", "behavior monitoring"),
+    ("ioav_protection_enabled", "download and attachment scanning"),
+    ("on_access_protection_enabled", "on-access protection"),
+    ("is_tamper_protected", "tamper protection"),
+)
+
+SUSPICIOUS_EXCLUSION_MARKERS = (
+    "\\downloads",
+    "\\appdata\\local\\temp",
+    "\\temp",
+    "%temp%",
+    "*",
 )
 
 SEVERITY_SCORE = {
@@ -370,6 +388,27 @@ RULE_MAPPINGS: dict[str, dict[str, Any]] = {
         },
         "d3fend": [{"id": "D3-PM", "name": "Platform Monitoring"}],
     },
+    "defender_health_issue": {
+        "attack": {
+            "techniques": [{"id": "T1562.001", "name": "Disable or Modify Tools"}],
+            "data_sources": ["Sensor Health: Host Status"],
+        },
+        "d3fend": [{"id": "D3-PM", "name": "Platform Monitoring"}],
+    },
+    "trust_validation_issue": {
+        "attack": {
+            "techniques": [],
+            "data_sources": ["File: File Metadata", "Sensor Health: Host Status"],
+        },
+        "d3fend": [{"id": "D3-SBV", "name": "Service Binary Verification"}],
+    },
+    "trusted_root_store_issue": {
+        "attack": {
+            "techniques": [{"id": "T1553.004", "name": "Install Root Certificate"}],
+            "data_sources": ["Windows Registry: Windows Registry Key Modification"],
+        },
+        "d3fend": [{"id": "D3-PM", "name": "Platform Monitoring"}],
+    },
 }
 
 
@@ -559,6 +598,341 @@ def defender_config_is_sensitive(event: dict[str, Any]) -> bool:
     return any(term in text for term in DEFENDER_SENSITIVE_CONFIG_TERMS)
 
 
+def as_bool(value: Any) -> bool | None:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    text = str(value or "").strip().lower()
+    if text in {"true", "1", "yes", "enabled"}:
+        return True
+    if text in {"false", "0", "no", "disabled"}:
+        return False
+    return None
+
+
+def parse_float(value: Any) -> float | None:
+    try:
+        if value in (None, ""):
+            return None
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def parse_datetime(value: Any) -> datetime | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        return datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def days_since(value: Any) -> float | None:
+    timestamp = parse_datetime(value)
+    if not timestamp:
+        return None
+    if timestamp.tzinfo is None:
+        timestamp = timestamp.replace(tzinfo=timezone.utc)
+    return round((datetime.now(timezone.utc) - timestamp.astimezone(timezone.utc)).total_seconds() / 86400, 2)
+
+
+def listify(value: Any) -> list[Any]:
+    if value in (None, ""):
+        return []
+    if isinstance(value, list):
+        return value
+    return [value]
+
+
+def artifact_items(artifacts: dict[str, Any], key: str) -> list[dict[str, Any]]:
+    return [item for item in listify(artifacts.get(key)) if isinstance(item, dict)]
+
+
+def make_trust_check(
+    *,
+    check: str,
+    status: str,
+    title: str,
+    detail: str,
+    recommended_action: str,
+    finding_category: str | None = None,
+    severity: str | None = None,
+    confidence: float = 0.68,
+    **extra: Any,
+) -> dict[str, Any]:
+    item = {
+        "check": check,
+        "status": status,
+        "title": title,
+        "detail": detail,
+        "recommended_action": recommended_action,
+        "confidence": round(confidence, 2),
+    }
+    if finding_category:
+        item["finding_category"] = finding_category
+    if severity:
+        item["severity"] = severity
+    for key, value in extra.items():
+        if value not in (None, "", []):
+            item[key] = value
+    return item
+
+
+def suspicious_exclusion_values(status: dict[str, Any]) -> list[str]:
+    suspicious: list[str] = []
+    for key in (
+        "exclusion_path_samples",
+        "exclusion_process_samples",
+        "exclusion_extension_samples",
+        "exclusion_ip_address_samples",
+    ):
+        for value in listify(status.get(key)):
+            text = str(value)
+            lowered = text.lower().replace("/", "\\")
+            if any(marker in lowered for marker in SUSPICIOUS_EXCLUSION_MARKERS):
+                if text not in suspicious:
+                    suspicious.append(compact_text(text, 220))
+            if len(suspicious) >= 8:
+                return suspicious
+    return suspicious
+
+
+def build_system_trust_health(artifacts: dict[str, Any]) -> list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    defender_status = artifact_items(artifacts, "defender_status")
+    if defender_status:
+        status = defender_status[0]
+        disabled = []
+        for field, label in DEFENDER_PROTECTION_FIELDS:
+            state = as_bool(status.get(field))
+            if state is False:
+                disabled.append(label)
+        if as_bool(status.get("disable_realtime_monitoring")) is True and "real-time protection" not in disabled:
+            disabled.append("real-time protection policy")
+
+        if disabled:
+            checks.append(
+                make_trust_check(
+                    check="defender_protection_state",
+                    status="high_risk",
+                    severity="high",
+                    title="Defender protection is disabled or weakened",
+                    detail=f"Disabled or weakened Defender components: {', '.join(disabled)}.",
+                    recommended_action="Open Windows Security and restore the disabled protections, then confirm whether an admin or endpoint manager made the change.",
+                    finding_category="defender_health_issue",
+                    confidence=0.86,
+                    affected_components=disabled,
+                )
+            )
+        else:
+            checks.append(
+                make_trust_check(
+                    check="defender_protection_state",
+                    status="ok",
+                    title="Defender core protections are enabled",
+                    detail="Collected Defender status shows antivirus, real-time, behavior, IOAV, on-access, and tamper protections enabled where reported.",
+                    recommended_action="Keep Defender enabled while reviewing scan evidence.",
+                )
+            )
+
+        age = parse_float(status.get("antivirus_signature_age_days"))
+        if age is None:
+            age = days_since(status.get("antivirus_signature_last_updated_utc"))
+        signature_version = status.get("antivirus_signature_version")
+        if age is None:
+            checks.append(
+                make_trust_check(
+                    check="defender_security_intelligence_age",
+                    status="unknown",
+                    title="Defender intelligence age could not be confirmed",
+                    detail="The collector could not determine when Defender security intelligence was last updated.",
+                    recommended_action="Open Windows Security and check for protection updates before relying on malware verdicts.",
+                )
+            )
+        elif age >= 7:
+            checks.append(
+                make_trust_check(
+                    check="defender_security_intelligence_age",
+                    status="high_risk",
+                    severity="high",
+                    title="Defender security intelligence is stale",
+                    detail=f"Defender antivirus security intelligence appears about {age:g} days old.",
+                    recommended_action="Update Defender security intelligence, rerun the scan, and treat old detections with extra context until updates succeed.",
+                    finding_category="defender_health_issue",
+                    confidence=0.84,
+                    age_days=age,
+                    signature_version=signature_version,
+                )
+            )
+        elif age >= 3:
+            checks.append(
+                make_trust_check(
+                    check="defender_security_intelligence_age",
+                    status="needs_review",
+                    severity="medium",
+                    title="Defender security intelligence may be stale",
+                    detail=f"Defender antivirus security intelligence appears about {age:g} days old.",
+                    recommended_action="Check for Defender protection updates before making final incident decisions.",
+                    finding_category="defender_health_issue",
+                    confidence=0.74,
+                    age_days=age,
+                    signature_version=signature_version,
+                )
+            )
+        else:
+            checks.append(
+                make_trust_check(
+                    check="defender_security_intelligence_age",
+                    status="ok",
+                    title="Defender security intelligence is recent",
+                    detail=f"Defender antivirus security intelligence appears about {age:g} days old.",
+                    recommended_action="Keep the update timestamp with the report as context for Defender detections.",
+                    age_days=age,
+                    signature_version=signature_version,
+                )
+            )
+
+        suspicious_exclusions = suspicious_exclusion_values(status)
+        if suspicious_exclusions:
+            checks.append(
+                make_trust_check(
+                    check="defender_exclusions",
+                    status="needs_review",
+                    severity="medium",
+                    title="Defender exclusions need review",
+                    detail="One or more Defender exclusions point to broad, temporary, download, or user-writable locations.",
+                    recommended_action="Confirm each exclusion with IT. Remove unauthorized exclusions only after preserving the report and timeline.",
+                    finding_category="defender_health_issue",
+                    confidence=0.78,
+                    suspicious_exclusions=suspicious_exclusions,
+                )
+            )
+        else:
+            total_exclusions = sum(
+                int(status.get(key) or 0)
+                for key in (
+                    "exclusion_path_count",
+                    "exclusion_process_count",
+                    "exclusion_extension_count",
+                    "exclusion_ip_address_count",
+                )
+            )
+            checks.append(
+                make_trust_check(
+                    check="defender_exclusions",
+                    status="ok",
+                    title="No broad Defender exclusions were flagged",
+                    detail=f"Defender reported {total_exclusions} exclusion entries; none matched the current broad or user-writable exclusion checks.",
+                    recommended_action="Review exclusions manually if this is a managed device or if malware detections appeared nearby.",
+                    exclusion_count=total_exclusions,
+                )
+            )
+    else:
+        checks.append(
+            make_trust_check(
+                check="defender_status",
+                status="unknown",
+                title="Defender health was not collected",
+                detail="The collector did not return Defender status. This can happen if Defender cmdlets are unavailable or access is restricted.",
+                recommended_action="Run as Administrator or check Windows Security manually before relying on Defender event interpretation.",
+            )
+        )
+
+    signature_items = artifact_items(artifacts, "code_signing_trust")
+    if signature_items:
+        invalid = [
+            item for item in signature_items
+            if str(item.get("status") or "").lower() != "valid"
+        ]
+        if invalid:
+            names = [str(item.get("name") or item.get("path") or "Windows binary") for item in invalid[:5]]
+            checks.append(
+                make_trust_check(
+                    check="windows_code_signing_validation",
+                    status="high_risk",
+                    severity="high",
+                    title="Windows code-signing validation failed",
+                    detail=f"Authenticode validation did not return Valid for: {', '.join(names)}.",
+                    recommended_action="Update Windows and Defender, then verify the trust store before trusting signed software or scan evidence.",
+                    finding_category="trust_validation_issue",
+                    confidence=0.88,
+                    affected_items=names,
+                )
+            )
+        else:
+            checks.append(
+                make_trust_check(
+                    check="windows_code_signing_validation",
+                    status="ok",
+                    title="Windows code-signing validation passed",
+                    detail=f"Authenticode returned Valid for {len(signature_items)} known Windows binaries.",
+                    recommended_action="Keep this as baseline evidence that local code-signing trust is functioning.",
+                )
+            )
+    else:
+        checks.append(
+            make_trust_check(
+                check="windows_code_signing_validation",
+                status="unknown",
+                title="Windows code-signing validation was not collected",
+                detail="The collector could not validate known signed Windows binaries.",
+                recommended_action="Run the scan again and verify Windows signature validation manually if Defender or installer trust looks wrong.",
+            )
+        )
+
+    root_items = artifact_items(artifacts, "trusted_root_store")
+    root_summaries = [item for item in root_items if item.get("check") == "trusted_root_store_summary"]
+    private_roots = [item for item in root_items if item.get("check") == "root_certificate_with_private_key"]
+    if private_roots:
+        subjects = [compact_text(item.get("subject") or item.get("thumbprint") or "trusted root", 220) for item in private_roots[:5]]
+        checks.append(
+            make_trust_check(
+                check="trusted_root_private_key",
+                status="needs_review",
+                severity="medium",
+                title="Trusted root certificate with private key observed",
+                detail="A trusted root store contains certificate entries with private keys, which should be rare on normal endpoints.",
+                recommended_action="Confirm whether these roots were intentionally installed by enterprise PKI, development tooling, or security tooling.",
+                finding_category="trusted_root_store_issue",
+                confidence=0.76,
+                affected_items=subjects,
+            )
+        )
+    elif root_summaries:
+        total_roots = sum(int(item.get("total_count") or 0) for item in root_summaries)
+        current_user_roots = sum(
+            int(item.get("total_count") or 0)
+            for item in root_summaries
+            if str(item.get("scope") or "") == "current_user"
+        )
+        checks.append(
+            make_trust_check(
+                check="trusted_root_store_review",
+                status="ok",
+                title="Trusted root store was readable",
+                detail=f"The collector counted {total_roots} trusted root entries across readable stores; {current_user_roots} were in the current-user root store.",
+                recommended_action="Review current-user roots manually if browser or code-signing trust behaves unexpectedly.",
+                total_roots=total_roots,
+                current_user_roots=current_user_roots,
+            )
+        )
+    else:
+        checks.append(
+            make_trust_check(
+                check="trusted_root_store_review",
+                status="unknown",
+                title="Trusted root store was not collected",
+                detail="The collector could not summarize the Windows trusted root stores.",
+                recommended_action="Run as Administrator or verify the Windows trust store manually if TLS or code-signing validation looks broken.",
+            )
+        )
+
+    return checks
+
+
 def is_self_generated_event_text(text: str) -> bool:
     return any(term in text for term in SELF_EVENT_TERMS)
 
@@ -628,6 +1002,20 @@ def name_looks_odd(path: str) -> bool:
 
 def compact_artifact(source: str, item: dict[str, Any]) -> dict[str, Any]:
     keys = (
+        "check",
+        "status",
+        "title",
+        "detail",
+        "recommended_action",
+        "finding_category",
+        "affected_components",
+        "affected_items",
+        "suspicious_exclusions",
+        "age_days",
+        "signature_version",
+        "exclusion_count",
+        "total_roots",
+        "current_user_roots",
         "display_name",
         "name",
         "task_name",
@@ -696,6 +1084,7 @@ def artifact_identity(source: str, item: dict[str, Any]) -> str:
         "executable_path",
         "path",
         "path_name",
+        "check",
         "name",
         "display_name",
         "task_name",
@@ -855,6 +1244,36 @@ def add_finding_guidance(finding: dict[str, Any]) -> None:
             "Prioritize this only if it appears near malware detections, remote-tool installs, exclusions, or protection being disabled.",
             "Keep the event in the report for timeline context. It usually does not need cleanup by itself.",
         ]
+    elif category == "defender_health_issue":
+        finding["plain_language"] = (
+            "RMM Hunter found a Defender health signal that can make security evidence less reliable, such as disabled protection, stale security intelligence, or broad exclusions. "
+            "This matters because weak or outdated Defender state can create false confidence, noisy false positives, or missed detections."
+        )
+        finding["recommended_actions"] = [
+            "Update Defender security intelligence and confirm core protections are enabled in Windows Security.",
+            "Review Defender exclusions with the device owner or IT provider, especially entries under Downloads, Temp, AppData, or wildcard paths.",
+            "Rerun the scan after Defender health is normal so malware and remediation events can be interpreted with better confidence.",
+        ]
+    elif category == "trust_validation_issue":
+        finding["plain_language"] = (
+            "Windows could not validate the signature of a known signed Windows binary during the trust-health check. "
+            "This can indicate broken certificate trust, catalog-store problems, or a temporary platform issue that affects how signed software is judged."
+        )
+        finding["recommended_actions"] = [
+            "Update Windows and Defender, then rerun the scan before treating all signature or malware evidence as final.",
+            "Check whether TLS, installer verification, or code-signing validation is failing in other applications.",
+            "Escalate to IT if known Microsoft binaries still fail Authenticode validation after updates.",
+        ]
+    elif category == "trusted_root_store_issue":
+        finding["plain_language"] = (
+            "The Windows trusted root store contains an unusual trust signal. Root certificates control which websites and signed software this profile can trust, "
+            "so unexpected entries can weaken incident confidence even when no RMM tool is present."
+        )
+        finding["recommended_actions"] = [
+            "Confirm whether the root certificate was installed by enterprise PKI, development tooling, security tooling, or another trusted administrator.",
+            "Do not delete root certificates from this app. Preserve the report and review the certificate thumbprint, subject, issuer, and scope first.",
+            "If the root is unknown, investigate nearby Defender, browser, installer, and PowerShell activity before making changes.",
+        ]
     else:
         finding["plain_language"] = (
             "This matched a local RMM Hunter rule. It is a review signal, not proof by itself. Confirm ownership, timestamp, path, and whether the activity was expected."
@@ -869,6 +1288,7 @@ def add_finding_guidance(finding: dict[str, Any]) -> None:
 def analyze_artifacts(collection: dict[str, Any]) -> dict[str, Any]:
     artifacts = collection.get("artifacts") or {}
     findings: list[dict[str, Any]] = []
+    system_trust_health = build_system_trust_health(artifacts)
 
     for app in artifacts.get("installed_programs", []):
         if not isinstance(app, dict):
@@ -1216,6 +1636,23 @@ def analyze_artifacts(collection: dict[str, Any]) -> dict[str, Any]:
                 confidence=0.72 if is_sensitive_config else 0.5,
             )
 
+    for check in system_trust_health:
+        if not isinstance(check, dict):
+            continue
+        if check.get("status") not in {"needs_review", "high_risk"}:
+            continue
+        severity = str(check.get("severity") or ("high" if check.get("status") == "high_risk" else "medium"))
+        make_finding(
+            findings,
+            severity=severity,
+            category=str(check.get("finding_category") or "defender_health_issue"),
+            title=str(check.get("title") or "System trust health needs review"),
+            reason=str(check.get("detail") or "A Windows trust or Defender health signal needs review."),
+            source="system_trust_health",
+            artifact=check,
+            confidence=float(check.get("confidence") or 0.68),
+        )
+
     category_scores: dict[str, int] = {}
     for finding in findings:
         category = str(finding["category"])
@@ -1237,7 +1674,7 @@ def analyze_artifacts(collection: dict[str, Any]) -> dict[str, Any]:
         add_finding_guidance(finding)
 
     artifact_counts = {
-        key: len(value) if isinstance(value, list) else 0
+        key: len(value) if isinstance(value, list) else 1 if isinstance(value, dict) else 0
         for key, value in artifacts.items()
     }
 
@@ -1254,6 +1691,7 @@ def analyze_artifacts(collection: dict[str, Any]) -> dict[str, Any]:
         "risk_score": score,
         "summary": summarize_counts(verdict, findings, artifact_counts),
         "recommendations": build_recommendations(verdict, findings),
+        "system_trust_health": system_trust_health,
         "artifact_counts": artifact_counts,
         "findings": findings,
         "collection_errors": collection.get("collection_errors", []),
@@ -1294,6 +1732,11 @@ def build_recommendations(verdict: str, findings: list[dict[str, Any]]) -> list[
     if any("defender_malware" in category for category in categories):
         recommendations.append(
             "Run a Microsoft Defender full scan or offline scan and review protection history for the same timestamps shown in this report."
+        )
+
+    if any(category in {"defender_health_issue", "trust_validation_issue", "trusted_root_store_issue"} for category in categories):
+        recommendations.append(
+            "Review System Trust Health before acting on Defender or signature evidence. Update Defender and Windows trust components, then rerun the scan if trust health is weak."
         )
 
     if any("defender_sensitive_configuration" in category for category in categories):
@@ -1360,6 +1803,20 @@ def render_human_summary(report: dict[str, Any]) -> str:
         lines.append("----------------------")
         for recommendation in recommendations:
             lines.append(f"- {recommendation}")
+        lines.append("")
+
+    trust_health = report.get("system_trust_health") or []
+    if trust_health:
+        lines.append("System Trust Health")
+        lines.append("-------------------")
+        for check in trust_health:
+            if not isinstance(check, dict):
+                continue
+            lines.append(f"- [{str(check.get('status') or 'unknown').upper()}] {check.get('title')}")
+            if check.get("detail"):
+                lines.append(f"  Detail: {single_line(check.get('detail'))}")
+            if check.get("recommended_action"):
+                lines.append(f"  Action: {single_line(check.get('recommended_action'))}")
         lines.append("")
 
     lines.append("Artifact Counts")
@@ -1454,7 +1911,7 @@ def stix_observable_hints(finding: dict[str, Any]) -> list[str]:
         hints.add("windows-registry-key")
     if sources & {"scheduled_tasks"}:
         hints.add("x-windows-scheduled-task")
-    if sources & {"defender_events", "service_install_events"}:
+    if sources & {"defender_events", "service_install_events", "system_trust_health"}:
         hints.add("x-windows-event-log-entry")
     return sorted(hints)
 
