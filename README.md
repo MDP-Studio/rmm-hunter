@@ -238,8 +238,8 @@ GitHub Actions workflow:
 Example tag flow after committing:
 
 ```powershell
-git tag v0.1.5
-git push origin v0.1.5
+git tag v0.1.6
+git push origin v0.1.6
 ```
 
 RMM Hunter is released under the Apache License 2.0. The npm package remains marked `private` to prevent accidental registry publishing.

@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
-SCANNER_VERSION = "0.1.5"
+SCANNER_VERSION = "0.1.6"
 
 REMOTE_TOOLS: dict[str, tuple[str, ...]] = {
     "ScreenConnect / ConnectWise Control": (

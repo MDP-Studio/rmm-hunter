@@ -424,22 +424,23 @@ function renderUpdateFromState(update, { silentCurrent = false } = {}) {
 
   renderUpdatePanel({
     state: "current",
-    title: "RMM Hunter is up to date",
+    title: "Up to date",
     text: currentUpdate.message || `You are running ${currentUpdate.currentVersion}.`,
     releaseUrl: currentUpdate.releaseUrl,
-    actionMode: "open"
+    actionMode: "open-link"
   });
 }
 
 function renderUpdatePanel({ state, title, text, releaseUrl, actionMode = "open" }) {
   updatePanel.className = `update-panel ${state || "current"}`;
-  updateStatus.textContent = state === "available" ? "Update available" : "Updates";
+  updateStatus.textContent = state === "available" ? "Update available" : state === "current" ? "Update status" : "Updates";
   updateTitle.textContent = title;
   updateText.textContent = text;
   if (releaseUrl) {
     currentUpdate = { ...(currentUpdate || {}), releaseUrl };
   }
   openUpdate.classList.toggle("hidden", actionMode === "none");
+  openUpdate.className = actionMode === "open-link" ? "link-button" : "secondary-button";
   openUpdate.textContent = updateActionText(actionMode);
   updatePanel.classList.remove("hidden");
 }
@@ -450,6 +451,9 @@ function updateActionText(actionMode) {
   }
   if (actionMode === "install") {
     return "Restart and install";
+  }
+  if (actionMode === "open-link") {
+    return "Release notes";
   }
   return "Open release page";
 }

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.6 - 2026-05-13
+
+- Polished the dashboard action area so `Scan this device` stays visually primary and update checking is smaller.
+- Reframed the left sidebar entries as a non-clickable scan coverage checklist instead of navigation.
+- Made the up-to-date notice more compact and changed its action to release notes.
+- Improved PDF report pagination so major sections stay together when they fit and long evidence artifacts can split cleanly only when needed.
+
 ## 0.1.5 - 2026-05-09
 
 - Added System Trust Health checks for Defender protection state, security intelligence age, broad exclusions, Windows code-signing validation, and trusted-root-store review.

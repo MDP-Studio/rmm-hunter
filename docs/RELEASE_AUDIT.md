@@ -1,6 +1,6 @@
 # Release Audit
 
-Date: 2026-05-09
+Date: 2026-05-13
 
 ## Scope
 
@@ -33,9 +33,9 @@ Target repository: `https://github.com/MDP-Studio/rmm-hunter`
 
 Current local release artifacts:
 
-- `release/RMM-Hunter-Setup-0.1.5-x64.exe`
-- `release/RMM-Hunter-Setup-0.1.5-x64.exe.blockmap`
-- `release/RMM-Hunter-Portable-0.1.5-x64.exe`
+- `release/RMM-Hunter-Setup-0.1.6-x64.exe`
+- `release/RMM-Hunter-Setup-0.1.6-x64.exe.blockmap`
+- `release/RMM-Hunter-Portable-0.1.6-x64.exe`
 
 Electron Builder also creates local debug output:
 
@@ -64,7 +64,7 @@ The GitHub workflow uploads the setup executable, setup blockmap, portable execu
 | Electron Builder release build | Pass | Setup and portable Windows artifacts generated. |
 | Unpacked packaged app launch | Pass | App launched and stayed alive. |
 | Portable launch | Pass | Portable executable launched and stayed alive. |
-| Installer smoke test | Pass | Silent temp install, clean app launch, uninstall, and cleanup all succeeded. |
+| Installer smoke test | Pass | Silent upgrade of the existing per-user install succeeded and the installed app launched cleanly. |
 | Authenticode signature | Expected fail | Artifacts are unsigned until a code-signing certificate is configured. |
 
 ## Release Blockers Found And Fixed
@@ -76,6 +76,8 @@ The GitHub workflow uploads the setup executable, setup blockmap, portable execu
 - Feedback and About sections use main-process allowlisted external links for GitHub issues, the security policy, privacy policy, private email, and Buy Me a Coffee.
 - Finding artifacts now include extracted PowerShell domains/URLs, Defender threat/action/result fields, affected resources, and Defender old/new setting values where available.
 - System Trust Health now reports Defender protection state, security intelligence age, broad exclusions, Windows code-signing validation, and trusted-root-store review without changing system settings.
+- Dashboard actions now keep the scan button primary, make update status less visually loud, and label the sidebar as scan coverage instead of navigation.
+- PDF export now keeps report sections together when they fit on the page and lets long evidence excerpts split cleanly instead of forcing large blank gaps.
 - Windows app and installer packaging now use `gui/assets/icon.ico`.
 - Build now creates separate installer and portable filenames.
 - Build now cleans stale release artifacts before packaging.
@@ -123,12 +125,12 @@ npm run dist
 Installer smoke test:
 
 ```powershell
-release\RMM-Hunter-Setup-0.1.5-x64.exe /S
+release\RMM-Hunter-Setup-0.1.6-x64.exe /S
 ```
 
 ## Next Release Steps
 
-1. Publish the generated `v0.1.5` draft as an unsigned prerelease with clear SmartScreen wording and verification assets.
+1. Publish the generated `v0.1.6` draft as an unsigned prerelease with clear SmartScreen wording and verification assets.
 2. Confirm GitHub MFA is enabled for the maintainer account.
 3. Apply to SignPath Foundation using the public repository, public release page, privacy policy, and code-signing policy.
 4. After SignPath approval, add the SignPath GitHub Actions signing step and required repository secret.

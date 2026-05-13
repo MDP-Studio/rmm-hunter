@@ -969,12 +969,14 @@ function buildPdfHtml(report) {
         : "";
       return `
         <section class="finding ${escapeHtml(finding.severity || "low")}">
-          <h3>${escapeHtml(finding.title || "Finding")}</h3>
-          <p><strong>Severity:</strong> ${escapeHtml(finding.severity || "unknown")}</p>
-          <p><strong>Artifacts in finding:</strong> ${escapeHtml(String(finding.artifact_count || 1))}</p>
-          <p>${escapeHtml(finding.reason || "")}</p>
-          ${guidance}
-          <div class="artifact">${artifactBits}</div>
+          <div class="finding-summary">
+            <h3>${escapeHtml(finding.title || "Finding")}</h3>
+            <p><strong>Severity:</strong> ${escapeHtml(finding.severity || "unknown")}</p>
+            <p><strong>Artifacts in finding:</strong> ${escapeHtml(String(finding.artifact_count || 1))}</p>
+            <p>${escapeHtml(finding.reason || "")}</p>
+            ${guidance}
+          </div>
+          ${artifactBits ? `<div class="artifact"><strong>First artifact excerpt</strong>${artifactBits}</div>` : ""}
         </section>
       `;
     })
@@ -997,10 +999,12 @@ function buildPdfHtml(report) {
     .join("");
   const aiRows = aiExplanation
     ? `
+      <section class="report-section">
         <h2>AI Explanation</h2>
         <p>${escapeHtml(aiExplanation.summary || "")}</p>
         <ul>${(aiExplanation.next_steps || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
         <p class="note">${escapeHtml(aiExplanation.privacy_note || "")}</p>
+      </section>
       `
     : "";
 
@@ -1013,46 +1017,64 @@ function buildPdfHtml(report) {
         <style>
           body { color: #17191f; font-family: Arial, sans-serif; margin: 36px; }
           h1 { font-size: 30px; margin: 0 0 8px; }
-          h2 { border-bottom: 1px solid #d8dde6; font-size: 18px; margin-top: 28px; padding-bottom: 8px; }
+          h2 { border-bottom: 1px solid #d8dde6; font-size: 18px; margin: 0 0 12px; padding-bottom: 8px; }
           h3 { font-size: 15px; margin: 0 0 8px; }
           p { line-height: 1.45; margin: 6px 0; }
-          .verdict { border: 1px solid #ccd3df; border-radius: 8px; margin: 22px 0; padding: 16px; }
+          ul { margin-bottom: 0; }
+          .report-section { break-inside: avoid; break-inside: avoid-page; margin: 0 0 22px; page-break-inside: avoid; }
+          .report-section:first-child { margin-top: 0; }
+          .report-section:last-child { margin-bottom: 0; }
+          .report-section.findings-section { break-inside: auto; page-break-inside: auto; }
+          .verdict { border: 1px solid #ccd3df; border-radius: 8px; margin: 12px 0 0; padding: 16px; }
           .verdict strong { text-transform: uppercase; }
           table { border-collapse: collapse; width: 100%; }
           td { border-bottom: 1px solid #edf0f4; padding: 7px 4px; }
-          .finding { border: 1px solid #d8dde6; border-left-width: 6px; border-radius: 8px; margin: 12px 0; padding: 14px; page-break-inside: avoid; }
+          .finding { border: 1px solid #d8dde6; border-left-width: 6px; border-radius: 8px; break-inside: auto; margin: 12px 0 18px; page-break-inside: auto; padding: 14px; }
           .finding.high { border-left-color: #c53232; }
           .finding.medium { border-left-color: #b97800; }
           .finding.low { border-left-color: #4b6fa8; }
-          .trust { border: 1px solid #d8dde6; border-left: 5px solid #9aa3b2; border-radius: 8px; margin: 10px 0; padding: 12px; page-break-inside: avoid; }
+          .finding-summary { break-inside: avoid; break-inside: avoid-page; page-break-inside: avoid; }
+          .trust { border: 1px solid #d8dde6; border-left: 5px solid #9aa3b2; border-radius: 8px; break-inside: avoid; margin: 10px 0; page-break-inside: avoid; padding: 12px; }
           .trust.ok { border-left-color: #267a4f; }
           .trust.needs_review { border-left-color: #b97800; }
           .trust.high_risk { border-left-color: #c53232; }
           .guidance { background: #f7f8fa; border-radius: 6px; margin: 10px 0; padding: 10px; }
           .guidance ol { margin: 6px 0 0; padding-left: 20px; }
           .guidance li { margin: 4px 0; }
-          .artifact { background: #f7f8fa; border-radius: 6px; font-family: Consolas, monospace; font-size: 10px; margin-top: 10px; overflow-wrap: anywhere; padding: 10px; white-space: pre-wrap; }
+          .artifact { background: #f7f8fa; border-radius: 6px; break-inside: auto; font-family: Consolas, monospace; font-size: 10px; margin-top: 10px; overflow-wrap: anywhere; page-break-inside: auto; padding: 10px; white-space: pre-wrap; }
+          .artifact strong { display: block; font-family: Arial, sans-serif; font-size: 11px; margin-bottom: 6px; text-transform: uppercase; }
+          .artifact div { border-top: 1px solid #e3e7ee; padding: 5px 0; }
           .note { color: #5c6678; font-size: 12px; }
         </style>
       </head>
       <body>
-        <h1>RMM Hunter Report</h1>
-        <p>Generated at ${escapeHtml(report.scanner?.generated_at_utc || new Date().toISOString())}</p>
-        <div class="verdict">
-          <p><strong>${escapeHtml(report.verdict || "unknown")}</strong></p>
-          <p>Risk score: ${escapeHtml(String(report.risk_score ?? "unknown"))}/100</p>
-          <p>Host: ${escapeHtml(metadata.hostname || "unknown")}</p>
-          <p>${escapeHtml(report.summary || "")}</p>
-        </div>
-        <h2>Recommended Next Steps</h2>
-        <ul>${recommendationRows || "<li>No recommendations available.</li>"}</ul>
+        <section class="report-section">
+          <h1>RMM Hunter Report</h1>
+          <p>Generated at ${escapeHtml(report.scanner?.generated_at_utc || new Date().toISOString())}</p>
+          <div class="verdict">
+            <p><strong>${escapeHtml(report.verdict || "unknown")}</strong></p>
+            <p>Risk score: ${escapeHtml(String(report.risk_score ?? "unknown"))}/100</p>
+            <p>Host: ${escapeHtml(metadata.hostname || "unknown")}</p>
+            <p>${escapeHtml(report.summary || "")}</p>
+          </div>
+        </section>
+        <section class="report-section">
+          <h2>Recommended Next Steps</h2>
+          <ul>${recommendationRows || "<li>No recommendations available.</li>"}</ul>
+        </section>
         ${aiRows}
-        <h2>System Trust Health</h2>
-        ${trustRows || "<p>No trust-health checks were returned.</p>"}
-        <h2>Artifact Counts</h2>
-        <table>${countRows}</table>
-        <h2>Findings</h2>
-        ${rows || "<p>No findings.</p>"}
+        <section class="report-section">
+          <h2>System Trust Health</h2>
+          ${trustRows || "<p>No trust-health checks were returned.</p>"}
+        </section>
+        <section class="report-section">
+          <h2>Artifact Counts</h2>
+          <table>${countRows}</table>
+        </section>
+        <section class="report-section findings-section">
+          <h2>Findings</h2>
+          ${rows || "<p>No findings.</p>"}
+        </section>
       </body>
     </html>
   `;

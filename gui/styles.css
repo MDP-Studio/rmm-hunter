@@ -93,7 +93,6 @@ select {
 .brand p,
 .topbar p,
 .verdict-panel span,
-.scope-list,
 .metric span,
 .summary-panel p,
 .section-heading span {
@@ -102,8 +101,7 @@ select {
 }
 
 .sidebar .brand p,
-.sidebar .verdict-panel span,
-.sidebar .scope-list {
+.sidebar .verdict-panel span {
   color: #aeb8c8;
 }
 
@@ -160,14 +158,40 @@ select {
 }
 
 .scope-list {
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: #b9c4d6;
   display: grid;
-  gap: 10px;
+  font-size: 13px;
+  gap: 8px;
   margin-top: auto;
+  padding: 14px;
+}
+
+.scope-heading {
+  color: #f7f9fc;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  margin-bottom: 2px;
+  text-transform: uppercase;
 }
 
 .scope-list div {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  padding: 0 0 10px;
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  line-height: 1.35;
+}
+
+.scope-list div span {
+  background: #7fb197;
+  border-radius: 999px;
+  box-shadow: 0 0 0 3px rgba(127, 177, 151, 0.12);
+  flex: 0 0 auto;
+  height: 6px;
+  width: 6px;
 }
 
 .workspace {
@@ -206,9 +230,9 @@ select {
 .topbar {
   align-items: center;
   display: flex;
-  gap: 24px;
+  gap: 28px;
   justify-content: space-between;
-  padding: 24px;
+  padding: 28px 36px;
 }
 
 .topbar h2 {
@@ -225,8 +249,9 @@ select {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
   justify-content: flex-end;
+  min-width: 390px;
 }
 
 .primary-button,
@@ -251,7 +276,9 @@ select {
 
 .primary-button:disabled {
   background: #8b94a4;
+  color: #fff;
   cursor: wait;
+  opacity: 1;
 }
 
 .secondary-button {
@@ -263,6 +290,20 @@ select {
 .secondary-button:disabled {
   color: #a1a9b7;
   cursor: not-allowed;
+}
+
+#scanButton {
+  font-size: 16px;
+  min-height: 52px;
+  min-width: 224px;
+  padding: 0 26px;
+}
+
+#checkUpdates {
+  font-size: 14px;
+  min-height: 40px;
+  min-width: 132px;
+  padding: 0 14px;
 }
 
 .update-panel {
@@ -287,6 +328,9 @@ select {
 .update-panel.current {
   background: var(--green-soft);
   border-color: #bddfcf;
+  box-shadow: none;
+  gap: 12px;
+  padding: 12px 16px;
 }
 
 .update-panel.error {
@@ -303,6 +347,23 @@ select {
   color: #4f5a6d;
   line-height: 1.45;
   margin: 0;
+}
+
+.update-panel.current h3 {
+  font-size: 15px;
+  margin: 2px 0;
+}
+
+.update-panel.current p {
+  font-size: 13px;
+}
+
+.update-panel.current .eyebrow {
+  font-size: 10px;
+}
+
+.update-panel.current .link-button {
+  font-size: 13px;
 }
 
 .update-actions {
@@ -1013,6 +1074,22 @@ select {
   .topbar-actions,
   .update-actions {
     justify-content: flex-start;
+  }
+
+  .topbar-actions {
+    min-width: 0;
+    width: 100%;
+  }
+
+  #scanButton {
+    order: -1;
+  }
+
+  #checkUpdates,
+  #scanButton {
+    flex: 1 1 100%;
+    min-width: 0;
+    width: 100%;
   }
 
   .update-panel {

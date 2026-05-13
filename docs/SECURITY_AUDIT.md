@@ -1,6 +1,6 @@
 # Security Audit
 
-Date: 2026-05-09
+Date: 2026-05-13
 
 ## Scope
 
@@ -73,14 +73,14 @@ No reportable security vulnerabilities were found in the application code after 
 
 - `npm run release:verify` passed.
 - `npm run dist` produced:
-  - `release/RMM-Hunter-Setup-0.1.5-x64.exe`
-  - `release/RMM-Hunter-Portable-0.1.5-x64.exe`
-  - `release/RMM-Hunter-Setup-0.1.5-x64.exe.blockmap`
+  - `release/RMM-Hunter-Setup-0.1.6-x64.exe`
+  - `release/RMM-Hunter-Portable-0.1.6-x64.exe`
+  - `release/RMM-Hunter-Setup-0.1.6-x64.exe.blockmap`
 - The bundled scanner executable under `release/win-unpacked/resources/bin/rmm-hunter-cli.exe` successfully analyzed the high-risk sample artifact.
 - The bundled scanner executable successfully analyzed a local trust-health smoke artifact and preserved the System Trust Health section in the text report.
 - The unpacked packaged app launched and stayed alive.
 - The portable executable launched and stayed alive.
-- The NSIS installer silently upgraded the existing per-user install to `0.1.5`, preserved the install path, and kept reports/settings in the local app data directory.
+- The NSIS installer silently upgraded the existing per-user install to `0.1.6`, preserved the install path, and kept reports/settings in the local app data directory.
 
 ## Release Risks
 
