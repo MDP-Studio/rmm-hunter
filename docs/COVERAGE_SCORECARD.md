@@ -1,6 +1,6 @@
 # Coverage Scorecard
 
-Date: 2026-05-08
+Date: 2026-05-18
 
 This scorecard is a seeded regression check, not a claim of broad endpoint-security efficacy.
 
@@ -16,14 +16,15 @@ python .\scripts\evaluate_corpus.py --manifest .\tests\corpus\manifest.json
 | --- | --- | --- |
 | `clean-baseline` | `clean` | Empty clean artifact baseline. |
 | `authorized-teamviewer-program-files` | `needs_review` | Known remote tool in a standard program path. |
+| `anydesk-connection-trace` | `needs_review` | AnyDesk connection trace evidence from a vendor log location. |
 | `high-risk-download-service-encoded-powershell` | `high_risk` | RMM service from Downloads plus encoded PowerShell. |
 
 ## Current Result
 
 | Metric | Value |
 | --- | --- |
-| Total cases | 3 |
-| Passed cases | 3 |
+| Total cases | 4 |
+| Passed cases | 4 |
 | Exact verdict accuracy | 1.0 |
 | Review-or-high precision | 1.0 |
 | Review-or-high recall | 1.0 |
@@ -33,6 +34,7 @@ python .\scripts\evaluate_corpus.py --manifest .\tests\corpus\manifest.json
 - Clean Windows 11 desktop with no RMM tools.
 - Clean Windows Server host with normal admin tooling.
 - Authorized MSP-style Atera or ScreenConnect deployment under Program Files.
+- KAPE Prefetch, Amcache, and Shimcache output with benign and suspicious RMM references.
 - SimpleHelp-style recent service-install trace from public advisory patterns where safe to model.
 - Browser-launched `msiexec` from Downloads with benign and suspicious variants.
 - Defender configuration-change event with benign admin context.

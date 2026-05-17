@@ -952,6 +952,7 @@ function buildPdfHtml(report) {
   const metadata = report.collection_metadata || {};
   const recommendations = Array.isArray(report.recommendations) ? report.recommendations : [];
   const trustHealth = Array.isArray(report.system_trust_health) ? report.system_trust_health : [];
+  const timeline = Array.isArray(report.timeline) ? report.timeline : [];
   const aiExplanation = report.ai_explanation || null;
   const rows = findings
     .map((finding) => {
@@ -972,6 +973,7 @@ function buildPdfHtml(report) {
           <div class="finding-summary">
             <h3>${escapeHtml(finding.title || "Finding")}</h3>
             <p><strong>Severity:</strong> ${escapeHtml(finding.severity || "unknown")}</p>
+            <p><strong>Evidence:</strong> ${escapeHtml(String(finding.evidence_strength || "unknown").replace(/_/g, " "))} strength, ${escapeHtml(String(finding.confidence_label || "unknown"))} confidence</p>
             <p><strong>Artifacts in finding:</strong> ${escapeHtml(String(finding.artifact_count || 1))}</p>
             <p>${escapeHtml(finding.reason || "")}</p>
             ${guidance}
@@ -995,6 +997,16 @@ function buildPdfHtml(report) {
         <p>${escapeHtml(check.detail || "")}</p>
         <p class="note">${escapeHtml(check.recommended_action || "")}</p>
       </section>
+    `)
+    .join("");
+  const timelineRows = timeline
+    .slice(0, 60)
+    .map((entry) => `
+      <li>
+        <strong>${escapeHtml(entry.time_utc || "unknown")} ${entry.timestamp_type ? `(${escapeHtml(entry.timestamp_type)})` : ""}</strong>
+        <span>${escapeHtml(entry.title || "Finding")}${entry.tool ? ` (${escapeHtml(entry.tool)})` : ""}</span>
+        <small>${escapeHtml(entry.artifact_summary || entry.category || "")}</small>
+      </li>
     `)
     .join("");
   const aiRows = aiExplanation
@@ -1041,6 +1053,10 @@ function buildPdfHtml(report) {
           .guidance { background: #f7f8fa; border-radius: 6px; margin: 10px 0; padding: 10px; }
           .guidance ol { margin: 6px 0 0; padding-left: 20px; }
           .guidance li { margin: 4px 0; }
+          .timeline { list-style: none; margin: 0; padding: 0; }
+          .timeline li { border-left: 4px solid #315f9f; break-inside: avoid; margin: 0 0 10px; padding: 0 0 0 10px; page-break-inside: avoid; }
+          .timeline strong, .timeline span, .timeline small { display: block; }
+          .timeline small { color: #5c6678; line-height: 1.4; margin-top: 3px; overflow-wrap: anywhere; }
           .artifact { background: #f7f8fa; border-radius: 6px; break-inside: auto; font-family: Consolas, monospace; font-size: 10px; margin-top: 10px; overflow-wrap: anywhere; page-break-inside: auto; padding: 10px; white-space: pre-wrap; }
           .artifact strong { display: block; font-family: Arial, sans-serif; font-size: 11px; margin-bottom: 6px; text-transform: uppercase; }
           .artifact div { border-top: 1px solid #e3e7ee; padding: 5px 0; }
@@ -1066,6 +1082,10 @@ function buildPdfHtml(report) {
         <section class="report-section">
           <h2>System Trust Health</h2>
           ${trustRows || "<p>No trust-health checks were returned.</p>"}
+        </section>
+        <section class="report-section">
+          <h2>Timeline</h2>
+          ${timelineRows ? `<ol class="timeline">${timelineRows}</ol>` : "<p>No timestamped finding artifacts were returned.</p>"}
         </section>
         <section class="report-section">
           <h2>Artifact Counts</h2>
@@ -1117,6 +1137,7 @@ function sanitizeReportForAi(report) {
     summary: sanitizeScalar(report?.summary),
     recommendations: sanitizeArray(report?.recommendations).slice(0, 8),
     system_trust_health: sanitizeTrustHealth(report?.system_trust_health).slice(0, 12),
+    timeline: sanitizeTimeline(report?.timeline).slice(0, 30),
     artifact_counts: sanitizeRecord(report?.artifact_counts || {}),
     collection: {
       lookback_days: report?.collection?.lookback_days ?? null,
@@ -1129,6 +1150,8 @@ function sanitizeReportForAi(report) {
       title: sanitizeScalar(finding.title),
       tool: sanitizeScalar(finding.tool),
       confidence: Number.isFinite(finding.confidence) ? finding.confidence : null,
+      confidence_label: sanitizeScalar(finding.confidence_label),
+      evidence_strength: sanitizeScalar(finding.evidence_strength),
       reason: sanitizeScalar(finding.reason),
       plain_language: sanitizeScalar(finding.plain_language),
       recommended_actions: sanitizeArray(finding.recommended_actions).slice(0, 5),
@@ -1157,6 +1180,24 @@ function sanitizeTrustHealth(checks) {
     exclusion_count: check?.exclusion_count,
     total_roots: check?.total_roots,
     current_user_roots: check?.current_user_roots
+  }));
+}
+
+function sanitizeTimeline(entries) {
+  if (!Array.isArray(entries)) {
+    return [];
+  }
+
+  return entries.map((entry) => sanitizeRecord({
+    time_utc: entry?.time_utc,
+    timestamp_type: entry?.timestamp_type,
+    finding_id: entry?.finding_id,
+    severity: entry?.severity,
+    category: entry?.category,
+    title: entry?.title,
+    tool: entry?.tool,
+    artifact_source: entry?.artifact_source,
+    artifact_summary: entry?.artifact_summary
   }));
 }
 
@@ -1197,6 +1238,18 @@ function sanitizeArtifacts(artifacts) {
       "exclusion_count",
       "total_roots",
       "current_user_roots",
+      "tool",
+      "artifact_role",
+      "artifact_kind",
+      "evidence_question",
+      "source_file",
+      "row_number",
+      "row_context",
+      "size_bytes",
+      "line_count",
+      "sample_lines",
+      "observed_time_utc",
+      "timestamp_type",
       "display_name",
       "name",
       "task_name",
@@ -1218,7 +1271,7 @@ function sanitizeArtifacts(artifacts) {
       }
     }
 
-    for (const key of ["path", "directory", "path_name", "executable_path", "install_location", "uninstall_string", "registry_path"]) {
+    for (const key of ["path", "directory", "path_name", "executable_path", "install_location", "uninstall_string", "registry_path", "source_path", "relative_path"]) {
       if (artifact && artifact[key]) {
         cleaned[`${key}_summary`] = summarizePath(artifact[key]);
       }

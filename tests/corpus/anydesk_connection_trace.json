@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0",
+  "scanner": {
+    "name": "RMM Hunter test fixture",
+    "version": "0.2.0",
+    "collected_at_utc": "2026-05-17T10:35:00Z"
+  },
+  "collection": {
+    "lookback_days": 14
+  },
+  "artifacts": {
+    "installed_programs": [],
+    "services": [],
+    "service_install_events": [],
+    "scheduled_tasks": [],
+    "startup_registry": [],
+    "startup_folders": [],
+    "recent_files": [],
+    "rmm_vendor_logs": [
+      {
+        "tool": "AnyDesk",
+        "artifact_role": "connection_log",
+        "evidence_question": "connected",
+        "name": "connection_trace.txt",
+        "path": "C:\\ProgramData\\AnyDesk\\connection_trace.txt",
+        "last_write_time_utc": "2026-05-17T10:30:00Z",
+        "sample_lines": [
+          "2026-05-17 10:30 incoming session 12345"
+        ]
+      }
+    ],
+    "defender_status": [],
+    "code_signing_trust": [],
+    "trusted_root_store": [],
+    "defender_events": [],
+    "powershell_events": [],
+    "process_creation_events": [],
+    "wmi_events": []
+  },
+  "collection_errors": []
+}

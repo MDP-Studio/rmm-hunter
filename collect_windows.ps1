@@ -639,6 +639,160 @@ function Get-RecentFileArtifacts {
     return @($items | Sort-Object last_write_time_utc -Descending)
 }
 
+function Join-OptionalPath {
+    param(
+        [AllowNull()][string]$Base,
+        [string]$Child
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Base)) {
+        return $null
+    }
+
+    return (Join-Path $Base $Child)
+}
+
+function Get-FileTailSample {
+    param(
+        [string]$Path,
+        [int]$MaxLines = 20
+    )
+
+    try {
+        return @(Get-Content -LiteralPath $Path -Tail $MaxLines -ErrorAction Stop | ForEach-Object {
+            Limit-Text ([string]$_) 1000
+        })
+    }
+    catch {
+        return @()
+    }
+}
+
+function Get-RmmVendorLogArtifacts {
+    $programFilesX86 = ${env:ProgramFiles(x86)}
+    $specs = @(
+        @{
+            tool = "AnyDesk"
+            patterns = @(
+                (Join-OptionalPath $env:ProgramData "AnyDesk\connection_trace.txt"),
+                (Join-OptionalPath $env:ProgramData "AnyDesk\ad_svc.trace"),
+                (Join-OptionalPath $env:APPDATA "AnyDesk\connection_trace.txt"),
+                (Join-OptionalPath $env:APPDATA "AnyDesk\ad.trace")
+            )
+        },
+        @{
+            tool = "TeamViewer"
+            patterns = @(
+                (Join-OptionalPath $env:ProgramFiles "TeamViewer\*.log"),
+                (Join-OptionalPath $programFilesX86 "TeamViewer\*.log"),
+                (Join-OptionalPath $env:ProgramData "TeamViewer\*.log"),
+                (Join-OptionalPath $env:APPDATA "TeamViewer\*.log")
+            )
+        },
+        @{
+            tool = "ScreenConnect / ConnectWise Control"
+            patterns = @(
+                (Join-OptionalPath $env:ProgramFiles "ScreenConnect Client*\*.log"),
+                (Join-OptionalPath $programFilesX86 "ScreenConnect Client*\*.log"),
+                (Join-OptionalPath $env:ProgramData "ScreenConnect Client*\*.log"),
+                (Join-OptionalPath $env:ProgramData "ConnectWise*\*.log")
+            )
+        },
+        @{
+            tool = "RustDesk"
+            patterns = @(
+                (Join-OptionalPath $env:APPDATA "RustDesk\log\*.log"),
+                (Join-OptionalPath $env:APPDATA "RustDesk\config\*.toml"),
+                (Join-OptionalPath $env:ProgramData "RustDesk\log\*.log")
+            )
+        },
+        @{
+            tool = "Splashtop"
+            patterns = @(
+                (Join-OptionalPath $env:ProgramData "Splashtop\*\*.log"),
+                (Join-OptionalPath $programFilesX86 "Splashtop\*\*.log"),
+                (Join-OptionalPath $env:APPDATA "Splashtop\*\*.log")
+            )
+        },
+        @{
+            tool = "Atera"
+            patterns = @(
+                (Join-OptionalPath $env:ProgramFiles "ATERA Networks\AteraAgent\*.log"),
+                (Join-OptionalPath $programFilesX86 "ATERA Networks\AteraAgent\*.log"),
+                (Join-OptionalPath $env:ProgramData "ATERA Networks\*.log")
+            )
+        },
+        @{
+            tool = "MeshAgent"
+            patterns = @(
+                (Join-OptionalPath $env:ProgramFiles "Mesh Agent\*.log"),
+                (Join-OptionalPath $programFilesX86 "Mesh Agent\*.log"),
+                (Join-OptionalPath $env:ProgramData "Mesh Agent\*.log")
+            )
+        },
+        @{
+            tool = "DWAgent"
+            patterns = @(
+                (Join-OptionalPath $env:ProgramFiles "DWAgent\log\*.log"),
+                (Join-OptionalPath $programFilesX86 "DWAgent\log\*.log"),
+                (Join-OptionalPath $env:ProgramData "DWAgent\log\*.log")
+            )
+        }
+    )
+
+    $items = @()
+    $seen = @{}
+    $connectionMarkers = @("connection_trace", "connections", "session", "remotecontrol", "remote_control", "incoming", "outgoing")
+
+    foreach ($spec in $specs) {
+        foreach ($pattern in @($spec.patterns | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })) {
+            try {
+                $files = @(Get-ChildItem -Path $pattern -File -ErrorAction SilentlyContinue)
+                foreach ($file in $files) {
+                    if ($items.Count -ge 250) {
+                        break
+                    }
+
+                    $key = $file.FullName.ToLowerInvariant()
+                    if ($seen.ContainsKey($key)) {
+                        continue
+                    }
+                    $seen[$key] = $true
+
+                    $combined = ($file.Name + " " + $file.FullName).ToLowerInvariant()
+                    $role = "vendor_log"
+                    foreach ($marker in $connectionMarkers) {
+                        if ($combined.Contains($marker)) {
+                            $role = "connection_log"
+                            break
+                        }
+                    }
+
+                    $items += [ordered]@{
+                        tool = [string]$spec.tool
+                        artifact_role = $role
+                        evidence_question = $(if ($role -eq "connection_log") { "connected" } else { "configured_or_ran" })
+                        name = [string]$file.Name
+                        path = [string]$file.FullName
+                        directory = [string]$file.DirectoryName
+                        extension = [string]$file.Extension
+                        size_bytes = $file.Length
+                        creation_time_utc = ConvertTo-IsoUtc $file.CreationTimeUtc
+                        last_write_time_utc = ConvertTo-IsoUtc $file.LastWriteTimeUtc
+                        last_access_time_utc = ConvertTo-IsoUtc $file.LastAccessTimeUtc
+                        sample_lines = Get-FileTailSample -Path $file.FullName
+                    }
+                }
+            }
+            catch {
+                Add-CollectionError -Source "rmm_vendor_logs:$pattern" -Message $_.Exception.Message
+            }
+        }
+    }
+
+    return @($items | Sort-Object last_write_time_utc -Descending)
+}
+
 function Convert-EventRecord {
     param($Event)
 
@@ -761,6 +915,7 @@ $report = [ordered]@{
         startup_registry = Get-StartupRegistryArtifacts
         startup_folders = Get-StartupFolderArtifacts
         recent_files = Get-RecentFileArtifacts
+        rmm_vendor_logs = Get-RmmVendorLogArtifacts
         defender_status = @(Get-DefenderStatusArtifacts)
         code_signing_trust = @(Get-CodeSigningTrustArtifacts)
         trusted_root_store = @(Get-TrustedRootStoreArtifacts)

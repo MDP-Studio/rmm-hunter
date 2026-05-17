@@ -1,6 +1,7 @@
 import importlib.util
 import json
 from pathlib import Path
+import tempfile
 import unittest
 
 
@@ -404,6 +405,69 @@ class RuleTests(unittest.TestCase):
         }
         self.assertIn("attack.t1219", sigma_tags)
         self.assertIn("attack.t1059.001", sigma_tags)
+
+    def test_anydesk_connection_log_is_very_strong_evidence(self):
+        collection = {
+            "artifacts": {
+                "installed_programs": [],
+                "services": [],
+                "service_install_events": [],
+                "scheduled_tasks": [],
+                "startup_registry": [],
+                "startup_folders": [],
+                "recent_files": [],
+                "rmm_vendor_logs": [
+                    {
+                        "tool": "AnyDesk",
+                        "artifact_role": "connection_log",
+                        "evidence_question": "connected",
+                        "name": "connection_trace.txt",
+                        "path": "C:\\ProgramData\\AnyDesk\\connection_trace.txt",
+                        "last_write_time_utc": "2026-05-17T10:30:00Z",
+                        "sample_lines": ["2026-05-17 10:30 incoming session 12345"],
+                    }
+                ],
+                "defender_events": [],
+                "powershell_events": [],
+                "process_creation_events": [],
+                "wmi_events": []
+            },
+            "collection_errors": []
+        }
+        report = rmm_hunter.analyze_artifacts(collection)
+        finding = report["findings"][0]
+
+        self.assertEqual(report["verdict"], "needs_review")
+        self.assertEqual(finding["category"], "rmm_connection_log")
+        self.assertEqual(finding["evidence_strength"], "very_strong")
+        self.assertEqual(finding["confidence_label"], "high")
+        self.assertTrue(report["timeline"])
+        self.assertEqual(report["timeline"][0]["category"], "rmm_connection_log")
+
+    def test_kape_import_parses_remote_tool_rows(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            output_dir = root / "Modules" / "Amcache"
+            output_dir.mkdir(parents=True)
+            csv_path = output_dir / "Amcache_UnassociatedFileEntries.csv"
+            csv_path.write_text(
+                "Name,Path,LastModifiedTime\n"
+                "AnyDesk.exe,C:\\Users\\Public\\AnyDesk.exe,2026-05-17T08:00:00Z\n",
+                encoding="utf-8",
+            )
+
+            collection = rmm_hunter.import_kape_output(root)
+            report = rmm_hunter.analyze_artifacts(collection)
+
+        categories = {finding["category"] for finding in report["findings"]}
+        first_artifact = report["findings"][0]["artifacts"][0]
+        self.assertIn("kape_execution_reference", categories)
+        self.assertEqual(first_artifact["tool"], "AnyDesk")
+        self.assertEqual(first_artifact["artifact_kind"], "amcache")
+        self.assertEqual(first_artifact["evidence_question"], "executed")
+        self.assertEqual(first_artifact["observed_time_utc"], "2026-05-17T08:00:00Z")
+        self.assertTrue(report["timeline"])
+        self.assertEqual(report["timeline"][0]["time_utc"], "2026-05-17T08:00:00Z")
 
 
 if __name__ == "__main__":

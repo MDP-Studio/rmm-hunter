@@ -1,6 +1,6 @@
 # Security Audit
 
-Date: 2026-05-13
+Date: 2026-05-18
 
 ## Scope
 
@@ -15,6 +15,9 @@ Reviewed the RMM Hunter Windows MVP:
 - roadmap gap documentation for release trust, interoperability, coverage measurement, and mapping
 - mapped detection export, release verification manifest generation, and seeded corpus evaluation
 - System Trust Health collection and reporting for Defender state, Windows Authenticode validation, and trusted root store signals
+- RMM vendor log collection
+- KAPE import mode
+- evidence strength, confidence labels, and timeline reporting
 
 Excluded generated folders and local scan output:
 
@@ -48,6 +51,9 @@ No reportable security vulnerabilities were found in the application code after 
 - AI endpoint validation requires HTTPS unless the endpoint is localhost.
 - Python invokes the collector with an argument array, not shell string concatenation.
 - PowerShell collector treats collected endpoint artifacts as data and does not execute them.
+- RMM vendor log collection reads metadata and bounded tail samples only. It does not delete logs, stop agents, or contact vendor services.
+- KAPE import mode reads bounded text-like output files and records source file and row context. It does not parse live disk images, mount evidence, or alter the KAPE collection.
+- Timeline output is derived from collected report timestamps and does not run additional commands.
 - Release builds bundle a PyInstaller scanner executable so the packaged Electron app does not require Python on the target endpoint.
 - Packaged builds ignore developer scanner override environment variables and prefer the bundled scanner executable.
 - Windows release builds use the tracked `gui/assets/icon.ico` instead of the default Electron icon.
@@ -55,6 +61,7 @@ No reportable security vulnerabilities were found in the application code after 
 - `PRIVACY.md` states that reports stay local by default and optional AI sends only sanitized summaries to the user-selected provider.
 - `docs/CODE_SIGNING_POLICY.md` states that RMM Hunter detects breach traces and unauthorized remote management tools, and does not exploit systems, bypass controls, scan networks, delete files, stop services, or change Windows settings by default.
 - The optional mapped export is derived from completed findings and does not feed back into verdict scoring.
+- Evidence strength and confidence labels are explanatory fields. They do not change the deterministic verdict model.
 - Release verification files include hashes, source SHA, workflow run URL, and Authenticode status so users can validate provenance.
 - Local unsigned builds set `signAndEditExecutable` to `false` so non-admin Windows sessions do not fail while extracting Electron Builder code-signing helpers. Public releases should still be signed when a certificate is available.
 
@@ -66,17 +73,19 @@ No reportable security vulnerabilities were found in the application code after 
 - `electron-builder` brings some deprecated transitive packages in the current npm tree. They are build-time dependencies and no vulnerability was reported by npm audit, but they should be watched during dependency updates.
 - Build Python dependencies are pinned in `requirements-build.txt` and should be checked with `pip-audit -r requirements-build.txt` or `uvx pip-audit==2.10.0 -r requirements-build.txt`.
 - `uvx pip-audit==2.10.0 -r requirements-build.txt` passed with no known vulnerabilities.
-- `python scripts/evaluate_corpus.py --manifest tests/corpus/manifest.json` passed against the seeded corpus.
+- `python scripts/evaluate_corpus.py --manifest tests/corpus/manifest.json` passed against the seeded corpus, 4/4 cases.
 - System Trust Health smoke analysis confirmed Defender protections were enabled, security intelligence was recent, Windows code-signing validation passed for 3 known Windows binaries, and the trusted root store was readable on the test machine.
 
 ## Release Verification Performed
 
 - `npm run release:verify` passed.
 - `npm run dist` produced:
-  - `release/RMM-Hunter-Setup-0.1.6-x64.exe`
-  - `release/RMM-Hunter-Portable-0.1.6-x64.exe`
-  - `release/RMM-Hunter-Setup-0.1.6-x64.exe.blockmap`
-- The bundled scanner executable under `release/win-unpacked/resources/bin/rmm-hunter-cli.exe` successfully analyzed the high-risk sample artifact.
+  - `release/RMM-Hunter-Setup-0.2.0-x64.exe`
+  - `release/RMM-Hunter-Portable-0.2.0-x64.exe`
+  - `release/RMM-Hunter-Setup-0.2.0-x64.exe.blockmap`
+- The bundled scanner executable under `release/win-unpacked/resources/bin/rmm-hunter-cli.exe` successfully analyzed the AnyDesk connection-trace fixture.
+- The CLI KAPE import smoke produced a `needs_review` report with `kape_execution_reference`.
+- The PowerShell collector smoke produced schema `1.0` output and included the `rmm_vendor_logs` artifact key.
 - The bundled scanner executable successfully analyzed a local trust-health smoke artifact and preserved the System Trust Health section in the text report.
 - The unpacked packaged app launched and stayed alive.
 - The portable executable launched and stayed alive.
@@ -91,11 +100,13 @@ No reportable security vulnerabilities were found in the application code after 
 - Electron Builder writes `builder-debug.yml`, `latest.yml`, and `win-unpacked` into `release/` for local debugging/update metadata. The GitHub workflow uploads `latest.yml` because installed builds need it for auto-update checks.
 - Until code signing is configured, auto-update should be treated as beta-channel convenience rather than broad public trust. The updater relies on GitHub release provenance and Electron update integrity metadata, but Windows publisher trust still needs a signing certificate.
 - Detection quality claims should stay tied to measured seeded-corpus results. `docs/GAP_ADDENDUM.md` tracks the eval harness and scorecard as follow-on work.
+- Electron Builder emitted a Node deprecation warning from its packaging path about child process arguments with shell execution. Source search found no `shell: true` usage in RMM Hunter app or scripts. Keep watching this during Electron Builder updates.
 
 ## Commands
 
 ```powershell
 npm run release:verify
+npm audit --audit-level=moderate
 pip-audit -r requirements-build.txt
 uvx pip-audit==2.10.0 -r requirements-build.txt
 python scripts/evaluate_corpus.py --manifest tests/corpus/manifest.json

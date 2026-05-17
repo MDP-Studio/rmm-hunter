@@ -9,6 +9,7 @@ does not claim to know whether a remote management tool is authorized.
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import os
 import re
@@ -20,7 +21,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
-SCANNER_VERSION = "0.1.6"
+SCANNER_VERSION = "0.2.0"
 
 REMOTE_TOOLS: dict[str, tuple[str, ...]] = {
     "ScreenConnect / ConnectWise Control": (
@@ -149,6 +150,80 @@ SELF_EVENT_TERMS = (
 
 URL_PATTERN = re.compile(r"https?://[^\s'\"<>]+", re.IGNORECASE)
 
+KAPE_TEXT_SUFFIXES = {".csv", ".tsv", ".json", ".txt", ".log"}
+KAPE_MAX_SCAN_FILES = 2500
+KAPE_MAX_TEXT_BYTES = 8_000_000
+KAPE_SAMPLE_BYTES = 128_000
+KAPE_MAX_RMM_ARTIFACTS = 250
+
+KAPE_ARTIFACT_MARKERS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("prefetch", ("prefetch", "\\pf\\", ".pf", "pecmd")),
+    ("amcache", ("amcache", "amcacheparser")),
+    ("shimcache", ("shimcache", "appcompatcache")),
+    ("userassist", ("userassist", "regripper_userassist")),
+    ("srum", ("srum", "srumecmd")),
+    ("shellbags", ("shellbags", "shellbagsexplorer")),
+    ("event_logs", ("winevent", "evtx", "eventlog", "event_logs")),
+    ("registry", ("registry", "regripper", "software_", "system_")),
+    ("scheduled_tasks", ("scheduledtasks", "scheduled_tasks", "tasks")),
+    ("services", ("services", "windowsservices")),
+)
+
+KAPE_TIMESTAMP_KEY_TERMS = (
+    "timestamp",
+    "time",
+    "date",
+    "lastmodified",
+    "last_modified",
+    "created",
+    "creation",
+    "modified",
+    "execution",
+    "lastrun",
+    "last_run",
+)
+
+CONNECTION_LOG_MARKERS = (
+    "connection_trace",
+    "connections",
+    "session",
+    "remotecontrol",
+    "remote_control",
+    "incoming",
+    "outgoing",
+)
+
+EVIDENCE_STRENGTH_ORDER = {
+    "weak": 1,
+    "medium": 2,
+    "strong": 3,
+    "very_strong": 4,
+    "critical": 5,
+}
+
+EVIDENCE_STRENGTH_BY_CATEGORY = {
+    "recent_remote_tool_file": "weak",
+    "known_rmm_installed_app": "medium",
+    "known_rmm_service": "medium",
+    "known_rmm_scheduled_task": "medium",
+    "known_rmm_startup_registry": "medium",
+    "known_rmm_startup_folder": "medium",
+    "rmm_vendor_log": "strong",
+    "rmm_connection_log": "very_strong",
+    "kape_rmm_reference": "strong",
+    "kape_execution_reference": "very_strong",
+    "service_from_user_writable_path": "strong",
+    "recent_rmm_service_install": "strong",
+    "recent_service_install_from_suspicious_path": "strong",
+    "encoded_powershell": "strong",
+    "encoded_powershell_process": "strong",
+    "defender_malware_event": "critical",
+    "defender_sensitive_configuration_event": "strong",
+    "defender_health_issue": "strong",
+    "trust_validation_issue": "strong",
+    "trusted_root_store_issue": "strong",
+}
+
 DEFENDER_HIGH_RISK_IDS = {1116, 1117, 1118, 1119, 1121, 1122}
 DEFENDER_CONFIG_IDS = {5001, 5004, 5007, 5013}
 DEFENDER_SENSITIVE_CONFIG_TERMS = (
@@ -215,6 +290,37 @@ RULE_MAPPINGS: dict[str, dict[str, Any]] = {
             "data_sources": ["Service: Service Metadata", "Process: Process Metadata"],
         },
         "d3fend": [{"id": "D3-SBV", "name": "Service Binary Verification"}],
+    },
+    "rmm_vendor_log": {
+        "attack": {
+            "techniques": [{"id": "T1219", "name": "Remote Access Software"}],
+            "data_sources": ["File: File Metadata", "Application Log: Application Log Content"],
+        },
+        "d3fend": [{"id": "D3-FA", "name": "File Analysis"}],
+    },
+    "rmm_connection_log": {
+        "attack": {
+            "techniques": [{"id": "T1219", "name": "Remote Access Software"}],
+            "data_sources": ["File: File Metadata", "Application Log: Application Log Content", "Network Traffic: Network Connection Creation"],
+        },
+        "d3fend": [{"id": "D3-FA", "name": "File Analysis"}],
+    },
+    "kape_rmm_reference": {
+        "attack": {
+            "techniques": [{"id": "T1219", "name": "Remote Access Software"}],
+            "data_sources": ["File: File Metadata"],
+        },
+        "d3fend": [{"id": "D3-PM", "name": "Platform Monitoring"}],
+    },
+    "kape_execution_reference": {
+        "attack": {
+            "techniques": [
+                {"id": "T1219", "name": "Remote Access Software"},
+                {"id": "T1204.002", "name": "Malicious File"},
+            ],
+            "data_sources": ["Process: OS API Execution", "File: File Metadata"],
+        },
+        "d3fend": [{"id": "D3-PM", "name": "Platform Monitoring"}],
     },
     "service_from_user_writable_path": {
         "attack": {
@@ -463,6 +569,33 @@ def match_remote_tool(item: Any) -> str | None:
         if any(term in text for term in terms):
             return tool
     return None
+
+
+def evidence_strength_for(category: str, severity: str, confidence: float) -> str:
+    strength = EVIDENCE_STRENGTH_BY_CATEGORY.get(category)
+    if strength:
+        return strength
+    if severity == "high" and confidence >= 0.86:
+        return "strong"
+    if severity == "high":
+        return "medium"
+    if severity == "medium":
+        return "medium"
+    return "weak"
+
+
+def confidence_label(confidence: float) -> str:
+    if confidence >= 0.9:
+        return "high"
+    if confidence >= 0.7:
+        return "medium"
+    return "low"
+
+
+def stronger_evidence(left: str | None, right: str | None) -> str:
+    left = left or "weak"
+    right = right or "weak"
+    return left if EVIDENCE_STRENGTH_ORDER.get(left, 0) >= EVIDENCE_STRENGTH_ORDER.get(right, 0) else right
 
 
 def first_present(item: dict[str, Any], keys: Iterable[str]) -> Any:
@@ -1016,6 +1149,20 @@ def compact_artifact(source: str, item: dict[str, Any]) -> dict[str, Any]:
         "exclusion_count",
         "total_roots",
         "current_user_roots",
+        "tool",
+        "artifact_role",
+        "artifact_kind",
+        "evidence_question",
+        "source_file",
+        "source_path",
+        "relative_path",
+        "row_number",
+        "row_context",
+        "size_bytes",
+        "line_count",
+        "sample_lines",
+        "observed_time_utc",
+        "timestamp_type",
         "display_name",
         "name",
         "task_name",
@@ -1081,6 +1228,9 @@ def artifact_identity(source: str, item: dict[str, Any]) -> str:
                 return f"{source}:{key}:{value}"
 
     for key in (
+        "row_number",
+        "relative_path",
+        "source_path",
         "executable_path",
         "path",
         "path_name",
@@ -1113,6 +1263,7 @@ def make_finding(
     artifact: dict[str, Any],
     tool: str | None = None,
     confidence: float = 0.7,
+    evidence_strength: str | None = None,
 ) -> None:
     dedupe_key = f"{category}|{source}|{artifact_identity(source, artifact)}"
     if any(
@@ -1123,10 +1274,14 @@ def make_finding(
 
     grouped_artifact = compact_artifact(source, artifact)
     group_key = f"{severity}|{category}|{title}|{tool or ''}"
+    strength = evidence_strength or evidence_strength_for(category, severity, confidence)
     for existing in findings:
         if existing.get("_group_key") == group_key:
             existing["artifacts"].append(grouped_artifact)
             existing["artifact_count"] = len(existing["artifacts"])
+            existing["confidence"] = max(float(existing.get("confidence") or 0), round(confidence, 2))
+            existing["confidence_label"] = confidence_label(float(existing.get("confidence") or 0))
+            existing["evidence_strength"] = stronger_evidence(str(existing.get("evidence_strength") or "weak"), strength)
             existing.setdefault("_dedupe_keys", set()).add(dedupe_key)
             return
 
@@ -1142,6 +1297,8 @@ def make_finding(
             "title": title,
             "tool": tool,
             "confidence": round(confidence, 2),
+            "confidence_label": confidence_label(confidence),
+            "evidence_strength": strength,
             "reason": reason,
             "artifact_count": 1,
             "artifacts": [grouped_artifact],
@@ -1179,6 +1336,25 @@ def add_finding_guidance(finding: dict[str, Any]) -> None:
             f"Confirm who installed {tool}, when it was installed, and whether it is still approved.",
             "Compare the timestamps in this card with support calls, invoices, admin work, or suspicious browser activity.",
             "If unauthorized, preserve the report first, disconnect from untrusted networks if needed, then remove it through normal vendor or Windows uninstall steps.",
+        ]
+    elif category in {"rmm_vendor_log", "rmm_connection_log"}:
+        finding["plain_language"] = (
+            f"RMM Hunter found a vendor-specific {tool} trace or log file. This is stronger than a loose installer because it can show the tool was configured, run, "
+            "or used for a session, depending on the log type."
+        )
+        finding["recommended_actions"] = [
+            f"Preserve the {tool} log path and compare its timestamps with services, scheduled tasks, downloads, and user reports.",
+            "If the log contains session or connection entries, confirm each connection with the expected IT provider before removing the tool.",
+            "Export JSON for technical review. Do not publish raw logs without checking IP addresses, device IDs, usernames, and session identifiers.",
+        ]
+    elif category in {"kape_rmm_reference", "kape_execution_reference"}:
+        finding["plain_language"] = (
+            "A KAPE output file references a known remote access tool. This does not replace the original forensic artifact, but it is useful triage evidence from a DFIR collection."
+        )
+        finding["recommended_actions"] = [
+            "Open the original KAPE output file referenced in this card and verify the row or excerpt before reporting it as fact.",
+            "Map the KAPE source to the investigation question: installed, executed, connected, persisted, recently changed, or user-accessed.",
+            "Keep the KAPE collection intact so another analyst can reproduce the timeline and validate the parser output.",
         ]
     elif category in {"service_from_user_writable_path", "recent_service_install_from_suspicious_path"}:
         finding["plain_language"] = (
@@ -1283,6 +1459,258 @@ def add_finding_guidance(finding: dict[str, Any]) -> None:
             "Compare the finding timestamp with known installs, support sessions, updates, or admin work.",
             "Preserve the report before making changes so the timeline remains available.",
         ]
+
+
+def empty_artifacts() -> dict[str, list[dict[str, Any]]]:
+    return {
+        "installed_programs": [],
+        "services": [],
+        "service_install_events": [],
+        "scheduled_tasks": [],
+        "startup_registry": [],
+        "startup_folders": [],
+        "recent_files": [],
+        "rmm_vendor_logs": [],
+        "kape_artifact_sources": [],
+        "kape_rmm_artifacts": [],
+        "defender_status": [],
+        "code_signing_trust": [],
+        "trusted_root_store": [],
+        "defender_events": [],
+        "powershell_events": [],
+        "process_creation_events": [],
+        "wmi_events": [],
+    }
+
+
+def collection_from_artifacts(artifacts: dict[str, Any], *, name: str, source_path: Path | None = None) -> dict[str, Any]:
+    return {
+        "schema_version": "1.0",
+        "scanner": {
+            "name": name,
+            "version": SCANNER_VERSION,
+            "collected_at_utc": utc_now_iso(),
+            **({"source_path": str(source_path)} if source_path else {}),
+        },
+        "collection": {
+            "lookback_days": None,
+            **({"source": "kape_output"} if source_path else {}),
+        },
+        "artifacts": artifacts,
+        "collection_errors": [],
+    }
+
+
+def merge_collections(primary: dict[str, Any], secondary: dict[str, Any]) -> dict[str, Any]:
+    primary_artifacts = primary.setdefault("artifacts", {})
+    for key, value in (secondary.get("artifacts") or {}).items():
+        if not isinstance(value, list):
+            continue
+        primary_artifacts.setdefault(key, [])
+        if isinstance(primary_artifacts[key], list):
+            primary_artifacts[key].extend(value)
+
+    primary_errors = primary.setdefault("collection_errors", [])
+    if isinstance(primary_errors, list):
+        primary_errors.extend(secondary.get("collection_errors") or [])
+    return primary
+
+
+def classify_kape_artifact_kind(path: Path) -> str | None:
+    text = str(path).lower().replace("/", "\\")
+    for kind, markers in KAPE_ARTIFACT_MARKERS:
+        if any(marker in text for marker in markers):
+            return kind
+    return None
+
+
+def evidence_question_for_kind(kind: str | None, path: Path) -> str:
+    path_text_lower = str(path).lower()
+    if kind in {"prefetch", "amcache", "shimcache", "userassist"}:
+        return "executed"
+    if kind == "srum":
+        return "network_or_resource_usage"
+    if kind == "shellbags":
+        return "user_accessed_path"
+    if kind in {"scheduled_tasks", "services"}:
+        return "persisted"
+    if kind == "event_logs":
+        return "event_log_context"
+    if any(marker in path_text_lower for marker in CONNECTION_LOG_MARKERS):
+        return "connected"
+    return "referenced"
+
+
+def safe_relative_path(path: Path, root: Path) -> str:
+    try:
+        return str(path.relative_to(root))
+    except ValueError:
+        return str(path)
+
+
+def file_sample(path: Path, limit: int = KAPE_SAMPLE_BYTES) -> str:
+    try:
+        with path.open("rb") as handle:
+            data = handle.read(limit)
+        return data.decode("utf-8", errors="ignore")
+    except OSError:
+        return ""
+
+
+def line_count_for_sample(text: str) -> int:
+    if not text:
+        return 0
+    return len(text.splitlines())
+
+
+def build_kape_artifact(
+    *,
+    root: Path,
+    path: Path,
+    tool: str,
+    artifact_kind: str | None,
+    row_number: int | None = None,
+    row_context: dict[str, Any] | None = None,
+    sample_text: str = "",
+) -> dict[str, Any]:
+    try:
+        stat = path.stat()
+        last_write = datetime.fromtimestamp(stat.st_mtime, timezone.utc).isoformat().replace("+00:00", "Z")
+        size = stat.st_size
+    except OSError:
+        last_write = None
+        size = None
+
+    role = "connection_log" if any(marker in path.name.lower() for marker in CONNECTION_LOG_MARKERS) else "kape_output"
+    artifact = {
+        "tool": tool,
+        "artifact_kind": artifact_kind or "unknown",
+        "artifact_role": role,
+        "evidence_question": evidence_question_for_kind(artifact_kind, path),
+        "source_file": path.name,
+        "source_path": str(path),
+        "relative_path": safe_relative_path(path, root),
+        "size_bytes": size,
+        "last_write_time_utc": last_write,
+    }
+    if row_number is not None:
+        artifact["row_number"] = row_number
+    if row_context:
+        artifact["row_context"] = {str(k): compact_text(v, 300) for k, v in row_context.items() if v not in (None, "")}
+        row_timestamp = timestamp_from_record(row_context)
+        if row_timestamp:
+            artifact["observed_time_utc"] = row_timestamp["time_utc"]
+            artifact["timestamp_type"] = row_timestamp["field"]
+    elif sample_text:
+        lines = [compact_text(line, 240) for line in sample_text.splitlines() if line.strip()]
+        artifact["line_count"] = line_count_for_sample(sample_text)
+        artifact["sample_lines"] = lines[:12]
+    return {key: value for key, value in artifact.items() if value not in (None, "", [])}
+
+
+def timestamp_from_record(record: dict[str, Any]) -> dict[str, str] | None:
+    for key, value in record.items():
+        lowered = str(key).lower().replace(" ", "").replace("_", "")
+        if not any(term.replace("_", "") in lowered for term in KAPE_TIMESTAMP_KEY_TERMS):
+            continue
+        parsed = parse_datetime(value)
+        if not parsed:
+            continue
+        return {
+            "field": str(key),
+            "time_utc": parsed.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
+        }
+    return None
+
+
+def add_kape_source_summary(sources: list[dict[str, Any]], *, root: Path, path: Path, artifact_kind: str | None) -> None:
+    if not artifact_kind:
+        return
+    relative = safe_relative_path(path, root)
+    if any(source.get("relative_path") == relative for source in sources):
+        return
+    sources.append(
+        {
+            "artifact_kind": artifact_kind,
+            "source_file": path.name,
+            "source_path": str(path),
+            "relative_path": relative,
+            "evidence_question": evidence_question_for_kind(artifact_kind, path),
+        }
+    )
+
+
+def import_kape_output(root: Path) -> dict[str, Any]:
+    root = root.resolve()
+    artifacts = empty_artifacts()
+    errors: list[dict[str, str]] = []
+    if not root.exists() or not root.is_dir():
+        raise RuntimeError(f"KAPE output folder does not exist or is not a directory: {root}")
+
+    files_checked = 0
+    for path in root.rglob("*"):
+        if not path.is_file():
+            continue
+        files_checked += 1
+        if files_checked > KAPE_MAX_SCAN_FILES:
+            errors.append({"source": "kape_import", "message": f"Stopped after {KAPE_MAX_SCAN_FILES} files to keep import bounded."})
+            break
+
+        suffix = path.suffix.lower()
+        artifact_kind = classify_kape_artifact_kind(path)
+        add_kape_source_summary(artifacts["kape_artifact_sources"], root=root, path=path, artifact_kind=artifact_kind)
+        if suffix not in KAPE_TEXT_SUFFIXES:
+            continue
+
+        try:
+            if path.stat().st_size > KAPE_MAX_TEXT_BYTES:
+                continue
+        except OSError:
+            continue
+
+        path_tool = match_remote_tool(str(path))
+        if suffix in {".csv", ".tsv"}:
+            delimiter = "\t" if suffix == ".tsv" else ","
+            try:
+                with path.open("r", encoding="utf-8-sig", errors="ignore", newline="") as handle:
+                    reader = csv.DictReader(handle, delimiter=delimiter)
+                    for row_index, row in enumerate(reader, start=2):
+                        if len(artifacts["kape_rmm_artifacts"]) >= KAPE_MAX_RMM_ARTIFACTS:
+                            break
+                        row_tool = match_remote_tool(row)
+                        tool = row_tool or path_tool
+                        if not tool:
+                            continue
+                        artifacts["kape_rmm_artifacts"].append(
+                            build_kape_artifact(
+                                root=root,
+                                path=path,
+                                tool=tool,
+                                artifact_kind=artifact_kind,
+                                row_number=row_index,
+                                row_context=row,
+                            )
+                        )
+            except (OSError, csv.Error) as exc:
+                errors.append({"source": f"kape_import:{path.name}", "message": str(exc)})
+            continue
+
+        sample = file_sample(path)
+        tool = path_tool or match_remote_tool(sample)
+        if tool and len(artifacts["kape_rmm_artifacts"]) < KAPE_MAX_RMM_ARTIFACTS:
+            artifacts["kape_rmm_artifacts"].append(
+                build_kape_artifact(
+                    root=root,
+                    path=path,
+                    tool=tool,
+                    artifact_kind=artifact_kind,
+                    sample_text=sample,
+                )
+            )
+
+    collection = collection_from_artifacts(artifacts, name="RMM Hunter KAPE Import", source_path=root)
+    collection["collection_errors"] = errors
+    return collection
 
 
 def analyze_artifacts(collection: dict[str, Any]) -> dict[str, Any]:
@@ -1514,6 +1942,56 @@ def analyze_artifacts(collection: dict[str, Any]) -> dict[str, Any]:
                 confidence=0.7,
             )
 
+    for log in artifacts.get("rmm_vendor_logs", []):
+        if not isinstance(log, dict):
+            continue
+        tool = str(log.get("tool") or "") or match_remote_tool(log)
+        if not tool:
+            continue
+        role = str(log.get("artifact_role") or "").lower()
+        is_connection_log = role == "connection_log" or any(marker in artifact_text(log) for marker in CONNECTION_LOG_MARKERS)
+        category = "rmm_connection_log" if is_connection_log else "rmm_vendor_log"
+        make_finding(
+            findings,
+            severity="medium",
+            category=category,
+            title=f"Remote access vendor log found: {tool}",
+            reason=(
+                "Vendor-specific connection or session log evidence was found."
+                if is_connection_log
+                else "Vendor-specific remote access log evidence was found."
+            ),
+            source="rmm_vendor_logs",
+            artifact=log,
+            tool=tool,
+            confidence=0.9 if is_connection_log else 0.82,
+        )
+
+    for artifact in artifacts.get("kape_rmm_artifacts", []):
+        if not isinstance(artifact, dict):
+            continue
+        tool = str(artifact.get("tool") or "") or match_remote_tool(artifact)
+        if not tool:
+            continue
+        kind = str(artifact.get("artifact_kind") or "unknown")
+        question = str(artifact.get("evidence_question") or "")
+        execution_like = kind in {"prefetch", "amcache", "shimcache", "userassist"} or question == "executed"
+        make_finding(
+            findings,
+            severity="medium",
+            category="kape_execution_reference" if execution_like else "kape_rmm_reference",
+            title=f"KAPE output references remote access tool: {tool}",
+            reason=(
+                f"KAPE {kind} output references {tool}, which may support execution or user-activity timeline review."
+                if execution_like
+                else f"KAPE output references {tool} in a collected or parsed artifact."
+            ),
+            source="kape_rmm_artifacts",
+            artifact=artifact,
+            tool=tool,
+            confidence=0.86 if execution_like else 0.78,
+        )
+
     for event in artifacts.get("powershell_events", []):
         if not isinstance(event, dict):
             continue
@@ -1677,6 +2155,7 @@ def analyze_artifacts(collection: dict[str, Any]) -> dict[str, Any]:
         key: len(value) if isinstance(value, list) else 1 if isinstance(value, dict) else 0
         for key, value in artifacts.items()
     }
+    timeline = build_timeline(findings)
 
     return {
         "schema_version": "1.0",
@@ -1691,11 +2170,81 @@ def analyze_artifacts(collection: dict[str, Any]) -> dict[str, Any]:
         "risk_score": score,
         "summary": summarize_counts(verdict, findings, artifact_counts),
         "recommendations": build_recommendations(verdict, findings),
+        "timeline": timeline,
         "system_trust_health": system_trust_health,
         "artifact_counts": artifact_counts,
         "findings": findings,
         "collection_errors": collection.get("collection_errors", []),
     }
+
+
+def artifact_timestamp(artifact: dict[str, Any]) -> tuple[str, str] | None:
+    for key, label in (
+        ("detection_time_utc", "detection"),
+        ("time_created_utc", "event"),
+        ("observed_time_utc", "observed"),
+        ("creation_time_utc", "created"),
+        ("last_write_time_utc", "last_write"),
+        ("last_access_time_utc", "last_access"),
+    ):
+        value = artifact.get(key)
+        if not value:
+            continue
+        parsed = parse_datetime(value)
+        if parsed:
+            return parsed.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"), label
+    return None
+
+
+def artifact_summary(artifact: dict[str, Any]) -> str:
+    for key in (
+        "detail",
+        "message_excerpt",
+        "affected_resource",
+        "path",
+        "source_path",
+        "relative_path",
+        "name",
+        "display_name",
+        "task_name",
+    ):
+        value = artifact.get(key)
+        if value:
+            return compact_text(value, 220)
+    row_context = artifact.get("row_context")
+    if isinstance(row_context, dict):
+        return compact_text(" ".join(str(value) for value in row_context.values() if value), 220)
+    return "Evidence artifact"
+
+
+def build_timeline(findings: list[dict[str, Any]], limit: int = 200) -> list[dict[str, Any]]:
+    entries: list[dict[str, Any]] = []
+    for finding in findings:
+        if not isinstance(finding, dict):
+            continue
+        for artifact in finding.get("artifacts", []) or []:
+            if not isinstance(artifact, dict):
+                continue
+            timestamp = artifact_timestamp(artifact)
+            if not timestamp:
+                continue
+            time_utc, timestamp_type = timestamp
+            entries.append(
+                {
+                    "time_utc": time_utc,
+                    "timestamp_type": timestamp_type,
+                    "finding_id": finding.get("id"),
+                    "severity": finding.get("severity"),
+                    "category": finding.get("category"),
+                    "title": finding.get("title"),
+                    "tool": finding.get("tool") or artifact.get("tool"),
+                    "artifact_source": artifact.get("source"),
+                    "artifact_summary": artifact_summary(artifact),
+                }
+            )
+
+    entries.sort(key=lambda entry: parse_datetime(entry.get("time_utc")) or datetime.min.replace(tzinfo=timezone.utc))
+    return entries[:limit]
 
 
 def build_recommendations(verdict: str, findings: list[dict[str, Any]]) -> list[str]:
@@ -1722,6 +2271,16 @@ def build_recommendations(verdict: str, findings: list[dict[str, Any]]) -> list[
     if any("rmm" in category or "remote_tool" in category for category in categories):
         recommendations.append(
             "Confirm every remote access tool with the expected IT provider, including who installed it, when it was installed, and whether it is still needed."
+        )
+
+    if categories & {"rmm_vendor_log", "rmm_connection_log"}:
+        recommendations.append(
+            "Review vendor logs for connection times, session IDs, peer IDs, usernames, and IP addresses. Treat connection logs as stronger evidence than loose installers."
+        )
+
+    if categories & {"kape_rmm_reference", "kape_execution_reference"}:
+        recommendations.append(
+            "Keep the KAPE output intact and verify the original row or excerpt before reporting it. Use KAPE evidence to support the timeline, not as a replacement for source artifacts."
         )
 
     if any("service" in category for category in categories):
@@ -1819,6 +2378,20 @@ def render_human_summary(report: dict[str, Any]) -> str:
                 lines.append(f"  Action: {single_line(check.get('recommended_action'))}")
         lines.append("")
 
+    timeline = report.get("timeline") or []
+    if timeline:
+        lines.append("Timeline")
+        lines.append("--------")
+        for entry in timeline[:30]:
+            tool = f" [{entry.get('tool')}]" if entry.get("tool") else ""
+            lines.append(
+                f"- {entry.get('time_utc')} ({entry.get('timestamp_type')}): "
+                f"{entry.get('title')}{tool} - {single_line(entry.get('artifact_summary'))}"
+            )
+        if len(timeline) > 30:
+            lines.append(f"- ... {len(timeline) - 30} additional timeline entries omitted from text summary.")
+        lines.append("")
+
     lines.append("Artifact Counts")
     lines.append("---------------")
     for key in sorted(counts):
@@ -1833,6 +2406,12 @@ def render_human_summary(report: dict[str, Any]) -> str:
             tool = f" [{finding['tool']}]" if finding.get("tool") else ""
             lines.append(f"- [{finding['severity'].upper()}] {finding['title']}{tool}")
             lines.append(f"  ID: {finding['id']}")
+            if finding.get("evidence_strength") or finding.get("confidence_label"):
+                lines.append(
+                    "  Evidence: "
+                    f"{finding.get('evidence_strength', 'unknown')} strength, "
+                    f"{finding.get('confidence_label', 'unknown')} confidence"
+                )
             lines.append(f"  Reason: {finding['reason']}")
             if finding.get("plain_language"):
                 lines.append(f"  What this means: {single_line(finding['plain_language'])}")
@@ -1905,7 +2484,7 @@ def stix_observable_hints(finding: dict[str, Any]) -> list[str]:
         hints.add("software")
     if sources & {"services", "process_creation_events", "powershell_events", "wmi_events"}:
         hints.add("process")
-    if sources & {"recent_files", "startup_folders"}:
+    if sources & {"recent_files", "startup_folders", "rmm_vendor_logs", "kape_rmm_artifacts"}:
         hints.add("file")
     if sources & {"startup_registry"}:
         hints.add("windows-registry-key")
@@ -1913,6 +2492,8 @@ def stix_observable_hints(finding: dict[str, Any]) -> list[str]:
         hints.add("x-windows-scheduled-task")
     if sources & {"defender_events", "service_install_events", "system_trust_health"}:
         hints.add("x-windows-event-log-entry")
+    if sources & {"rmm_vendor_logs"}:
+        hints.add("x-application-log-entry")
     return sorted(hints)
 
 
@@ -1921,11 +2502,11 @@ def misp_attribute_hints(finding: dict[str, Any]) -> list[str]:
     for artifact in finding.get("artifacts", []):
         if not isinstance(artifact, dict):
             continue
-        if any(key in artifact for key in ("path", "directory", "path_name", "executable_path", "install_location")):
+        if any(key in artifact for key in ("path", "directory", "path_name", "executable_path", "install_location", "source_path", "relative_path")):
             hints.add("filename")
         if artifact.get("signature"):
             hints.add("text")
-        if artifact.get("message_excerpt") or artifact.get("event_data"):
+        if artifact.get("message_excerpt") or artifact.get("event_data") or artifact.get("row_context") or artifact.get("sample_lines"):
             hints.add("comment")
     return sorted(hints)
 
@@ -1949,6 +2530,8 @@ def build_mapped_detection_export(report: dict[str, Any]) -> dict[str, Any]:
                 "title": finding.get("title"),
                 "severity": finding.get("severity"),
                 "confidence": finding.get("confidence"),
+                "confidence_label": finding.get("confidence_label"),
+                "evidence_strength": finding.get("evidence_strength"),
                 "tool": finding.get("tool"),
                 "reason": finding.get("reason"),
                 "plain_language": finding.get("plain_language"),
@@ -1975,6 +2558,7 @@ def build_mapped_detection_export(report: dict[str, Any]) -> dict[str, Any]:
         "verdict": report.get("verdict"),
         "risk_score": report.get("risk_score"),
         "summary": report.get("summary"),
+        "timeline": report.get("timeline") or [],
         "finding_count": len(mapped_findings),
         "findings": mapped_findings,
     }
@@ -2047,6 +2631,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         description="Standalone Windows scanner for unauthorized remote access tools and living-off-the-land traces."
     )
     parser.add_argument("--input", type=Path, help="Analyze an existing collector artifacts JSON file.")
+    parser.add_argument("--kape-root", type=Path, help="Import RMM-related evidence from a KAPE output folder.")
     parser.add_argument("--collector", type=Path, default=app_base_dir() / "collect_windows.ps1", help="PowerShell collector path.")
     parser.add_argument("--lookback-days", type=int, default=14, help="Event and recent-file lookback window.")
     parser.add_argument("--max-recent-files", type=int, default=500, help="Maximum recent files to collect.")
@@ -2068,6 +2653,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.input:
             collection = load_json(args.input)
+        elif args.kape_root:
+            collection = import_kape_output(args.kape_root)
         else:
             collection = run_collector(
                 collector=args.collector,
@@ -2075,6 +2662,9 @@ def main(argv: list[str] | None = None) -> int:
                 lookback_days=args.lookback_days,
                 max_recent_files=args.max_recent_files,
             )
+
+        if args.input and args.kape_root:
+            collection = merge_collections(collection, import_kape_output(args.kape_root))
 
         report = analyze_artifacts(collection)
         summary = render_human_summary(report)
@@ -2091,7 +2681,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Summary: {args.summary_out}")
             if args.mapped_out:
                 print(f"Mapped detection export: {args.mapped_out}")
-            if not args.input:
+            if args.kape_root:
+                print(f"KAPE import: {args.kape_root}")
+            if not args.input and not args.kape_root:
                 print(f"Raw artifacts: {args.artifacts_out}")
         return 0
     except Exception as exc:

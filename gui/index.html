@@ -38,6 +38,8 @@
           <div><span aria-hidden="true"></span>Scheduled tasks</div>
           <div><span aria-hidden="true"></span>Event logs</div>
           <div><span aria-hidden="true"></span>Recent installers</div>
+          <div><span aria-hidden="true"></span>RMM vendor logs</div>
+          <div><span aria-hidden="true"></span>KAPE imports</div>
           <div><span aria-hidden="true"></span>System trust health</div>
         </div>
       </aside>
@@ -171,6 +173,14 @@
             <span id="trustHealthHint">Defender and Windows trust checks</span>
           </div>
           <div class="trust-health-list" id="trustHealthList"></div>
+        </section>
+
+        <section class="timeline-panel hidden" id="timelinePanel">
+          <div class="section-heading">
+            <h3>Timeline</h3>
+            <span id="timelineHint">Finding timestamps</span>
+          </div>
+          <ol class="timeline-list" id="timelineList"></ol>
         </section>
 
         <section class="report-paths hidden" id="reportPaths">

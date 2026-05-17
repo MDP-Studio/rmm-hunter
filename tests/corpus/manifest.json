@@ -14,6 +14,12 @@
       "expected_categories": ["known_rmm_installed_app"]
     },
     {
+      "id": "anydesk-connection-trace",
+      "path": "tests/corpus/anydesk_connection_trace.json",
+      "expected_verdict": "needs_review",
+      "expected_categories": ["rmm_connection_log"]
+    },
+    {
       "id": "high-risk-download-service-encoded-powershell",
       "path": "tests/sample_artifacts_high_risk.json",
       "expected_verdict": "high_risk",

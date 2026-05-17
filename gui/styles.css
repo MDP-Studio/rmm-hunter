@@ -216,6 +216,7 @@ select {
 .summary-panel,
 .recommendations-panel,
 .trust-health-panel,
+.timeline-panel,
 .ai-panel,
 .progress-panel,
 .report-paths,
@@ -534,6 +535,7 @@ select {
 
 .recommendations-panel,
 .trust-health-panel,
+.timeline-panel,
 .ai-panel {
   padding: 20px;
 }
@@ -909,10 +911,68 @@ select {
   font-size: 13px;
 }
 
+.timeline-list {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.timeline-item {
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--blue);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 190px minmax(0, 1fr);
+  padding: 12px;
+}
+
+.timeline-item.high {
+  border-left-color: var(--red);
+}
+
+.timeline-item.medium {
+  border-left-color: var(--amber);
+}
+
+.timeline-time {
+  color: #4f5a6d;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.timeline-body {
+  min-width: 0;
+}
+
+.timeline-body strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.timeline-body p {
+  color: #4f5a6d;
+  line-height: 1.45;
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+
 .reason {
   color: #384355;
   line-height: 1.45;
   margin: 8px 0 12px;
+}
+
+.finding-meta {
+  color: #586274;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+  margin: -4px 0 12px;
 }
 
 .finding-explanation,
@@ -1107,6 +1167,10 @@ select {
   }
 
   .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .timeline-item {
     grid-template-columns: 1fr;
   }
 

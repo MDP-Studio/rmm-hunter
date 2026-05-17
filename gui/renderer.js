@@ -19,6 +19,9 @@ const recommendationList = document.getElementById("recommendationList");
 const trustHealthPanel = document.getElementById("trustHealthPanel");
 const trustHealthHint = document.getElementById("trustHealthHint");
 const trustHealthList = document.getElementById("trustHealthList");
+const timelinePanel = document.getElementById("timelinePanel");
+const timelineHint = document.getElementById("timelineHint");
+const timelineList = document.getElementById("timelineList");
 const aiPanel = document.getElementById("aiPanel");
 const aiStatus = document.getElementById("aiStatus");
 const aiSummary = document.getElementById("aiSummary");
@@ -490,6 +493,8 @@ function resetResults() {
   recommendationList.replaceChildren();
   trustHealthPanel.classList.add("hidden");
   trustHealthList.replaceChildren();
+  timelinePanel.classList.add("hidden");
+  timelineList.replaceChildren();
   aiPanel.classList.add("hidden");
   aiSettings.classList.add("hidden");
   hideAiSetupNotice();
@@ -522,6 +527,7 @@ function renderReport(report, paths) {
   evidenceHint.textContent = findings.length ? `${findings.length} grouped findings, ${evidenceTotal} artifacts` : "No findings";
   renderRecommendations(report.recommendations || []);
   renderTrustHealth(report.system_trust_health || []);
+  renderTimeline(report.timeline || []);
 
   evidenceList.replaceChildren(...findings.map(renderFindingCard));
   if (!findings.length) {
@@ -552,6 +558,55 @@ function renderRecommendations(recommendations) {
     item.textContent = text;
     return item;
   }));
+}
+
+function renderTimeline(entries) {
+  timelineList.replaceChildren();
+  if (!Array.isArray(entries) || !entries.length) {
+    timelinePanel.classList.add("hidden");
+    return;
+  }
+
+  const visibleEntries = entries.slice(0, 40);
+  timelinePanel.classList.remove("hidden");
+  timelineHint.textContent = entries.length > visibleEntries.length
+    ? `Showing first ${visibleEntries.length} of ${entries.length} timestamped artifacts`
+    : `${entries.length} timestamped artifact${entries.length === 1 ? "" : "s"}`;
+  timelineList.replaceChildren(...visibleEntries.map(renderTimelineEntry));
+}
+
+function renderTimelineEntry(entry) {
+  const item = document.createElement("li");
+  item.className = `timeline-item ${entry.severity || "low"}`;
+
+  const stamp = document.createElement("span");
+  stamp.className = "timeline-time";
+  stamp.textContent = formatTimelineTime(entry.time_utc, entry.timestamp_type);
+
+  const body = document.createElement("div");
+  body.className = "timeline-body";
+
+  const title = document.createElement("strong");
+  title.textContent = `${entry.title || "Finding"}${entry.tool ? ` (${entry.tool})` : ""}`;
+
+  const detail = document.createElement("p");
+  detail.textContent = entry.artifact_summary || entry.category || "Evidence artifact";
+
+  body.append(title, detail);
+  item.append(stamp, body);
+  return item;
+}
+
+function formatTimelineTime(value, type) {
+  const suffix = type ? `, ${type}` : "";
+  if (!value) {
+    return `unknown${suffix}`;
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return `${value}${suffix}`;
+  }
+  return `${parsed.toLocaleString(undefined, { hour12: false })}${suffix}`;
 }
 
 function renderTrustHealth(checks) {
@@ -795,6 +850,10 @@ function renderFindingCard(finding) {
   reason.className = "reason";
   reason.textContent = finding.reason || "";
 
+  const confidence = document.createElement("p");
+  confidence.className = "finding-meta";
+  confidence.textContent = `Evidence ${formatEvidenceStrength(finding.evidence_strength)}. Confidence ${formatVerdict(finding.confidence_label || "unknown")}${Number.isFinite(finding.confidence) ? ` (${Math.round(finding.confidence * 100)}%)` : ""}.`;
+
   const guidance = getFindingGuidance(finding);
   const explanation = document.createElement("div");
   explanation.className = "finding-explanation";
@@ -845,8 +904,15 @@ function renderFindingCard(finding) {
   artifactTable.className = "artifact-table";
   artifactTable.append(...rows);
 
-  card.append(title, reason, explanation, cardActions, actions, count, artifactTable);
+  card.append(title, reason, confidence, explanation, cardActions, actions, count, artifactTable);
   return card;
+}
+
+function formatEvidenceStrength(value) {
+  if (!value) {
+    return "not labelled";
+  }
+  return String(value).replace(/_/g, " ");
 }
 
 function getFindingGuidance(finding) {

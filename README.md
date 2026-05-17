@@ -42,6 +42,8 @@ Windows MVP:
 - Scheduled tasks
 - Startup registry keys and startup folders
 - Recent installer and script files in Downloads and Temp locations
+- RMM vendor log locations for tools such as AnyDesk, TeamViewer, ScreenConnect, RustDesk, Splashtop, Atera, MeshAgent, and DWAgent
+- Optional KAPE output import for RMM references from DFIR artifact collections
 - Defender events where available
 - Defender health, security intelligence age, and suspicious exclusions where available
 - Windows code-signing validation checks against known signed Windows binaries
@@ -49,6 +51,8 @@ Windows MVP:
 - PowerShell Operational and Windows PowerShell logs where available
 - Security process creation events where available, event ID `4688`
 - WMI Activity events where available
+- Timeline entries built from timestamped findings
+- Evidence strength and confidence labels for each finding
 
 Known remote access tools covered in the initial rules:
 
@@ -91,9 +95,11 @@ The GUI provides:
 - Progress screen during collection and analysis
 - Dashboard verdict: `clean`, `needs_review`, or `high_risk`
 - Evidence cards for each finding
+- Evidence strength, confidence labels, and finding timeline context
 - Plain-English finding explanations with non-destructive review actions
 - Extracted context for PowerShell URLs/domains, Defender threat actions, affected resources, and Defender setting changes
 - System Trust Health cards for Defender state, security intelligence age, broad exclusions, code-signing validation, and trusted-root-store review
+- Timeline panel for timestamped artifacts across findings
 - Deterministic recommended next steps
 - GitHub Releases update check with installer auto-update for the installed Windows build
 - Optional bring-your-own-key AI explanations and recommendations
@@ -164,6 +170,20 @@ python .\rmm_hunter.py --input .\reports\rmm_hunter_artifacts_20260507T000000Z.j
 ```
 
 The mapped export does not change the deterministic `clean`, `needs_review`, or `high_risk` verdict. It adds rule IDs, ATT&CK/D3FEND mappings, Sigma-style tags, and STIX/MISP object hints for downstream tooling.
+
+Import a KAPE output folder and generate a normal RMM Hunter report:
+
+```powershell
+python .\rmm_hunter.py --kape-root "C:\Cases\Host01\KAPE\ModuleOutput" --json-out .\reports\host01_kape_rmm_report.json --summary-out .\reports\host01_kape_rmm_summary.txt
+```
+
+Merge a live collector artifact file with KAPE output:
+
+```powershell
+python .\rmm_hunter.py --input .\reports\rmm_hunter_artifacts_20260507T000000Z.json --kape-root "C:\Cases\Host01\KAPE\ModuleOutput"
+```
+
+See `docs/RMM_ARTIFACT_SOURCES.md` and `docs/RMM_ABUSE_INVESTIGATION_CHEATSHEET.md` for the vendor log matrix, KAPE interpretation notes, and safe triage workflow.
 
 Run the PowerShell collector only:
 

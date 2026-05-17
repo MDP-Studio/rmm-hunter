@@ -1,6 +1,6 @@
 # Release Audit
 
-Date: 2026-05-13
+Date: 2026-05-18
 
 ## Scope
 
@@ -11,6 +11,9 @@ Reviewed:
 - Windows scanner CLI and collector
 - Electron desktop app
 - System Trust Health dashboard and report output
+- RMM vendor log collection
+- KAPE import mode
+- evidence strength, confidence labels, and timeline output
 - optional AI explanation path
 - JSON/PDF export
 - Windows icon and unsigned signing status
@@ -33,9 +36,9 @@ Target repository: `https://github.com/MDP-Studio/rmm-hunter`
 
 Current local release artifacts:
 
-- `release/RMM-Hunter-Setup-0.1.6-x64.exe`
-- `release/RMM-Hunter-Setup-0.1.6-x64.exe.blockmap`
-- `release/RMM-Hunter-Portable-0.1.6-x64.exe`
+- `release/RMM-Hunter-Setup-0.2.0-x64.exe`
+- `release/RMM-Hunter-Setup-0.2.0-x64.exe.blockmap`
+- `release/RMM-Hunter-Portable-0.2.0-x64.exe`
 
 Electron Builder also creates local debug output:
 
@@ -51,16 +54,16 @@ The GitHub workflow uploads the setup executable, setup blockmap, portable execu
 | --- | --- | --- |
 | JavaScript syntax | Pass | `gui` and `scripts` JS files checked with `node --check`. |
 | Python compile | Pass | `python -m py_compile rmm_hunter.py`. |
-| Unit tests | Pass | 12 tests passed. |
+| Unit tests | Pass | 14 tests passed. |
 | npm audit | Pass | 0 vulnerabilities for all dependencies. |
 | production npm audit | Pass | 0 vulnerabilities with `--omit=dev`. |
 | Python build dependency audit | Pass | `pip-audit -r requirements-build.txt` found no known vulnerabilities. |
-| seeded corpus evaluation | Pass | `scripts/evaluate_corpus.py` checks clean, needs-review, and high-risk seeded artifacts. |
+| seeded corpus evaluation | Pass | 4/4 cases passed, including an AnyDesk connection-trace fixture. |
 | secret-pattern scan | Pass | Only documented API-key placeholder examples and runtime key-handling code were found outside ignored/generated folders. |
 | PyInstaller scanner build | Pass | Bundled `rmm-hunter-cli.exe` created successfully. |
 | Bundled scanner behavior | Pass | Packaged scanner analyzed the high-risk sample artifact successfully. |
 | System Trust Health smoke | Pass | Collector/analyzer produced trust-health checks for Defender state, Defender intelligence age, code-signing validation, and trusted-root summary. |
-| Browser UI smoke | Pass | Localhost dashboard loaded, trust-health panel existed in the DOM, navigation worked, and console errors/warnings were 0. |
+| Browser UI smoke | Pass | Localhost dashboard loaded, RMM vendor logs and KAPE imports appeared in scan coverage, timeline panel existed in the DOM, and console errors were 0. |
 | Electron Builder release build | Pass | Setup and portable Windows artifacts generated. |
 | Unpacked packaged app launch | Pass | App launched and stayed alive. |
 | Portable launch | Pass | Portable executable launched and stayed alive. |
@@ -78,6 +81,11 @@ The GitHub workflow uploads the setup executable, setup blockmap, portable execu
 - System Trust Health now reports Defender protection state, security intelligence age, broad exclusions, Windows code-signing validation, and trusted-root-store review without changing system settings.
 - Dashboard actions now keep the scan button primary, make update status less visually loud, and label the sidebar as scan coverage instead of navigation.
 - PDF export now keeps report sections together when they fit on the page and lets long evidence excerpts split cleanly instead of forcing large blank gaps.
+- Native RMM vendor log collection now checks common AnyDesk, TeamViewer, ScreenConnect, RustDesk, Splashtop, Atera, MeshAgent, and DWAgent paths without changing files.
+- KAPE import mode now imports RMM references from bounded CSV, TSV, text, log, and JSON-like output files.
+- Findings now include evidence strength and confidence labels across JSON, text, PDF, GUI, mapped export, and AI-safe summaries.
+- Reports now include a timestamped finding timeline across JSON, text, PDF, GUI, mapped export, and AI-safe summaries.
+- `docs/RMM_ARTIFACT_SOURCES.md` and `docs/RMM_ABUSE_INVESTIGATION_CHEATSHEET.md` now document vendor logs, KAPE evidence, and safe triage workflow.
 - Windows app and installer packaging now use `gui/assets/icon.ico`.
 - Build now creates separate installer and portable filenames.
 - Build now cleans stale release artifacts before packaging.
@@ -99,13 +107,14 @@ The GitHub workflow uploads the setup executable, setup blockmap, portable execu
 - The CLI now supports `--mapped-out` for profile `rmm-hunter.detection-mapping.v1`, preserving deterministic verdict behavior while adding portable detection labels.
 - `scripts/evaluate_corpus.py` now runs a seeded corpus and fails the verification gate on verdict or expected-category regressions.
 - `docs/DETECTION_MAPPING.md` and `docs/COVERAGE_SCORECARD.md` now document the mapping matrix and current seeded coverage scorecard.
+- The seeded corpus now includes `anydesk-connection-trace`.
 
 ## Residual Release Risks
 
 - Windows artifacts are unsigned. Expect SmartScreen friction until SignPath Foundation, Microsoft Artifact Signing, or another trusted signing option is configured.
 - GitHub MFA status cannot be verified through the current CLI response. The maintainer must confirm MFA in GitHub account settings before applying to SignPath.
 - Release trust and provenance remain the biggest external trust gap. Do not prioritize new detector breadth ahead of signing, verification instructions, and clean-host friction testing.
-- Detection interoperability, coverage measurement, and ATT&CK/D3FEND mapping are documented in `docs/GAP_ADDENDUM.md` as follow-on work after release trust.
+- Detection interoperability, coverage measurement, and ATT&CK/D3FEND mapping have first implementation slices. Validation in a real SIEM or TI workflow is still needed before claiming SOC production readiness.
 - The current coverage scorecard is intentionally small. Treat it as a regression harness, not efficacy proof.
 - Do not publish an app build that embeds an MDP Studio AI provider key. Desktop users should supply their own key unless a server-side paid AI service is added later.
 - Source is licensed under Apache-2.0. The package remains `private` to prevent accidental npm publishing.
@@ -122,15 +131,25 @@ python scripts/evaluate_corpus.py --manifest tests/corpus/manifest.json
 npm run dist
 ```
 
+Additional local checks used for 0.2.0:
+
+```powershell
+npm audit --audit-level=moderate
+uvx pip-audit==2.10.0 -r requirements-build.txt
+powershell -NoProfile -ExecutionPolicy Bypass -File .\collect_windows.ps1 -LookbackDays 0 -MaxRecentFiles 1 -OutputPath $env:TEMP\rmm-hunter-collector-smoke.json
+python .\rmm_hunter.py --kape-root <temporary-kape-output> --json-out <temporary-report.json> --summary-out <temporary-summary.txt>
+release\win-unpacked\resources\bin\rmm-hunter-cli.exe --input tests\corpus\anydesk_connection_trace.json --json-out <temporary-report.json> --summary-out <temporary-summary.txt>
+```
+
 Installer smoke test:
 
 ```powershell
-release\RMM-Hunter-Setup-0.1.6-x64.exe /S
+release\RMM-Hunter-Setup-0.2.0-x64.exe /S
 ```
 
 ## Next Release Steps
 
-1. Publish the generated `v0.1.6` draft as an unsigned prerelease with clear SmartScreen wording and verification assets.
+1. Publish the generated `v0.2.0` draft as an unsigned prerelease with clear SmartScreen wording and verification assets.
 2. Confirm GitHub MFA is enabled for the maintainer account.
 3. Apply to SignPath Foundation using the public repository, public release page, privacy policy, and code-signing policy.
 4. After SignPath approval, add the SignPath GitHub Actions signing step and required repository secret.

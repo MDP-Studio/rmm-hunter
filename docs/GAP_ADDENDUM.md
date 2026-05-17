@@ -1,6 +1,6 @@
 # RMM Hunter Gap Addendum
 
-Date: 2026-05-08
+Date: 2026-05-18
 
 This addendum captures the highest-leverage gaps to close before expanding RMM Hunter's detector breadth or platform scope.
 
@@ -15,12 +15,24 @@ This addendum captures the highest-leverage gaps to close before expanding RMM H
 
 ## Implementation Status
 
-| Gap | Status in 0.1.1 | Remaining work |
+| Gap | Status through 0.2.0 | Remaining work |
 | --- | --- | --- |
-| Release trust and provenance | Partially addressed with workflow-generated `SHA256SUMS.txt`, `rmm-hunter-release-manifest.json`, and `VERIFY_RELEASE.md`. | Complete SignPath or another trusted signing route, then test SmartScreen and install friction on 3 clean Windows hosts. |
-| Detection interoperability | Addressed for the first slice with `--mapped-out` and profile `rmm-hunter.detection-mapping.v1`. | Validate 20 representative findings in one SIEM or TI workflow before adding full Sigma, STIX, or MISP exporters. |
-| Coverage measurement | Addressed for the first slice with `scripts/evaluate_corpus.py`, `tests/corpus/manifest.json`, and `docs/COVERAGE_SCORECARD.md`. | Expand the seeded corpus and publish scorecard deltas in release notes. |
-| ATT&CK and D3FEND mapping | Addressed for the first slice with `docs/DETECTION_MAPPING.md` and matching mappings in the mapped export. | Review mappings with an external analyst and remove any label that is not grounded in actual evidence. |
+| Release trust and provenance | Partially addressed with workflow-generated `SHA256SUMS.txt`, `rmm-hunter-release-manifest.json`, `VERIFY_RELEASE.md`, and installer update flow. | Complete SignPath or another trusted signing route, then test SmartScreen and install friction on 3 clean Windows hosts. |
+| Detection interoperability | Addressed for the first slice with `--mapped-out`, profile `rmm-hunter.detection-mapping.v1`, evidence strength, confidence labels, and timeline export. | Validate 20 representative findings in one SIEM or TI workflow before adding full Sigma, STIX, or MISP exporters. |
+| Coverage measurement | Addressed for the first slice with `scripts/evaluate_corpus.py`, `tests/corpus/manifest.json`, `docs/COVERAGE_SCORECARD.md`, and an AnyDesk connection-trace corpus case. | Expand the seeded corpus and publish scorecard deltas in release notes. |
+| ATT&CK and D3FEND mapping | Addressed for current native and imported RMM rules with `docs/DETECTION_MAPPING.md` and matching mappings in the mapped export. | Review mappings with an external analyst and remove any label that is not grounded in actual evidence. |
+
+## 0.2.0 Addendum
+
+The next investigation-readiness slice is now implemented:
+
+- Native RMM vendor log collection for common Windows locations.
+- KAPE output import mode for RMM references in parsed artifact collections.
+- Evidence strength and confidence labels in findings and exports.
+- Timeline output for JSON, text, PDF, GUI, and AI-safe summaries.
+- RMM artifact source matrix and investigation cheat sheet.
+
+These changes improve operator confidence and follow-up investigation quality. They do not remove the remaining release-trust gap: public Windows builds still need a trusted code-signing path before broad distribution.
 
 ## Release Trust And Provenance
 

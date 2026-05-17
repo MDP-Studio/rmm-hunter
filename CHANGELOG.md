@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0 - 2026-05-18
+
+- Added native RMM vendor log collection for common AnyDesk, TeamViewer, ScreenConnect, RustDesk, Splashtop, Atera, MeshAgent, and DWAgent paths.
+- Added KAPE output import mode for RMM references from artifact collections, including CSV, TSV, text, log, and JSON-like output files.
+- Added evidence strength and confidence labels to findings, mapped exports, text summaries, PDF reports, and GUI evidence cards.
+- Added timestamped finding timelines to JSON, text, PDF, GUI, and AI-safe report summaries.
+- Added RMM artifact source and investigation cheat-sheet documentation for vendor logs, KAPE evidence, and safe non-remediating triage.
+- Added corpus and unit-test coverage for AnyDesk connection traces and KAPE-derived RMM evidence.
+
 ## 0.1.6 - 2026-05-13
 
 - Polished the dashboard action area so `Scan this device` stays visually primary and update checking is smaller.

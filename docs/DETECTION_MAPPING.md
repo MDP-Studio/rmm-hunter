@@ -31,6 +31,10 @@ rmm-hunter.detection-mapping.v1
 | `known_rmm_startup_folder` | Startup folders | Medium | T1219 Remote Access Software, T1547.001 Registry Run Keys / Startup Folder | D3-PM Platform Monitoring |
 | `unsigned_startup_folder_item` | Startup folders | Low | T1547.001 Registry Run Keys / Startup Folder | D3-PM Platform Monitoring |
 | `recent_remote_tool_file` | Recent files | Medium | T1219 Remote Access Software | D3-FA File Analysis |
+| `rmm_vendor_log` | RMM vendor logs | Medium | T1219 Remote Access Software | D3-FA File Analysis |
+| `rmm_connection_log` | RMM vendor connection logs | Medium | T1219 Remote Access Software | D3-FA File Analysis |
+| `kape_rmm_reference` | Imported KAPE output | Medium | T1219 Remote Access Software | D3-PM Platform Monitoring |
+| `kape_execution_reference` | Imported KAPE execution-style output | Medium | T1219 Remote Access Software, T1204.002 Malicious File | D3-PM Platform Monitoring |
 | `odd_unsigned_recent_executable` | Recent files | Medium | T1027 Obfuscated Files or Information | D3-FA File Analysis |
 | `encoded_powershell` | PowerShell events | High | T1059.001 PowerShell, T1027 Obfuscated Files or Information | D3-SEA Script Execution Analysis |
 | `powershell_download_cradle` | PowerShell events | Medium | T1059.001 PowerShell | D3-SEA Script Execution Analysis |
@@ -57,6 +61,7 @@ Each mapped finding includes:
 - `interoperability.sigma_tags`: Sigma-style ATT&CK tags, for example `attack.t1219`
 - `interoperability.stix_observable_hints`: STIX object hints, not a full STIX bundle
 - `interoperability.misp_attribute_hints`: MISP attribute-type hints, not a full MISP event
+- `timeline`: timestamped finding context from the source report when available
 
 ## Boundaries
 
