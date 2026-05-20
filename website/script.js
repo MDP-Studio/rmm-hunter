@@ -101,6 +101,71 @@
     });
   });
 
+  const updateLog = document.getElementById("updateLog");
+  const updateLogClose = document.getElementById("updateLogClose");
+  const updateLogDismiss = document.getElementById("updateLogDismiss");
+  const updateLogDismissLinks = Array.from(document.querySelectorAll("[data-update-log-dismiss]"));
+  let updateLogPreviousFocus = null;
+
+  const updateLogStorageKey = updateLog?.dataset.updateLogId
+    ? `rmm-hunter:update-log:${updateLog.dataset.updateLogId}`
+    : "";
+
+  const hasSeenUpdateLog = () => {
+    if (!updateLogStorageKey) return true;
+    try {
+      return window.localStorage.getItem(updateLogStorageKey) === "seen";
+    } catch (error) {
+      console.info("Update log storage unavailable.", error?.name || error);
+      return false;
+    }
+  };
+
+  const rememberUpdateLog = () => {
+    if (!updateLogStorageKey) return;
+    try {
+      window.localStorage.setItem(updateLogStorageKey, "seen");
+    } catch (error) {
+      console.info("Update log preference was not saved.", error?.name || error);
+    }
+  };
+
+  function handleUpdateLogKeydown(event) {
+    if (event.key === "Escape") {
+      closeUpdateLog();
+    }
+  }
+
+  const closeUpdateLog = () => {
+    if (!updateLog || updateLog.classList.contains("hidden")) return;
+    rememberUpdateLog();
+    updateLog.classList.add("hidden");
+    document.body.classList.remove("has-update-log");
+    document.removeEventListener("keydown", handleUpdateLogKeydown);
+    if (updateLogPreviousFocus && "focus" in updateLogPreviousFocus) {
+      updateLogPreviousFocus.focus();
+    }
+  };
+
+  const openUpdateLog = () => {
+    if (!updateLog || hasSeenUpdateLog()) return;
+    updateLogPreviousFocus = document.activeElement;
+    updateLog.classList.remove("hidden");
+    document.body.classList.add("has-update-log");
+    document.addEventListener("keydown", handleUpdateLogKeydown);
+    updateLogClose?.focus();
+  };
+
+  updateLogClose?.addEventListener("click", closeUpdateLog);
+  updateLogDismiss?.addEventListener("click", closeUpdateLog);
+  updateLogDismissLinks.forEach(link => link.addEventListener("click", rememberUpdateLog));
+  updateLog?.addEventListener("click", event => {
+    if (event.target === updateLog) {
+      closeUpdateLog();
+    }
+  });
+  window.setTimeout(openUpdateLog, prefersReduced ? 250 : 900);
+
   const canvas = document.getElementById("signalCanvas");
   if (!canvas || prefersReduced) return;
 
