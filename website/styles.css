@@ -556,8 +556,7 @@ h3 {
   border-radius: inherit;
   background: linear-gradient(90deg, var(--green), var(--amber));
   box-shadow: 0 0 18px rgba(246, 167, 42, 0.48);
-  transform-origin: left center;
-  animation: meter-fill 900ms ease-out both;
+  animation: meter-pulse 2.8s ease-in-out infinite;
 }
 
 .verdict-card small {
@@ -639,8 +638,7 @@ h3 {
   border-radius: inherit;
   background: linear-gradient(90deg, var(--blue), var(--green));
   box-shadow: 0 0 18px rgba(53, 231, 173, 0.4);
-  transform-origin: left center;
-  animation: meter-fill 900ms ease-out 160ms both;
+  animation: meter-pulse 2.8s ease-in-out 320ms infinite;
 }
 
 .mock-scan-card ul {
@@ -1239,12 +1237,14 @@ h3 {
   transition-delay: calc(var(--reveal-index, 0) * 60ms);
 }
 
-@keyframes meter-fill {
-  from {
-    transform: scaleX(0);
+@keyframes meter-pulse {
+  0%,
+  100% {
+    filter: brightness(1);
   }
-  to {
-    transform: scaleX(1);
+
+  50% {
+    filter: brightness(1.18);
   }
 }
 
