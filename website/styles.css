@@ -451,56 +451,168 @@ h3 {
 }
 
 .verdict-card {
-  min-height: 150px;
-  padding: 22px;
+  position: relative;
+  min-height: 158px;
+  padding: 16px;
+  overflow: hidden;
   background:
-    linear-gradient(135deg, rgba(246, 167, 42, 0.16), rgba(3, 7, 13, 0.7)),
+    radial-gradient(circle at 92% 16%, rgba(246, 167, 42, 0.22), transparent 38%),
+    linear-gradient(135deg, rgba(246, 167, 42, 0.18), rgba(3, 7, 13, 0.72) 54%),
     rgba(3, 7, 13, 0.58);
 }
 
-.verdict-card p {
+.verdict-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.06), transparent 42%);
+  opacity: 0.55;
+}
+
+.verdict-top {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.verdict-top p {
   color: var(--amber);
   font-size: 0.78rem;
   font-weight: 900;
   text-transform: uppercase;
 }
 
+.verdict-top span {
+  padding: 5px 9px;
+  border: 1px solid rgba(246, 167, 42, 0.32);
+  border-radius: 999px;
+  color: #ffe2ae;
+  background: rgba(246, 167, 42, 0.12);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
 .verdict-card strong {
+  position: relative;
+  z-index: 1;
   display: block;
-  margin-top: 10px;
+  margin-top: 12px;
   color: #ffd99a;
-  font-size: 2rem;
-  line-height: 1;
+  font-size: 1.56rem;
+  line-height: 1.03;
 }
 
 .verdict-card span {
+  position: relative;
+  z-index: 1;
   display: block;
-  margin-top: 12px;
+  margin-top: 9px;
   color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.verdict-meter {
+  position: relative;
+  z-index: 1;
+  height: 7px;
+  margin-top: 12px;
+  border-radius: 999px;
+  background: rgba(151, 174, 210, 0.14);
+  overflow: hidden;
+}
+
+.verdict-meter i {
+  display: block;
+  width: 58%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--green), var(--amber));
+  box-shadow: 0 0 18px rgba(246, 167, 42, 0.48);
+}
+
+.verdict-card small {
+  position: relative;
+  z-index: 1;
+  display: block;
+  margin-top: 8px;
+  color: var(--soft);
+  font-size: 0.72rem;
+  font-weight: 760;
 }
 
 .metric-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .metric-row > div {
-  padding: 16px;
+  position: relative;
+  min-height: 88px;
+  padding: 13px 11px;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(17, 26, 42, 0.82), rgba(3, 7, 13, 0.72)),
+    rgba(3, 7, 13, 0.58);
+}
+
+.metric-row > div::before {
+  content: "";
+  position: absolute;
+  left: 11px;
+  right: 11px;
+  bottom: 10px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(99, 179, 255, 0.8), rgba(53, 231, 173, 0.35), transparent);
+}
+
+.metric-row > div::after {
+  content: "";
+  position: absolute;
+  right: -28px;
+  top: -36px;
+  width: 86px;
+  height: 86px;
+  border-radius: 50%;
+  background: rgba(45, 140, 255, 0.08);
 }
 
 .metric-row span {
+  position: relative;
+  z-index: 1;
   display: block;
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 900;
   line-height: 1;
 }
 
 .metric-row small {
+  position: relative;
+  z-index: 1;
   display: block;
-  margin-top: 8px;
+  margin-top: 7px;
+  color: #c7d5e9;
+  font-size: 0.76rem;
+  font-weight: 820;
+  line-height: 1.2;
+}
+
+.metric-row i {
+  position: relative;
+  z-index: 1;
+  display: block;
+  margin-top: 4px;
   color: var(--soft);
-  font-weight: 760;
+  font-size: 0.67rem;
+  font-style: normal;
+  font-weight: 780;
 }
 
 .finding-list {

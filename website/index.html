@@ -89,14 +89,19 @@
               </aside>
               <section class="mock-dashboard">
                 <div class="verdict-card">
-                  <p>Current verdict</p>
+                  <div class="verdict-top">
+                    <p>Current verdict</p>
+                    <span>Review</span>
+                  </div>
                   <strong>Needs review</strong>
-                  <span>5 findings need context</span>
+                  <span>5 findings need human context.</span>
+                  <div class="verdict-meter" aria-hidden="true"><i></i></div>
+                  <small>Local rules. No automatic cleanup.</small>
                 </div>
                 <div class="metric-row">
-                  <div><span data-count="5">0</span><small>Findings</small></div>
-                  <div><span data-count="259">0</span><small>Artifacts</small></div>
-                  <div><span data-count="8">0</span><small>High signals</small></div>
+                  <div><span data-count="5">0</span><small>Findings</small><i>1 high</i></div>
+                  <div><span data-count="259">0</span><small>Artifacts</small><i>Matched</i></div>
+                  <div><span data-count="8">0</span><small>High signals</small><i>Priority</i></div>
                 </div>
                 <div class="finding-list">
                   <article><b>RustDesk installer in Downloads</b><em>Medium</em></article>
