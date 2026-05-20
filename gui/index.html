@@ -10,12 +10,15 @@
   <body>
     <main class="app-shell">
       <aside class="sidebar" aria-label="Scan status">
-        <div class="brand">
-          <img class="brand-mark" src="./assets/logo.svg" alt="RMM Hunter logo">
-          <div>
-            <h1>RMM Hunter</h1>
-            <p>Windows endpoint scanner</p>
+        <div class="sidebar-header">
+          <div class="brand">
+            <img class="brand-mark" src="./assets/logo.svg" alt="RMM Hunter logo">
+            <div>
+              <h1>RMM Hunter</h1>
+              <p>Windows endpoint scanner</p>
+            </div>
           </div>
+          <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Collapse sidebar" aria-expanded="true" title="Collapse sidebar">&lt;</button>
         </div>
 
         <div class="verdict-panel verdict-idle" id="verdictPanel">
@@ -180,25 +183,25 @@
           <div class="trust-health-list" id="trustHealthList"></div>
         </section>
 
-        <section class="timeline-panel hidden" id="timelinePanel">
-          <div class="section-heading">
-            <h3>Timeline</h3>
-            <span id="timelineHint">Finding timestamps</span>
-          </div>
-          <ol class="timeline-list" id="timelineList"></ol>
-        </section>
+        <section class="review-grid" id="reviewGrid">
+          <section class="evidence-section">
+            <div class="section-heading">
+              <h3>Evidence</h3>
+              <span id="evidenceHint">No findings yet</span>
+            </div>
+            <div class="evidence-list" id="evidenceList"></div>
+          </section>
 
-        <section class="report-paths hidden" id="reportPaths">
-          <span>Report files</span>
-          <button id="showJsonPath" type="button"></button>
-        </section>
-
-        <section class="evidence-section">
-          <div class="section-heading">
-            <h3>Evidence</h3>
-            <span id="evidenceHint">No findings yet</span>
-          </div>
-          <div class="evidence-list" id="evidenceList"></div>
+          <section class="timeline-panel hidden" id="timelinePanel">
+            <div class="section-heading">
+              <h3>Timeline</h3>
+              <div class="section-heading-actions">
+                <span id="timelineHint">Finding timestamps</span>
+                <button class="link-button timeline-more hidden" id="timelineMore" type="button">Show more</button>
+              </div>
+            </div>
+            <ol class="timeline-list" id="timelineList"></ol>
+          </section>
         </section>
 
         <section class="info-panel" id="feedbackSection">

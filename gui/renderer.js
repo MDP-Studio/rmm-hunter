@@ -24,6 +24,8 @@ const trustHealthList = document.getElementById("trustHealthList");
 const timelinePanel = document.getElementById("timelinePanel");
 const timelineHint = document.getElementById("timelineHint");
 const timelineList = document.getElementById("timelineList");
+const timelineMore = document.getElementById("timelineMore");
+const reviewGrid = document.getElementById("reviewGrid");
 const aiPanel = document.getElementById("aiPanel");
 const aiStatus = document.getElementById("aiStatus");
 const aiSummary = document.getElementById("aiSummary");
@@ -47,6 +49,7 @@ const exportJson = document.getElementById("exportJson");
 const exportPdf = document.getElementById("exportPdf");
 const reportPaths = document.getElementById("reportPaths");
 const showJsonPath = document.getElementById("showJsonPath");
+const sidebarToggle = document.getElementById("sidebarToggle");
 const checkUpdatesButton = document.getElementById("checkUpdates");
 const updatePanel = document.getElementById("updatePanel");
 const updateStatus = document.getElementById("updateStatus");
@@ -76,6 +79,10 @@ let currentAiSettings = null;
 let currentUpdate = null;
 let scanProgressPercent = 0;
 let desktopUpdateLogPreviousFocus = null;
+let currentTimelineEntries = [];
+let timelineVisibleCount = 0;
+const timelineInitialCount = 5;
+const timelineIncrement = 10;
 const desktopBridge = window.rmmHunter || {
   startScan: async () => {
     throw new Error("Desktop scanner bridge is unavailable. Start the app with npm.cmd start.");
@@ -131,9 +138,13 @@ refreshAiSettings().catch((error) => {
   aiSettingsStatus.textContent = error?.message || "AI settings could not be loaded.";
 });
 
-checkForUpdates({ silent: true }).catch(() => {});
+checkForUpdates({ silent: true }).catch((error) => {
+  console.info("Silent update check failed.", error?.message || error);
+});
 
 window.setTimeout(openDesktopUpdateLog, 700);
+
+initializeSidebarState();
 
 desktopBridge.onProgress((payload) => {
   progressPanel.classList.remove("hidden");
@@ -160,6 +171,7 @@ scanButton.addEventListener("click", async () => {
     currentPaths = result.paths;
     renderReport(currentReport, currentPaths);
   } catch (error) {
+    console.error("Scan failed.", error);
     renderError(error);
   } finally {
     setScanning(false);
@@ -206,6 +218,15 @@ document.querySelectorAll("[data-scroll-target]").forEach((button) => {
   });
 });
 
+sidebarToggle?.addEventListener("click", () => {
+  setSidebarCollapsed(!document.body.classList.contains("sidebar-collapsed"));
+});
+
+timelineMore?.addEventListener("click", () => {
+  timelineVisibleCount = Math.min(currentTimelineEntries.length, timelineVisibleCount + timelineIncrement);
+  renderTimelineRows();
+});
+
 checkUpdatesButton.addEventListener("click", () => {
   checkForUpdates({ silent: false });
 });
@@ -225,6 +246,7 @@ openUpdate.addEventListener("click", async () => {
       await desktopBridge.openUpdate(currentUpdate.releaseUrl);
     }
   } catch (error) {
+    console.info("Update action failed.", error?.message || error);
     renderUpdatePanel({
       state: "error",
       title: "Update action failed",
@@ -294,6 +316,7 @@ aiSaveSettings.addEventListener("click", async () => {
       showAiSetupNotice(settings.setupReason || "Add your own provider API key to generate AI recommendations.");
     }
   } catch (error) {
+    console.info("AI settings save failed.", error?.message || error);
     aiSettingsStatus.textContent = error?.message || "AI settings could not be saved.";
   } finally {
     aiSaveSettings.disabled = false;
@@ -308,6 +331,7 @@ aiClearKey.addEventListener("click", async () => {
     aiSettings.classList.remove("hidden");
     aiSettingsStatus.textContent = "Saved API key cleared.";
   } catch (error) {
+    console.info("AI key clear failed.", error?.message || error);
     aiSettingsStatus.textContent = error?.message || "Saved API key could not be cleared.";
   } finally {
     aiClearKey.disabled = false;
@@ -347,6 +371,7 @@ async function requestAiExplanation() {
       hideAiSetupNotice();
     }
   } catch (error) {
+    console.info("AI recommendation request failed.", error?.message || error);
     hideAiSetupNotice();
     renderAiExplanation({
       available: false,
@@ -361,7 +386,7 @@ async function requestAiExplanation() {
   }
 }
 
-showJsonPath.addEventListener("click", () => {
+showJsonPath?.addEventListener("click", () => {
   if (currentPaths?.json) {
     desktopBridge.showPath(currentPaths.json);
   }
@@ -385,6 +410,7 @@ async function checkForUpdates({ silent = false } = {}) {
       renderUpdateFromState(update);
     }
   } catch (error) {
+    console.info("Update check failed.", error?.message || error);
     if (!silent) {
       renderUpdatePanel({
         state: "error",
@@ -588,6 +614,34 @@ function updateActionText(actionMode) {
   return "Open release page";
 }
 
+function initializeSidebarState() {
+  let shouldCollapse = false;
+  try {
+    shouldCollapse = window.localStorage.getItem("rmm-hunter:sidebar-collapsed") === "true";
+  } catch (error) {
+    console.info("Sidebar preference unavailable.", error?.name || error);
+  }
+  setSidebarCollapsed(shouldCollapse, { remember: false });
+}
+
+function setSidebarCollapsed(shouldCollapse, { remember = true } = {}) {
+  document.body.classList.toggle("sidebar-collapsed", shouldCollapse);
+  if (sidebarToggle) {
+    sidebarToggle.setAttribute("aria-expanded", String(!shouldCollapse));
+    sidebarToggle.setAttribute("aria-label", shouldCollapse ? "Expand sidebar" : "Collapse sidebar");
+    sidebarToggle.setAttribute("title", shouldCollapse ? "Expand sidebar" : "Collapse sidebar");
+    sidebarToggle.textContent = shouldCollapse ? ">" : "<";
+  }
+  if (!remember) {
+    return;
+  }
+  try {
+    window.localStorage.setItem("rmm-hunter:sidebar-collapsed", String(shouldCollapse));
+  } catch (error) {
+    console.info("Sidebar preference was not saved.", error?.name || error);
+  }
+}
+
 function setScanning(isScanning) {
   scanButton.disabled = isScanning;
   scanButton.textContent = isScanning ? "Scanning..." : "Scan this device";
@@ -623,6 +677,10 @@ function resetResults() {
   trustHealthList.replaceChildren();
   timelinePanel.classList.add("hidden");
   timelineList.replaceChildren();
+  timelineMore?.classList.add("hidden");
+  reviewGrid?.classList.remove("timeline-visible");
+  currentTimelineEntries = [];
+  timelineVisibleCount = 0;
   aiPanel.classList.add("hidden");
   aiSettings.classList.add("hidden");
   hideAiSetupNotice();
@@ -631,7 +689,7 @@ function resetResults() {
   aiNextSteps.replaceChildren();
   aiFindingList.replaceChildren();
   aiPrivacyNote.textContent = "";
-  reportPaths.classList.add("hidden");
+  reportPaths?.classList.add("hidden");
 }
 
 function renderReport(report, paths) {
@@ -667,9 +725,8 @@ function renderReport(report, paths) {
   exportPdf.disabled = false;
   aiExplain.disabled = false;
   hideAiSetupNotice();
-
-  if (paths?.json) {
-    reportPaths.classList.remove("hidden");
+  reportPaths?.classList.add("hidden");
+  if (showJsonPath && paths?.json) {
     showJsonPath.textContent = paths.json;
   }
 }
@@ -691,17 +748,35 @@ function renderRecommendations(recommendations) {
 
 function renderTimeline(entries) {
   timelineList.replaceChildren();
-  if (!Array.isArray(entries) || !entries.length) {
+  currentTimelineEntries = Array.isArray(entries) ? entries : [];
+  timelineVisibleCount = Math.min(timelineInitialCount, currentTimelineEntries.length);
+  if (!currentTimelineEntries.length) {
     timelinePanel.classList.add("hidden");
+    timelineMore?.classList.add("hidden");
+    reviewGrid?.classList.remove("timeline-visible");
     return;
   }
 
-  const visibleEntries = entries.slice(0, 40);
   timelinePanel.classList.remove("hidden");
-  timelineHint.textContent = entries.length > visibleEntries.length
-    ? `Showing first ${visibleEntries.length} of ${entries.length} timestamped artifacts`
-    : `${entries.length} timestamped artifact${entries.length === 1 ? "" : "s"}`;
+  reviewGrid?.classList.add("timeline-visible");
+  renderTimelineRows();
+}
+
+function renderTimelineRows() {
+  const visibleEntries = currentTimelineEntries.slice(0, timelineVisibleCount);
+  timelineHint.textContent = currentTimelineEntries.length > visibleEntries.length
+    ? `Showing ${visibleEntries.length} of ${currentTimelineEntries.length} timestamped artifacts`
+    : `${currentTimelineEntries.length} timestamped artifact${currentTimelineEntries.length === 1 ? "" : "s"}`;
   timelineList.replaceChildren(...visibleEntries.map(renderTimelineEntry));
+  if (timelineMore) {
+    const remaining = currentTimelineEntries.length - visibleEntries.length;
+    timelineMore.classList.toggle("hidden", remaining <= 0);
+    timelineMore.textContent = remaining > timelineIncrement
+      ? `Show ${timelineIncrement} more`
+      : remaining > 0
+        ? `Show ${remaining} more`
+        : "Show more";
+  }
 }
 
 function renderTimelineEntry(entry) {
@@ -1094,6 +1169,10 @@ function renderError(error) {
   exportJson.disabled = true;
   exportPdf.disabled = true;
   aiExplain.disabled = true;
+  timelinePanel.classList.add("hidden");
+  timelineList.replaceChildren();
+  timelineMore?.classList.add("hidden");
+  reviewGrid?.classList.remove("timeline-visible");
 
   const card = document.createElement("article");
   card.className = "evidence-card high";

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Changed the GUI review area so evidence cards and the timeline appear side by side on wide screens.
+- Limited the timeline to the first few timestamped artifacts with a `Show more` control instead of rendering long event lists at once.
+- Added a compact collapsible sidebar and removed the visible report-file path strip from the dashboard.
+
 ## 0.2.0 - 2026-05-18
 
 - Added native RMM vendor log collection for common AnyDesk, TeamViewer, ScreenConnect, RustDesk, Splashtop, Atera, MeshAgent, and DWAgent paths.
