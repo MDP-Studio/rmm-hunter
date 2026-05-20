@@ -49,6 +49,12 @@ const exportJson = document.getElementById("exportJson");
 const exportPdf = document.getElementById("exportPdf");
 const reportPaths = document.getElementById("reportPaths");
 const showJsonPath = document.getElementById("showJsonPath");
+const sourceSummary = document.getElementById("sourceSummary");
+const liveSourceStatus = document.getElementById("liveSourceStatus");
+const vendorLogStatus = document.getElementById("vendorLogStatus");
+const kapeStatus = document.getElementById("kapeStatus");
+const selectKapeRoot = document.getElementById("selectKapeRoot");
+const clearKapeRoot = document.getElementById("clearKapeRoot");
 const sidebarToggle = document.getElementById("sidebarToggle");
 const checkUpdatesButton = document.getElementById("checkUpdates");
 const updatePanel = document.getElementById("updatePanel");
@@ -81,12 +87,14 @@ let scanProgressPercent = 0;
 let desktopUpdateLogPreviousFocus = null;
 let currentTimelineEntries = [];
 let timelineVisibleCount = 0;
+let selectedKapeRoot = "";
 const timelineInitialCount = 5;
 const timelineIncrement = 10;
 const desktopBridge = window.rmmHunter || {
   startScan: async () => {
     throw new Error("Desktop scanner bridge is unavailable. Start the app with npm.cmd start.");
   },
+  selectKapeRoot: async () => null,
   onProgress: () => () => {},
   onUpdateStatus: () => () => {},
   exportJson: async () => null,
@@ -145,6 +153,7 @@ checkForUpdates({ silent: true }).catch((error) => {
 window.setTimeout(openDesktopUpdateLog, 700);
 
 initializeSidebarState();
+renderSourceStatus(null, null, { phase: "ready" });
 
 desktopBridge.onProgress((payload) => {
   progressPanel.classList.remove("hidden");
@@ -166,7 +175,7 @@ scanButton.addEventListener("click", async () => {
   resetResults();
 
   try {
-    const result = await desktopBridge.startScan();
+    const result = await desktopBridge.startScan({ kapeRoot: selectedKapeRoot || null });
     currentReport = result.report;
     currentPaths = result.paths;
     renderReport(currentReport, currentPaths);
@@ -199,6 +208,27 @@ exportPdf.addEventListener("click", async () => {
 });
 
 aiExplain.addEventListener("click", requestAiExplanation);
+
+selectKapeRoot?.addEventListener("click", async () => {
+  try {
+    const selection = await desktopBridge.selectKapeRoot();
+    if (!selection?.path) {
+      return;
+    }
+    selectedKapeRoot = selection.path;
+    renderSourceStatus(currentReport, currentPaths, { phase: "ready" });
+    appendProgress(`KAPE folder selected: ${selectedKapeRoot}`);
+  } catch (error) {
+    console.error("KAPE folder selection failed.", error);
+    appendProgress(error?.message || "KAPE folder could not be selected.");
+  }
+});
+
+clearKapeRoot?.addEventListener("click", () => {
+  selectedKapeRoot = "";
+  renderSourceStatus(currentReport, currentPaths, { phase: "ready" });
+  appendProgress("KAPE import cleared for the next scan.");
+});
 
 for (const [buttonId, url] of Object.entries(externalLinks)) {
   const button = document.getElementById(buttonId);
@@ -527,6 +557,9 @@ function progressForStage(stage) {
   if (normalizedStage.includes("collecting")) {
     return 42;
   }
+  if (normalizedStage.includes("importing kape")) {
+    return 74;
+  }
   if (normalizedStage.includes("scanner output")) {
     return 62;
   }
@@ -690,6 +723,7 @@ function resetResults() {
   aiFindingList.replaceChildren();
   aiPrivacyNote.textContent = "";
   reportPaths?.classList.add("hidden");
+  renderSourceStatus(null, null, { phase: "scanning" });
 }
 
 function renderReport(report, paths) {
@@ -715,6 +749,7 @@ function renderReport(report, paths) {
   renderRecommendations(report.recommendations || []);
   renderTrustHealth(report.system_trust_health || []);
   renderTimeline(report.timeline || []);
+  renderSourceStatus(report, paths, { phase: "complete" });
 
   evidenceList.replaceChildren(...findings.map(renderFindingCard));
   if (!findings.length) {
@@ -729,6 +764,97 @@ function renderReport(report, paths) {
   if (showJsonPath && paths?.json) {
     showJsonPath.textContent = paths.json;
   }
+}
+
+function renderSourceStatus(report, paths, { phase = "ready" } = {}) {
+  const counts = sourceCounts(report);
+  const kapeRoot = phase === "complete" ? paths?.kapeRoot || selectedKapeRoot : selectedKapeRoot;
+  const kapeSelected = Boolean(kapeRoot);
+
+  if (phase === "scanning") {
+    setSourceText(liveSourceStatus, "Live scan running", "active");
+    setSourceText(vendorLogStatus, "Vendor logs scanning", "active");
+    setSourceText(kapeStatus, kapeSelected ? "KAPE queued" : "KAPE not selected", kapeSelected ? "active" : "");
+    if (sourceSummary) {
+      sourceSummary.textContent = kapeSelected
+        ? "The desktop will collect live Windows evidence, then merge the selected KAPE output into one report."
+        : "The desktop is collecting live Windows evidence and checking known RMM vendor log locations.";
+    }
+    clearKapeRoot?.classList.toggle("hidden", !kapeSelected);
+    return;
+  }
+
+  if (phase === "complete" && report) {
+    setSourceText(liveSourceStatus, `${formatCount(counts.liveTotal)} live artifacts`, "complete");
+    setSourceText(vendorLogStatus, `${formatCount(counts.vendorLogs)} vendor logs`, counts.vendorLogs ? "complete" : "");
+    setSourceText(
+      kapeStatus,
+      kapeSelected
+        ? `${formatCount(counts.kapeHits)} KAPE hits`
+        : "KAPE not selected",
+      kapeSelected && counts.kapeHits ? "complete" : ""
+    );
+    if (sourceSummary) {
+      sourceSummary.textContent = kapeSelected
+        ? `KAPE source: ${shortPath(kapeRoot)}. Imported output was added to the same deterministic report.`
+        : "This report came from live Windows collection and known RMM vendor log locations.";
+    }
+    clearKapeRoot?.classList.toggle("hidden", !kapeSelected);
+    return;
+  }
+
+  setSourceText(liveSourceStatus, "Live scan ready", "");
+  setSourceText(vendorLogStatus, "Vendor logs included", "");
+  setSourceText(kapeStatus, kapeSelected ? "KAPE selected" : "KAPE optional", kapeSelected ? "active" : "");
+  if (sourceSummary) {
+    sourceSummary.textContent = kapeSelected
+      ? `Next scan will include KAPE output from ${shortPath(kapeRoot)}. No source files are changed.`
+      : "Live Windows collection, RMM vendor logs, and optional KAPE output use the same report model as the CLI.";
+  }
+  clearKapeRoot?.classList.toggle("hidden", !kapeSelected);
+}
+
+function setSourceText(element, text, state) {
+  if (!element) {
+    return;
+  }
+  element.textContent = text;
+  element.classList.toggle("active", state === "active");
+  element.classList.toggle("complete", state === "complete");
+}
+
+function sourceCounts(report) {
+  const artifactCounts = report?.artifact_counts && typeof report.artifact_counts === "object"
+    ? report.artifact_counts
+    : {};
+  let liveTotal = 0;
+  for (const [key, value] of Object.entries(artifactCounts)) {
+    if (!key.startsWith("kape_")) {
+      liveTotal += numericCount(value);
+    }
+  }
+  return {
+    liveTotal,
+    vendorLogs: numericCount(artifactCounts.rmm_vendor_logs),
+    kapeHits: numericCount(artifactCounts.kape_rmm_artifacts)
+  };
+}
+
+function numericCount(value) {
+  const count = Number(value);
+  return Number.isFinite(count) ? count : 0;
+}
+
+function formatCount(value) {
+  return Number(value || 0).toLocaleString();
+}
+
+function shortPath(value) {
+  const text = String(value || "");
+  if (text.length <= 58) {
+    return text;
+  }
+  return `...${text.slice(-55)}`;
 }
 
 function renderRecommendations(recommendations) {
@@ -1173,6 +1299,7 @@ function renderError(error) {
   timelineList.replaceChildren();
   timelineMore?.classList.add("hidden");
   reviewGrid?.classList.remove("timeline-visible");
+  renderSourceStatus(null, null, { phase: "ready" });
 
   const card = document.createElement("article");
   card.className = "evidence-card high";

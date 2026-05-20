@@ -59,6 +59,22 @@
           </div>
         </header>
 
+        <section class="source-panel" id="sourcePanel" aria-label="Evidence sources">
+          <div class="source-copy">
+            <span class="eyebrow">Evidence sources</span>
+            <p id="sourceSummary">Live Windows collection, RMM vendor logs, and optional KAPE output use the same report model as the CLI.</p>
+          </div>
+          <div class="source-chips" aria-label="Selected evidence sources">
+            <span id="liveSourceStatus">Live scan ready</span>
+            <span id="vendorLogStatus">Vendor logs included</span>
+            <span id="kapeStatus">KAPE optional</span>
+          </div>
+          <div class="source-actions">
+            <button class="secondary-button compact-button" id="selectKapeRoot" type="button">Import KAPE folder</button>
+            <button class="link-button hidden" id="clearKapeRoot" type="button">Clear</button>
+          </div>
+        </section>
+
         <section class="update-panel hidden" id="updatePanel" aria-live="polite">
           <div class="update-copy">
             <span class="eyebrow" id="updateStatus">Updates</span>

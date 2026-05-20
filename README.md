@@ -102,6 +102,7 @@ The GUI provides:
 - Extracted context for PowerShell URLs/domains, Defender threat actions, affected resources, and Defender setting changes
 - System Trust Health cards for Defender state, security intelligence age, broad exclusions, code-signing validation, and trusted-root-store review
 - Timeline panel for timestamped artifacts across findings
+- Optional KAPE folder import that merges parsed KAPE output with the same live scan report
 - Deterministic recommended next steps
 - GitHub Releases update check with installer auto-update for the installed Windows build
 - Once-per-update desktop update log for major changes

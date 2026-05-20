@@ -237,14 +237,20 @@ function configureAutoUpdater() {
   });
 }
 
-ipcMain.handle("scan:start", async () => {
+ipcMain.handle("scan:start", async (_event, options = {}) => {
   fs.mkdirSync(REPORTS_DIR, { recursive: true });
   const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
   const artifactsPath = path.join(REPORTS_DIR, `rmm_hunter_artifacts_${stamp}.json`);
   const reportPath = path.join(REPORTS_DIR, `rmm_hunter_report_${stamp}.json`);
   const summaryPath = path.join(REPORTS_DIR, `rmm_hunter_summary_${stamp}.txt`);
+  const kapeRoot = normalizeKapeRoot(options?.kapeRoot);
 
-  sendProgress("Preparing scanner", "Creating report paths and starting the local collector.");
+  sendProgress(
+    "Preparing scanner",
+    kapeRoot
+      ? "Creating report paths. KAPE output will be merged after live collection."
+      : "Creating report paths and starting the local collector."
+  );
 
   const args = [
     "--artifacts-out",
@@ -255,7 +261,39 @@ ipcMain.handle("scan:start", async () => {
     summaryPath
   ];
 
-  await runScanner(args);
+  if (kapeRoot) {
+    const liveReportPath = path.join(REPORTS_DIR, `rmm_hunter_live_${stamp}.json`);
+    const liveSummaryPath = path.join(REPORTS_DIR, `rmm_hunter_live_${stamp}.txt`);
+    await runScanner([
+      "--artifacts-out",
+      artifactsPath,
+      "--json-out",
+      liveReportPath,
+      "--summary-out",
+      liveSummaryPath
+    ], {
+      stage: "Collecting Windows evidence",
+      detail: "Checking installed apps, services, tasks, startup items, event logs, and vendor logs."
+    });
+    sendProgress("Importing KAPE output", "Merging selected KAPE output into the desktop report.");
+    await runScanner([
+      "--input",
+      artifactsPath,
+      "--kape-root",
+      kapeRoot,
+      "--json-out",
+      reportPath,
+      "--summary-out",
+      summaryPath
+    ], {
+      stage: "Importing KAPE output",
+      detail: "Reading selected KAPE output and combining it with live artifacts."
+    });
+    removeTemporaryReportFile(liveReportPath);
+    removeTemporaryReportFile(liveSummaryPath);
+  } else {
+    await runScanner(args);
+  }
 
   sendProgress("Loading results", "Parsing the JSON report and preparing the dashboard.");
 
@@ -265,9 +303,24 @@ ipcMain.handle("scan:start", async () => {
     paths: {
       artifacts: artifactsPath,
       json: reportPath,
-      summary: summaryPath
+      summary: summaryPath,
+      kapeRoot
     }
   };
+});
+
+ipcMain.handle("kape:selectRoot", async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+    title: "Select KAPE output folder",
+    buttonLabel: "Use KAPE folder",
+    properties: ["openDirectory"]
+  });
+
+  if (canceled || !filePaths?.[0]) {
+    return null;
+  }
+
+  return { path: normalizeKapeRoot(filePaths[0]) };
 });
 
 ipcMain.handle("report:exportJson", async (_event, report) => {
@@ -378,10 +431,13 @@ ipcMain.handle("updates:install", async () => {
   return publicUpdaterState();
 });
 
-function runScanner(args) {
+function runScanner(args, progress = {}) {
   return new Promise((resolve, reject) => {
     const scanner = resolveScannerProcess(args);
-    sendProgress("Collecting Windows evidence", "Checking installed apps, services, tasks, startup items, and event logs.");
+    sendProgress(
+      progress.stage || "Collecting Windows evidence",
+      progress.detail || "Checking installed apps, services, tasks, startup items, and event logs."
+    );
 
     const child = childProcess.spawn(scanner.command, scanner.args, {
       cwd: scanner.cwd,
@@ -417,6 +473,37 @@ function runScanner(args) {
       reject(new Error(`Scanner failed with exit code ${code}.\n${stderr || stdout}`));
     });
   });
+}
+
+function normalizeKapeRoot(value) {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+  if (typeof value !== "string") {
+    throw new Error("KAPE folder path must be a string.");
+  }
+  const trimmedPath = value.trim();
+  if (!trimmedPath) {
+    return null;
+  }
+  const resolvedPath = path.resolve(trimmedPath);
+  if (!fs.existsSync(resolvedPath)) {
+    throw new Error(`KAPE folder does not exist: ${resolvedPath}`);
+  }
+  if (!fs.statSync(resolvedPath).isDirectory()) {
+    throw new Error(`KAPE path is not a folder: ${resolvedPath}`);
+  }
+  return resolvedPath;
+}
+
+function removeTemporaryReportFile(filePath) {
+  try {
+    if (filePath && fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  } catch (error) {
+    console.warn(`Could not remove temporary report file ${filePath}.`, error);
+  }
 }
 
 function resolveScannerProcess(args) {
@@ -458,6 +545,7 @@ async function checkForUpdates() {
   try {
     await autoUpdater.checkForUpdates();
   } catch (error) {
+    console.warn("Automatic update check failed.", error);
     setUpdaterState({
       status: "error",
       message: updateErrorMessage(error)
@@ -480,6 +568,7 @@ async function downloadAvailableUpdate() {
   try {
     await autoUpdater.downloadUpdate();
   } catch (error) {
+    console.warn("Automatic update download failed.", error);
     setUpdaterState({
       status: "error",
       message: updateErrorMessage(error)
@@ -595,6 +684,7 @@ function fetchGithubReleases() {
             const parsed = JSON.parse(data);
             resolve(Array.isArray(parsed) ? parsed : []);
           } catch (error) {
+            console.warn("GitHub update response parse failed.", error);
             reject(new Error(`GitHub update response could not be parsed. ${error.message}`));
           }
         });
@@ -683,7 +773,8 @@ function safeReleaseUrl(value) {
     ) {
       return url;
     }
-  } catch (_error) {
+  } catch (error) {
+    console.info("Rejected release URL.", error?.message || error);
     return null;
   }
   return null;
@@ -712,7 +803,8 @@ function safeProjectExternalUrl(value) {
     ) {
       return url;
     }
-  } catch (_error) {
+  } catch (error) {
+    console.info("Rejected external URL.", error?.message || error);
     return null;
   }
   return null;
@@ -829,6 +921,7 @@ function resolveAiConfig({ includeSecret }) {
   try {
     config.url = normalizeAiEndpoint(config.endpoint);
   } catch (error) {
+    console.info("AI endpoint setup needs attention.", error?.message || error);
     config.setupRequired = true;
     config.setupReason = error.message;
   }
@@ -1516,6 +1609,7 @@ function sendAiRequest({ config, body }) {
           try {
             resolve(JSON.parse(data));
           } catch (error) {
+            console.warn("AI explanation response parse failed.", error);
             reject(new Error(`AI explanation response could not be parsed. ${error.message}`));
           }
         });
@@ -1554,7 +1648,8 @@ function parseAiJson(text) {
 
   try {
     return JSON.parse(cleaned);
-  } catch (_error) {
+  } catch (error) {
+    console.info("AI JSON response needed fallback parsing.", error?.message || error);
     const start = cleaned.indexOf("{");
     const end = cleaned.lastIndexOf("}");
     if (start >= 0 && end > start) {
