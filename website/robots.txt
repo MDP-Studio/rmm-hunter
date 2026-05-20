@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://rmmhunter.mdpstudio.com.au/sitemap.xml

@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>RMM Hunter - Windows DFIR Scanner</title>
+    <meta name="description" content="RMM Hunter is a Windows-first DFIR triage scanner for suspicious remote access tools, living-off-the-land traces, and endpoint trust signals.">
+    <link rel="canonical" href="https://rmmhunter.mdpstudio.com.au/">
+    <meta property="og:title" content="RMM Hunter">
+    <meta property="og:description" content="Windows DFIR scanner for suspicious remote access tools and living-off-the-land traces.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://rmmhunter.mdpstudio.com.au/">
+    <meta name="theme-color" content="#07101d">
+    <link rel="icon" href="assets/rmm-hunter-mark.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css">
+    <script src="script.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <div class="scroll-progress" aria-hidden="true"></div>
+    <canvas class="signal-canvas" id="signalCanvas" aria-hidden="true"></canvas>
+    <div class="cursor-light" aria-hidden="true"></div>
+
+    <header class="site-header" data-reveal>
+      <a class="brand" href="#top" aria-label="RMM Hunter home">
+        <img src="assets/rmm-hunter-mark.svg" alt="" width="36" height="36">
+        <span>RMM Hunter</span>
+      </a>
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="#evidence">Evidence</a>
+        <a href="#workflow">Workflow</a>
+        <a href="#trust">Trust</a>
+        <a href="#download">Download</a>
+      </nav>
+      <a class="nav-cta" href="https://github.com/MDP-Studio/rmm-hunter/releases/tag/v0.2.0">Download</a>
+    </header>
+
+    <main id="main">
+      <section class="hero section-shell" id="top">
+        <div class="hero-copy" data-reveal>
+          <h1><span>RMM</span><span>Hunter</span></h1>
+          <p class="hero-lede">Windows DFIR scanner for suspicious remote access tools, living-off-the-land traces, and endpoint trust signals.</p>
+          <div class="hero-actions" aria-label="Primary actions">
+            <a class="button button-primary" href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.2.0/RMM-Hunter-Setup-0.2.0-x64.exe">
+              <span class="button-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M5 4.75 10.5 4v7.55H5V4.75Zm7-1 7-1v8.8h-7V3.75ZM5 12.95h5.5V20L5 19.2v-6.25Zm7 0h7V21l-7-1v-7.05Z"/></svg>
+              </span>
+              Download for Windows
+            </a>
+            <a class="button button-ghost" href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.2.0/VERIFY_RELEASE.md">
+              <span class="button-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 2.7 19.2 5.8v5.5c0 4.55-2.92 8.75-7.2 10-4.28-1.25-7.2-5.45-7.2-10V5.8L12 2.7Zm0 2.2L6.8 7.15v4.15c0 3.55 2.02 6.88 5.2 8 3.18-1.12 5.2-4.45 5.2-8V7.15L12 4.9Zm3.35 5.12 1.05 1.16-5 4.55-2.72-2.72 1.12-1.12 1.65 1.65 3.9-3.52Z"/></svg>
+              </span>
+              Verify release
+            </a>
+          </div>
+          <dl class="hero-facts" aria-label="Release facts">
+            <div>
+              <dt>Latest release</dt>
+              <dd>v0.2.0 prerelease</dd>
+            </div>
+            <div>
+              <dt>License</dt>
+              <dd>Apache-2.0</dd>
+            </div>
+            <div>
+              <dt>Code signing</dt>
+              <dd>Unsigned beta</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="hero-visual" data-reveal>
+          <div class="app-window tilt-card" aria-label="RMM Hunter dashboard preview">
+            <div class="window-bar">
+              <span></span>
+              <span></span>
+              <span></span>
+              <p>RMM Hunter</p>
+            </div>
+            <div class="window-grid">
+              <aside class="mock-sidebar">
+                <img src="assets/rmm-hunter-mark.svg" alt="" width="34" height="34">
+                <span class="active">Dashboard</span>
+                <span>Evidence</span>
+                <span>Timeline</span>
+                <span>RMM logs</span>
+                <span>Reports</span>
+              </aside>
+              <section class="mock-dashboard">
+                <div class="verdict-card">
+                  <p>Current verdict</p>
+                  <strong>Needs review</strong>
+                  <span>5 findings need context</span>
+                </div>
+                <div class="metric-row">
+                  <div><span data-count="5">0</span><small>Findings</small></div>
+                  <div><span data-count="259">0</span><small>Artifacts</small></div>
+                  <div><span data-count="8">0</span><small>High signals</small></div>
+                </div>
+                <div class="finding-list">
+                  <article><b>RustDesk installer in Downloads</b><em>Medium</em></article>
+                  <article><b>PowerShell download behavior</b><em>Medium</em></article>
+                  <article><b>Defender remediation event</b><em class="danger">High</em></article>
+                </div>
+              </section>
+              <section class="mock-timeline">
+                <h2>Timeline</h2>
+                <ol>
+                  <li><span>10:35</span> AnyDesk trace reviewed</li>
+                  <li><span>10:21</span> PowerShell event found</li>
+                  <li><span>09:44</span> Defender action logged</li>
+                  <li><span>08:17</span> Trust health checked</li>
+                </ol>
+              </section>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section-shell evidence-section" id="evidence">
+        <div class="section-heading" data-reveal>
+          <p class="section-label">Evidence-first approach</p>
+          <h2>It reads what Windows already knows.</h2>
+          <p>RMM Hunter does not probe networks or exploit systems. It collects local artifacts, groups related signals, and explains why each finding deserves review.</p>
+        </div>
+        <div class="source-rail" aria-label="Evidence sources">
+          <article class="source-card" data-reveal>
+            <span>01</span>
+            <h3>Installed apps</h3>
+            <p>Find known remote access tools through uninstall registry entries.</p>
+          </article>
+          <article class="source-card" data-reveal>
+            <span>02</span>
+            <h3>Services</h3>
+            <p>Review service paths, recent service creation, signatures, and user-writable locations.</p>
+          </article>
+          <article class="source-card" data-reveal>
+            <span>03</span>
+            <h3>Tasks and startup</h3>
+            <p>Surface persistence points that could restart tools after reboot.</p>
+          </article>
+          <article class="source-card" data-reveal>
+            <span>04</span>
+            <h3>PowerShell and WMI</h3>
+            <p>Look for encoded commands, hidden windows, download behavior, and WMI traces.</p>
+          </article>
+          <article class="source-card" data-reveal>
+            <span>05</span>
+            <h3>RMM logs and KAPE</h3>
+            <p>Import vendor traces and optional KAPE output for deeper DFIR context.</p>
+          </article>
+          <article class="source-card alert" data-reveal>
+            <span>06</span>
+            <h3>Defender and trust</h3>
+            <p>Review detections, remediation events, protection changes, code-signing trust, and roots.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section-shell split-section" id="workflow">
+        <div class="section-heading narrow" data-reveal>
+          <p class="section-label">Triage workflow</p>
+          <h2>Designed for the first hour of uncertainty.</h2>
+          <p>Use it when a support scam, MSP handover, suspicious remote session, or endpoint alert needs a fast second opinion.</p>
+        </div>
+        <div class="workflow-grid">
+          <div class="timeline-panel" data-reveal>
+            <div class="panel-header">
+              <span></span>
+              <h3>Case timeline</h3>
+            </div>
+            <ol class="case-timeline">
+              <li>
+                <time>Step 1</time>
+                <strong>Scan this device</strong>
+                <p>Collect local Windows artifacts and event logs where available.</p>
+              </li>
+              <li>
+                <time>Step 2</time>
+                <strong>Review grouped findings</strong>
+                <p>See exact paths, services, task actions, event excerpts, and confidence labels.</p>
+              </li>
+              <li>
+                <time>Step 3</time>
+                <strong>Export the evidence</strong>
+                <p>Share JSON for analysts, PDF for handoff, and mapped output for SOC workflows.</p>
+              </li>
+              <li>
+                <time>Step 4</time>
+                <strong>Decide with context</strong>
+                <p>Confirm with the device owner or IT provider before removing anything.</p>
+              </li>
+            </ol>
+          </div>
+          <div class="evidence-stack" data-reveal>
+            <article class="evidence-card high">
+              <div>
+                <small>High</small>
+                <h3>Defender malware or remediation event observed</h3>
+              </div>
+              <p>Defender reported a named threat and action. RMM Hunter preserves the event context so the next step is evidence-led.</p>
+            </article>
+            <article class="evidence-card medium">
+              <div>
+                <small>Medium</small>
+                <h3>Recent remote access installer or script</h3>
+              </div>
+              <p>An installer in Downloads or Temp may be benign, but it needs an owner, purpose, and timeline.</p>
+            </article>
+            <article class="evidence-card low">
+              <div>
+                <small>Low</small>
+                <h3>Routine Defender configuration change</h3>
+              </div>
+              <p>Low-severity context stays in the timeline without inflating the verdict by itself.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section-shell trust-section" id="trust">
+        <div class="trust-copy" data-reveal>
+          <p class="section-label">Trust by design</p>
+          <h2>Powerful triage. Zero automatic remediation.</h2>
+          <p>Security tools have to be boring in the right places. RMM Hunter is local-first, transparent, and conservative by default.</p>
+        </div>
+        <div class="trust-grid">
+          <article data-reveal>
+            <span class="trust-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2.7 19.2 5.8v5.5c0 4.55-2.92 8.75-7.2 10-4.28-1.25-7.2-5.45-7.2-10V5.8L12 2.7Zm0 2.2L6.8 7.15v4.15c0 3.55 2.02 6.88 5.2 8 3.18-1.12 5.2-4.45 5.2-8V7.15L12 4.9Z"/></svg></span>
+            <h3>No cleanup button in MVP</h3>
+            <p>No files are deleted. No services are stopped. The app reports evidence and suggested review actions.</p>
+          </article>
+          <article data-reveal>
+            <span class="trust-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M17 9h1.2A1.8 1.8 0 0 1 20 10.8v8.4a1.8 1.8 0 0 1-1.8 1.8H5.8A1.8 1.8 0 0 1 4 19.2v-8.4A1.8 1.8 0 0 1 5.8 9H7V7.2a5 5 0 0 1 10 0V9Zm-2 0V7.2a3 3 0 0 0-6 0V9h6Zm-3 4.2a1.6 1.6 0 0 0-.75 3.02V18h1.5v-1.78A1.6 1.6 0 0 0 12 13.2Z"/></svg></span>
+            <h3>Local reports</h3>
+            <p>Reports stay on the device unless the user exports or shares them. Optional AI requires a user-provided provider key.</p>
+          </article>
+          <article data-reveal>
+            <span class="trust-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m8.7 16.9-4.2-4.2 4.2-4.2 1.4 1.42-2.78 2.78 2.78 2.78-1.4 1.42Zm6.6 0-1.4-1.42 2.78-2.78-2.78-2.78 1.4-1.42 4.2 4.2-4.2 4.2ZM11.1 19h-2l3.8-12h2l-3.8 12Z"/></svg></span>
+            <h3>Open source</h3>
+            <p>Rules, collectors, release workflow, docs, and verification instructions are public on GitHub.</p>
+          </article>
+          <article data-reveal>
+            <span class="trust-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm0 2v14h10V5H7Zm2 3h6v2H9V8Zm0 4h6v2H9v-2Zm0 4h4v2H9v-2Z"/></svg></span>
+            <h3>Release verification</h3>
+            <p>GitHub releases include SHA256 checksums, a manifest, and a verification guide. Current beta binaries are unsigned.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section-shell does-section">
+        <div class="does-grid">
+          <article data-reveal>
+            <h2>What it does</h2>
+            <ul>
+              <li>Detects suspicious RMM and breach traces on Windows endpoints.</li>
+              <li>Shows exact artifacts, timestamps, paths, event IDs, and finding reasons.</li>
+              <li>Exports JSON, PDF, and optional mapped detection output.</li>
+              <li>Explains next steps without changing the deterministic verdict.</li>
+            </ul>
+          </article>
+          <article data-reveal>
+            <h2>What it does not do</h2>
+            <ul>
+              <li>Does not exploit systems or bypass security controls.</li>
+              <li>Does not scan the network or reach into other devices.</li>
+              <li>Does not delete files, stop services, quarantine artifacts, or uninstall tools.</li>
+              <li>Does not claim a clean result is proof that a system is safe.</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="section-shell download-section" id="download">
+        <div class="download-card" data-reveal>
+          <div>
+            <p class="section-label">Windows-first public beta</p>
+            <h2>Download RMM Hunter.</h2>
+            <p>Use it as a careful second opinion after suspicious remote support, RMM abuse, or endpoint alerts. Review the release notes before running beta builds on sensitive systems.</p>
+          </div>
+          <div class="download-actions">
+            <a class="button button-primary" href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.2.0/RMM-Hunter-Setup-0.2.0-x64.exe">Download installer</a>
+            <a class="button button-ghost" href="https://github.com/MDP-Studio/rmm-hunter">View GitHub</a>
+          </div>
+          <div class="release-strip" aria-label="Release links">
+            <a href="https://github.com/MDP-Studio/rmm-hunter/releases/tag/v0.2.0">Release page</a>
+            <a href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.2.0/SHA256SUMS.txt">SHA256SUMS</a>
+            <a href="https://github.com/MDP-Studio/rmm-hunter/blob/main/PRIVACY.md">Privacy policy</a>
+            <a href="mailto:meidie@mdpstudio.com.au">Contact</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>Created by Meidie. Published by MDP Studio.</p>
+      <p><a href="https://github.com/MDP-Studio/rmm-hunter">GitHub</a> <span>/</span> <a href="https://github.com/MDP-Studio/rmm-hunter/security/policy">Security policy</a> <span>/</span> <a href="https://github.com/MDP-Studio/rmm-hunter/blob/main/docs/CODE_SIGNING_POLICY.md">Code signing policy</a></p>
+    </footer>
+  </body>
+</html>

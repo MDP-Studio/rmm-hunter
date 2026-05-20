@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="RMM Hunter mark">
+  <defs>
+    <linearGradient id="shield" x1="210" y1="100" x2="820" y2="904" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f8fbff"/>
+      <stop offset="0.38" stop-color="#70a7ff"/>
+      <stop offset="1" stop-color="#20d69f"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="240" y1="170" x2="780" y2="850" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#dff2ff"/>
+      <stop offset="0.48" stop-color="#8fb9ff"/>
+      <stop offset="1" stop-color="#37f0b4"/>
+    </linearGradient>
+    <linearGradient id="lens" x1="330" y1="305" x2="715" y2="715" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#c9dbff"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="34" stdDeviation="30" flood-color="#05070d" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" rx="220" fill="#0f141f"/>
+  <path filter="url(#shadow)" fill="#141b2a" d="M512 94 812 206v244c0 204-116 374-300 456-184-82-300-252-300-456V206L512 94Z"/>
+  <path fill="url(#shield)" d="M512 132 772 230v220c0 180-98 324-260 402-162-78-260-222-260-402V230l260-98Z"/>
+  <path fill="#111827" d="M512 200 704 272v174c0 132-72 242-192 306-120-64-192-174-192-306V272l192-72Z"/>
+  <circle cx="512" cy="484" r="166" fill="none" stroke="url(#rim)" stroke-width="44"/>
+  <circle cx="512" cy="484" r="76" fill="url(#lens)"/>
+  <path fill="none" stroke="#35e7ad" stroke-linecap="round" stroke-width="46" d="M512 272v-74M512 770v-74M724 484h74M226 484h74"/>
+  <path fill="none" stroke="#dfeaff" stroke-linecap="round" stroke-width="42" d="m362 334-54-54M716 688l-54-54M662 334l54-54M308 688l54-54"/>
+  <path fill="none" stroke="#35e7ad" stroke-linecap="round" stroke-linejoin="round" stroke-width="48" d="M444 490h136M512 422v136"/>
+</svg>
