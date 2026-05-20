@@ -56,13 +56,18 @@ const updateProgress = document.getElementById("updateProgress");
 const updateProgressBar = document.getElementById("updateProgressBar");
 const openUpdate = document.getElementById("openUpdate");
 const dismissUpdate = document.getElementById("dismissUpdate");
+const desktopUpdateLog = document.getElementById("desktopUpdateLog");
+const desktopUpdateLogClose = document.getElementById("desktopUpdateLogClose");
+const desktopUpdateLogDismiss = document.getElementById("desktopUpdateLogDismiss");
+const desktopUpdateLogRelease = document.getElementById("desktopUpdateLogRelease");
 const externalLinks = {
   openIssues: "https://github.com/MDP-Studio/rmm-hunter/issues/new/choose",
   openSecurityPolicy: "https://github.com/MDP-Studio/rmm-hunter/security/policy",
   openEmail: "mailto:meidie@mdpstudio.com.au?subject=RMM%20Hunter%20feedback",
   openCoffee: "https://buymeacoffee.com/meidie",
   openRepo: "https://github.com/MDP-Studio/rmm-hunter",
-  openPrivacy: "https://github.com/MDP-Studio/rmm-hunter/blob/main/PRIVACY.md"
+  openPrivacy: "https://github.com/MDP-Studio/rmm-hunter/blob/main/PRIVACY.md",
+  desktopUpdateLogRelease: "https://github.com/MDP-Studio/rmm-hunter/releases/tag/v0.2.0"
 };
 
 let currentReport = null;
@@ -70,6 +75,7 @@ let currentPaths = null;
 let currentAiSettings = null;
 let currentUpdate = null;
 let scanProgressPercent = 0;
+let desktopUpdateLogPreviousFocus = null;
 const desktopBridge = window.rmmHunter || {
   startScan: async () => {
     throw new Error("Desktop scanner bridge is unavailable. Start the app with npm.cmd start.");
@@ -126,6 +132,8 @@ refreshAiSettings().catch((error) => {
 });
 
 checkForUpdates({ silent: true }).catch(() => {});
+
+window.setTimeout(openDesktopUpdateLog, 700);
 
 desktopBridge.onProgress((payload) => {
   progressPanel.classList.remove("hidden");
@@ -230,6 +238,21 @@ openUpdate.addEventListener("click", async () => {
 
 dismissUpdate.addEventListener("click", () => {
   updatePanel.classList.add("hidden");
+});
+
+desktopUpdateLogClose?.addEventListener("click", closeDesktopUpdateLog);
+desktopUpdateLogDismiss?.addEventListener("click", closeDesktopUpdateLog);
+desktopUpdateLogRelease?.addEventListener("click", closeDesktopUpdateLog);
+desktopUpdateLog?.addEventListener("click", (event) => {
+  if (event.target === desktopUpdateLog) {
+    closeDesktopUpdateLog();
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && desktopUpdateLog && !desktopUpdateLog.classList.contains("hidden")) {
+    closeDesktopUpdateLog();
+  }
 });
 
 aiSetupJump.addEventListener("click", () => {
@@ -496,6 +519,60 @@ function updateScanProgress(progressPercent, { force = false } = {}) {
   scanProgressPercent = force ? clampedProgress : Math.max(scanProgressPercent, clampedProgress);
   scanProgress.setAttribute("aria-valuenow", String(scanProgressPercent));
   scanProgressBar.style.width = `${scanProgressPercent}%`;
+}
+
+function desktopUpdateLogStorageKey() {
+  const updateId = desktopUpdateLog?.dataset.updateLogId || "";
+  return updateId ? `rmm-hunter:desktop-update-log:${updateId}` : "";
+}
+
+function hasSeenDesktopUpdateLog() {
+  const storageKey = desktopUpdateLogStorageKey();
+  if (!storageKey) {
+    return true;
+  }
+  try {
+    return window.localStorage.getItem(storageKey) === "seen";
+  } catch (error) {
+    console.info("Update log storage unavailable.", error);
+    appendProgress(`Update log storage unavailable: ${error?.message || error}`);
+    return false;
+  }
+}
+
+function rememberDesktopUpdateLog() {
+  const storageKey = desktopUpdateLogStorageKey();
+  if (!storageKey) {
+    return;
+  }
+  try {
+    window.localStorage.setItem(storageKey, "seen");
+  } catch (error) {
+    console.info("Update log preference was not saved.", error);
+    appendProgress(`Update log preference was not saved: ${error?.message || error}`);
+  }
+}
+
+function openDesktopUpdateLog() {
+  if (!desktopUpdateLog || hasSeenDesktopUpdateLog()) {
+    return;
+  }
+  desktopUpdateLogPreviousFocus = document.activeElement;
+  desktopUpdateLog.classList.remove("hidden");
+  document.body.classList.add("modal-open");
+  desktopUpdateLogClose?.focus();
+}
+
+function closeDesktopUpdateLog() {
+  if (!desktopUpdateLog || desktopUpdateLog.classList.contains("hidden")) {
+    return;
+  }
+  rememberDesktopUpdateLog();
+  desktopUpdateLog.classList.add("hidden");
+  document.body.classList.remove("modal-open");
+  if (desktopUpdateLogPreviousFocus && "focus" in desktopUpdateLogPreviousFocus) {
+    desktopUpdateLogPreviousFocus.focus();
+  }
 }
 
 function updateActionText(actionMode) {

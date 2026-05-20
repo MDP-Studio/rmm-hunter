@@ -104,10 +104,13 @@ The GUI provides:
 - Timeline panel for timestamped artifacts across findings
 - Deterministic recommended next steps
 - GitHub Releases update check with installer auto-update for the installed Windows build
+- Once-per-update desktop update log for major changes
 - Optional bring-your-own-key AI explanations and recommendations
 - About and feedback sections with GitHub issue, security policy, privacy policy, private email, and donation links
 - JSON and PDF export
 - No automatic deletion or remediation
+
+For a new desktop update-log notice, change the `data-update-log-id` value on `desktopUpdateLog` in `gui/index.html`.
 
 Optional AI explanations are configured inside the app. Run a scan, click `AI Recommendations`, then choose a provider and paste your own API key when prompted. If no key is configured, the app shows a setup notice beside the summary and does not send report data anywhere. Use `Open API key field` from that notice to open provider settings.
 

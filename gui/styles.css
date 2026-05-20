@@ -34,6 +34,10 @@ body {
   margin: 0;
 }
 
+body.modal-open {
+  overflow: hidden;
+}
+
 button {
   font: inherit;
 }
@@ -1099,6 +1103,104 @@ select {
   word-break: break-word;
 }
 
+.update-log-modal {
+  background: rgba(15, 19, 28, 0.5);
+  backdrop-filter: blur(8px);
+  display: grid;
+  inset: 0;
+  place-items: center;
+  padding: 24px;
+  position: fixed;
+  z-index: 20;
+}
+
+.update-log-card {
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  max-width: 680px;
+  padding: 26px;
+  position: relative;
+  width: min(100%, 680px);
+}
+
+.update-log-card h2 {
+  font-size: 34px;
+  line-height: 1.08;
+  margin: 8px 48px 10px 0;
+}
+
+.update-log-card p {
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.update-log-card ul {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+}
+
+.update-log-card li {
+  color: #343c4c;
+  line-height: 1.45;
+  padding-left: 24px;
+  position: relative;
+}
+
+.update-log-card li::before {
+  background: var(--green);
+  border-radius: 50%;
+  content: "";
+  height: 8px;
+  left: 0;
+  position: absolute;
+  top: 0.68em;
+  width: 8px;
+}
+
+.modal-close-button {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  color: #202633;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 22px;
+  height: 38px;
+  justify-content: center;
+  line-height: 1;
+  position: absolute;
+  right: 18px;
+  top: 18px;
+  width: 38px;
+}
+
+.modal-close-button:focus-visible,
+.modal-close-button:hover {
+  border-color: var(--blue);
+  outline: none;
+}
+
+.modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.modal-note {
+  color: #808a9d !important;
+  font-size: 13px !important;
+  margin-top: 16px !important;
+}
+
 .hidden {
   display: none;
 }
@@ -1191,5 +1293,18 @@ select {
 
   .artifact-key {
     border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  .update-log-modal {
+    align-items: end;
+    padding: 12px;
+  }
+
+  .update-log-card {
+    padding: 22px;
+  }
+
+  .update-log-card h2 {
+    font-size: 28px;
   }
 }

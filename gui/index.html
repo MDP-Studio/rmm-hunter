@@ -243,6 +243,26 @@
       </section>
     </main>
 
+    <section class="update-log-modal hidden" id="desktopUpdateLog" data-update-log-id="desktop-0.2.0" role="dialog" aria-modal="true" aria-labelledby="desktopUpdateLogTitle" aria-describedby="desktopUpdateLogText">
+      <div class="update-log-card">
+        <button class="modal-close-button" id="desktopUpdateLogClose" type="button" aria-label="Close update log">&times;</button>
+        <span class="eyebrow">Update log</span>
+        <h2 id="desktopUpdateLogTitle">RMM Hunter 0.2.0 is ready.</h2>
+        <p id="desktopUpdateLogText">This release adds deeper DFIR context, safer update handling, and clearer evidence review inside the Windows app.</p>
+        <ul>
+          <li>Evidence cards now explain what each finding means and what to review next.</li>
+          <li>RMM vendor logs, KAPE imports, timeline context, and trust-health checks are included in the scan surface.</li>
+          <li>Update checks and installer downloads now show progress while staying tied to GitHub Releases.</li>
+          <li>Optional AI recommendations stay bring-your-own-key and only run when the user asks.</li>
+        </ul>
+        <div class="modal-actions">
+          <button class="secondary-button" id="desktopUpdateLogRelease" type="button">Release notes</button>
+          <button class="primary-button" id="desktopUpdateLogDismiss" type="button">Got it</button>
+        </div>
+        <p class="modal-note">This notice is remembered on this Windows profile and only appears once for this update.</p>
+      </div>
+    </section>
+
     <script src="./renderer.js"></script>
   </body>
 </html>
