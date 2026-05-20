@@ -80,56 +80,84 @@
             </div>
             <div class="window-grid">
               <aside class="mock-sidebar">
-                <img src="assets/rmm-hunter-mark.svg" alt="" width="34" height="34">
-                <span class="active">Dashboard</span>
-                <span>Evidence</span>
-                <span>Timeline</span>
-                <span>RMM logs</span>
-                <span>Reports</span>
+                <div class="mock-brand">
+                  <img src="assets/rmm-hunter-mark.svg" alt="" width="42" height="42">
+                  <div>
+                    <strong>RMM Hunter</strong>
+                    <span>Windows endpoint scanner</span>
+                  </div>
+                </div>
+                <div class="mock-verdict">
+                  <span>Current verdict</span>
+                  <strong>High Risk</strong>
+                  <small>Risk score 100/100</small>
+                </div>
+                <div class="mock-side-buttons">
+                  <span>Trust health</span>
+                  <span>Feedback</span>
+                  <span>About</span>
+                </div>
+                <div class="mock-coverage">
+                  <p>Scan coverage</p>
+                  <span>Installed apps</span>
+                  <span>Services</span>
+                  <span>Startup entries</span>
+                  <span>Scheduled tasks</span>
+                  <span>Event logs</span>
+                  <span>Recent installers</span>
+                  <span>RMM vendor logs</span>
+                  <span>KAPE imports</span>
+                  <span>System trust health</span>
+                </div>
               </aside>
               <section class="mock-dashboard">
-                <div class="verdict-card">
-                  <div class="verdict-top">
-                    <p>Current verdict</p>
-                    <span>Review</span>
+                <div class="mock-topbar-card">
+                  <div>
+                    <h2>Device scan</h2>
+                    <p>Check this Windows device for unauthorized remote access tools and suspicious admin traces.</p>
                   </div>
-                  <strong>Needs review</strong>
-                  <span class="verdict-note">5 findings need human context.</span>
-                  <div class="verdict-score"><span>Risk score</span><b>64/100</b></div>
-                  <div class="verdict-meter" role="progressbar" aria-label="Risk score 64 out of 100" aria-valuemin="0" aria-valuemax="100" aria-valuenow="64"><i></i></div>
-                  <small>Local rules. No automatic cleanup.</small>
+                  <div class="mock-topbar-actions">
+                    <span>Check updates</span>
+                    <strong>Scan this device</strong>
+                  </div>
                 </div>
-                <div class="mock-scan-card">
-                  <div class="mock-scan-top">
-                    <p>Scanning</p>
-                    <span>76%</span>
+                <div class="mock-update-card">
+                  <div>
+                    <span>Update status</span>
+                    <strong>RMM Hunter is up to date</strong>
+                    <p>RMM Hunter 0.2.0 is up to date.</p>
                   </div>
-                  <strong>Collecting Windows evidence</strong>
-                  <div class="scan-meter" role="progressbar" aria-label="Scan progress 76 percent" aria-valuemin="0" aria-valuemax="100" aria-valuenow="76"><i></i></div>
-                  <ul>
-                    <li>Installed apps, services, startup entries</li>
-                    <li>Defender, PowerShell, and RMM vendor logs</li>
-                  </ul>
+                  <button type="button">Release notes</button>
+                </div>
+                <div class="mock-progress-card">
+                  <div class="mock-progress-top">
+                    <p>Scanning</p>
+                    <span>Complete</span>
+                  </div>
+                  <strong>Scan complete</strong>
+                  <div class="scan-meter" role="progressbar" aria-label="Scan progress 100 percent" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i></i></div>
+                  <div class="mock-log-lines">
+                    <span>Dashboard ready. Review grouped findings and export the full report when needed.</span>
+                    <span>Checking installed apps, services, tasks, startup items, and event logs.</span>
+                  </div>
                 </div>
                 <div class="metric-row">
-                  <div><span data-count="5">0</span><small>Findings</small><i>1 high</i></div>
-                  <div><span data-count="259">0</span><small>Artifacts</small><i>Matched</i></div>
-                  <div><span data-count="8">0</span><small>High signals</small><i>Priority</i></div>
+                  <div><small>Findings</small><span data-count="5">0</span></div>
+                  <div><small>High</small><span data-count="2">0</span></div>
+                  <div><small>Medium</small><span data-count="1">0</span></div>
+                  <div><small>Low</small><span data-count="2">0</span></div>
+                </div>
+                <div class="mock-summary-card">
+                  <div>
+                    <span>Summary</span>
+                    <p>Verdict high_risk. 5 grouped findings covering 259 matched artifacts across collected Windows evidence.</p>
+                  </div>
+                  <button type="button">Export JSON</button>
                 </div>
                 <div class="finding-list">
                   <article><b>RustDesk installer in Downloads</b><em>Medium</em></article>
-                  <article><b>PowerShell download behavior</b><em>Medium</em></article>
-                  <article><b>Defender remediation event</b><em class="danger">High</em></article>
+                  <article><b>Defender remediation event observed</b><em class="danger">High</em></article>
                 </div>
-              </section>
-              <section class="mock-timeline">
-                <h2>Timeline</h2>
-                <ol>
-                  <li><span>10:35</span> AnyDesk trace reviewed</li>
-                  <li><span>10:21</span> PowerShell event found</li>
-                  <li><span>09:44</span> Defender action logged</li>
-                  <li><span>08:17</span> Trust health checked</li>
-                </ol>
               </section>
             </div>
           </div>
@@ -316,16 +344,16 @@
       <p><a href="https://github.com/MDP-Studio/rmm-hunter">GitHub</a> <span>/</span> <a href="https://github.com/MDP-Studio/rmm-hunter/security/policy">Security policy</a> <span>/</span> <a href="https://github.com/MDP-Studio/rmm-hunter/blob/main/docs/CODE_SIGNING_POLICY.md">Code signing policy</a></p>
     </footer>
 
-    <section class="update-log hidden" id="updateLog" data-update-log-id="2026-05-website-progress" role="dialog" aria-modal="true" aria-labelledby="updateLogTitle" aria-describedby="updateLogText">
+    <section class="update-log hidden" id="updateLog" data-update-log-id="2026-05-desktop-accurate-hero" role="dialog" aria-modal="true" aria-labelledby="updateLogTitle" aria-describedby="updateLogText">
       <div class="update-log-card">
         <button class="update-log-close" id="updateLogClose" type="button" aria-label="Close update log">&times;</button>
         <p class="section-label">Update log</p>
-        <h2 id="updateLogTitle">New website preview is live.</h2>
-        <p id="updateLogText">The RMM Hunter site now shows a clearer dashboard preview with scan progress, risk scoring, and evidence context.</p>
+        <h2 id="updateLogTitle">Desktop-style hero is live.</h2>
+        <p id="updateLogText">The RMM Hunter site now mirrors the Windows app more closely, with the dark sidebar, Device scan workspace, progress panel, and evidence preview.</p>
         <ul>
-          <li>Added visible scan-progress and risk-score indicators to the hero dashboard.</li>
-          <li>Improved the website preview so the product feels more like the real app.</li>
-          <li>Kept the message clear: local triage, evidence first, no automatic cleanup.</li>
+          <li>Rebuilt the hero preview to match the desktop app layout.</li>
+          <li>Added Device scan, update status, scan progress, metrics, summary, and evidence cards.</li>
+          <li>Kept the framing grounded in evidence-only triage.</li>
         </ul>
         <div class="update-log-actions">
           <a class="button button-primary" href="https://github.com/MDP-Studio/rmm-hunter/releases/tag/v0.2.0" data-update-log-dismiss>View release notes</a>
