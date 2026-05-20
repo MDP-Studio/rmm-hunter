@@ -21,8 +21,14 @@ python -m http.server 8790
 
 Deployment target:
 
-- Netlify static deploy from this `website` folder.
-- Cloudflare DNS-only CNAME under `mdpstudio.com.au`.
+- Coolify application on the always-on remote host.
+- Cloudflare Tunnel public hostname under `mdpstudio.com.au`.
+- Dockerfile: `website/Dockerfile`
+- Exposed container port: `80`
+- Health check path: `/healthz`
+
+The previous Netlify site is retained as rollback only:
+
 - Netlify site: `rmm-hunter-mdpstudio`
 - Netlify site ID: `41cda6b8-85cb-4988-9d16-49bd4fa344a7`
 - Netlify admin: `https://app.netlify.com/projects/rmm-hunter-mdpstudio`
