@@ -2,10 +2,13 @@
 
 ## Unreleased
 
+## 0.2.1 - 2026-05-21
+
 - Changed the GUI review area so evidence cards and the timeline appear side by side on wide screens.
 - Limited the timeline to the first few timestamped artifacts with a `Show more` control instead of rendering long event lists at once.
 - Added a compact collapsible sidebar and removed the visible report-file path strip from the dashboard.
 - Added a compact desktop evidence-source strip with optional KAPE folder import, so the GUI can merge KAPE output with the live Windows scan.
+- Fixed scanner quality-gate logging so safe fallback paths are observable during development and release checks.
 
 ## 0.2.0 - 2026-05-18
 

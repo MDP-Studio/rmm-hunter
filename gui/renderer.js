@@ -76,7 +76,7 @@ const externalLinks = {
   openCoffee: "https://buymeacoffee.com/meidie",
   openRepo: "https://github.com/MDP-Studio/rmm-hunter",
   openPrivacy: "https://github.com/MDP-Studio/rmm-hunter/blob/main/PRIVACY.md",
-  desktopUpdateLogRelease: "https://github.com/MDP-Studio/rmm-hunter/releases/tag/v0.2.0"
+  desktopUpdateLogRelease: "https://github.com/MDP-Studio/rmm-hunter/releases/tag/v0.2.1"
 };
 
 let currentReport = null;
