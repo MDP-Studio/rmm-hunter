@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import logging
 import os
 import re
 import shutil
@@ -22,6 +23,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 SCANNER_VERSION = "0.2.0"
+LOGGER = logging.getLogger(__name__)
 
 REMOTE_TOOLS: dict[str, tuple[str, ...]] = {
     "ScreenConnect / ConnectWise Control": (
@@ -721,7 +723,8 @@ def defender_config_is_sensitive(event: dict[str, Any]) -> bool:
     event_id = event.get("id")
     try:
         event_id = int(event_id)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError) as exc:
+        LOGGER.debug("Could not parse Defender event id %r: %s", event_id, exc)
         event_id = None
     if event_id in {5001, 5004, 5013}:
         return True
@@ -749,7 +752,8 @@ def parse_float(value: Any) -> float | None:
         if value in (None, ""):
             return None
         return float(value)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError) as exc:
+        LOGGER.debug("Could not parse float value %r: %s", value, exc)
         return None
 
 
@@ -759,7 +763,8 @@ def parse_datetime(value: Any) -> datetime | None:
         return None
     try:
         return datetime.fromisoformat(text.replace("Z", "+00:00"))
-    except ValueError:
+    except ValueError as exc:
+        LOGGER.debug("Could not parse datetime value %r: %s", value, exc)
         return None
 
 
@@ -1544,7 +1549,8 @@ def evidence_question_for_kind(kind: str | None, path: Path) -> str:
 def safe_relative_path(path: Path, root: Path) -> str:
     try:
         return str(path.relative_to(root))
-    except ValueError:
+    except ValueError as exc:
+        LOGGER.debug("Could not make %s relative to %s: %s", path, root, exc)
         return str(path)
 
 
@@ -1553,7 +1559,8 @@ def file_sample(path: Path, limit: int = KAPE_SAMPLE_BYTES) -> str:
         with path.open("rb") as handle:
             data = handle.read(limit)
         return data.decode("utf-8", errors="ignore")
-    except OSError:
+    except OSError as exc:
+        LOGGER.warning("Could not read KAPE sample from %s: %s", path, exc)
         return ""
 
 
@@ -1577,7 +1584,8 @@ def build_kape_artifact(
         stat = path.stat()
         last_write = datetime.fromtimestamp(stat.st_mtime, timezone.utc).isoformat().replace("+00:00", "Z")
         size = stat.st_size
-    except OSError:
+    except OSError as exc:
+        LOGGER.warning("Could not stat KAPE artifact %s: %s", path, exc)
         last_write = None
         size = None
 
@@ -1665,7 +1673,8 @@ def import_kape_output(root: Path) -> dict[str, Any]:
         try:
             if path.stat().st_size > KAPE_MAX_TEXT_BYTES:
                 continue
-        except OSError:
+        except OSError as exc:
+            LOGGER.warning("Could not stat KAPE output file %s: %s", path, exc)
             continue
 
         path_tool = match_remote_tool(str(path))
@@ -1692,6 +1701,7 @@ def import_kape_output(root: Path) -> dict[str, Any]:
                             )
                         )
             except (OSError, csv.Error) as exc:
+                LOGGER.warning("Could not parse KAPE CSV/TSV output file %s: %s", path, exc)
                 errors.append({"source": f"kape_import:{path.name}", "message": str(exc)})
             continue
 
@@ -2084,7 +2094,8 @@ def analyze_artifacts(collection: dict[str, Any]) -> dict[str, Any]:
         event_id = event.get("id")
         try:
             event_id = int(event_id)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError) as exc:
+            LOGGER.debug("Could not parse Defender event id %r: %s", event_id, exc)
             event_id = None
         if event_id in DEFENDER_HIGH_RISK_IDS:
             make_finding(
