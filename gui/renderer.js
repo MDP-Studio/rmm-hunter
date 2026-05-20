@@ -2,6 +2,8 @@ const scanButton = document.getElementById("scanButton");
 const progressPanel = document.getElementById("progressPanel");
 const progressStage = document.getElementById("progressStage");
 const progressLog = document.getElementById("progressLog");
+const scanProgress = document.getElementById("scanProgress");
+const scanProgressBar = document.getElementById("scanProgressBar");
 const verdictPanel = document.getElementById("verdictPanel");
 const verdictText = document.getElementById("verdictText");
 const riskScore = document.getElementById("riskScore");
@@ -67,6 +69,7 @@ let currentReport = null;
 let currentPaths = null;
 let currentAiSettings = null;
 let currentUpdate = null;
+let scanProgressPercent = 0;
 const desktopBridge = window.rmmHunter || {
   startScan: async () => {
     throw new Error("Desktop scanner bridge is unavailable. Start the app with npm.cmd start.");
@@ -127,6 +130,7 @@ checkForUpdates({ silent: true }).catch(() => {});
 desktopBridge.onProgress((payload) => {
   progressPanel.classList.remove("hidden");
   progressStage.textContent = payload.stage || "Scanning";
+  updateScanProgress(progressForStage(payload.stage));
   appendProgress(payload.detail || payload.stage || "Working");
 });
 
@@ -466,6 +470,34 @@ function renderUpdateProgress(progressPercent) {
   updateProgressBar.style.width = `${clampedProgress}%`;
 }
 
+function progressForStage(stage) {
+  const normalizedStage = String(stage || "").toLowerCase();
+  if (normalizedStage.includes("preparing")) {
+    return 12;
+  }
+  if (normalizedStage.includes("collecting")) {
+    return 42;
+  }
+  if (normalizedStage.includes("scanner output")) {
+    return 62;
+  }
+  if (normalizedStage.includes("scanner warning")) {
+    return 68;
+  }
+  if (normalizedStage.includes("loading")) {
+    return 86;
+  }
+  return Math.min(scanProgressPercent + 6, 92);
+}
+
+function updateScanProgress(progressPercent, { force = false } = {}) {
+  const nextProgress = Number.isFinite(progressPercent) ? progressPercent : 0;
+  const clampedProgress = Math.max(0, Math.min(100, Math.round(nextProgress)));
+  scanProgressPercent = force ? clampedProgress : Math.max(scanProgressPercent, clampedProgress);
+  scanProgress.setAttribute("aria-valuenow", String(scanProgressPercent));
+  scanProgressBar.style.width = `${scanProgressPercent}%`;
+}
+
 function updateActionText(actionMode) {
   if (actionMode === "download") {
     return "Download and install";
@@ -487,6 +519,7 @@ function setScanning(isScanning) {
     progressPanel.classList.remove("complete");
     progressPanel.classList.remove("failed");
     progressStage.textContent = "Preparing scanner";
+    updateScanProgress(8, { force: true });
     progressLog.replaceChildren();
   }
 }
@@ -533,6 +566,7 @@ function renderReport(report, paths) {
   progressPanel.classList.remove("failed");
   progressPanel.classList.add("complete");
   progressStage.textContent = "Scan complete";
+  updateScanProgress(100, { force: true });
   appendProgress("Dashboard ready. Review grouped findings and export the full report when needed.");
   verdictPanel.className = `verdict-panel ${verdictClass(report.verdict)}`;
   verdictText.textContent = formatVerdict(report.verdict);
@@ -973,6 +1007,7 @@ function renderError(error) {
   progressPanel.classList.remove("complete");
   progressPanel.classList.add("failed");
   progressStage.textContent = "Scan stopped";
+  updateScanProgress(100, { force: true });
   appendProgress("The scanner stopped before a report was generated.");
   verdictPanel.className = "verdict-panel verdict-risk";
   verdictText.textContent = "Scan failed";
