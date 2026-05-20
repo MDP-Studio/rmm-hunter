@@ -315,6 +315,11 @@ select {
   padding: 18px;
 }
 
+.update-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .update-panel.available {
   background: #f7fbff;
   border-color: #b7c8e2;
@@ -348,6 +353,27 @@ select {
   color: #4f5a6d;
   line-height: 1.45;
   margin: 0;
+}
+
+.update-progress {
+  margin-top: 12px;
+  max-width: 560px;
+}
+
+.update-progress-track {
+  background: #e8edf5;
+  border-radius: 999px;
+  height: 9px;
+  overflow: hidden;
+}
+
+.update-progress-bar {
+  background: linear-gradient(90deg, #315f9f, #4c78ba);
+  border-radius: inherit;
+  box-shadow: 0 0 0 1px rgba(49, 95, 159, 0.12);
+  height: 100%;
+  transition: width 180ms ease;
+  width: 0%;
 }
 
 .update-panel.current h3 {

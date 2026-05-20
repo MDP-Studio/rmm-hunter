@@ -50,6 +50,8 @@ const updatePanel = document.getElementById("updatePanel");
 const updateStatus = document.getElementById("updateStatus");
 const updateTitle = document.getElementById("updateTitle");
 const updateText = document.getElementById("updateText");
+const updateProgress = document.getElementById("updateProgress");
+const updateProgressBar = document.getElementById("updateProgressBar");
 const openUpdate = document.getElementById("openUpdate");
 const dismissUpdate = document.getElementById("dismissUpdate");
 const externalLinks = {
@@ -387,7 +389,8 @@ function renderUpdateFromState(update, { silentCurrent = false } = {}) {
       text: Number.isFinite(progress)
         ? `Downloading RMM Hunter ${currentUpdate.latestVersion}: ${Math.round(progress)}%.`
         : currentUpdate.message || "Downloading the update.",
-      actionMode: "none"
+      actionMode: "none",
+      progressPercent: progress
     });
     return;
   }
@@ -434,11 +437,12 @@ function renderUpdateFromState(update, { silentCurrent = false } = {}) {
   });
 }
 
-function renderUpdatePanel({ state, title, text, releaseUrl, actionMode = "open" }) {
+function renderUpdatePanel({ state, title, text, releaseUrl, actionMode = "open", progressPercent = null }) {
   updatePanel.className = `update-panel ${state || "current"}`;
   updateStatus.textContent = state === "available" ? "Update available" : state === "current" ? "Update status" : "Updates";
   updateTitle.textContent = title;
   updateText.textContent = text;
+  renderUpdateProgress(progressPercent);
   if (releaseUrl) {
     currentUpdate = { ...(currentUpdate || {}), releaseUrl };
   }
@@ -446,6 +450,20 @@ function renderUpdatePanel({ state, title, text, releaseUrl, actionMode = "open"
   openUpdate.className = actionMode === "open-link" ? "link-button" : "secondary-button";
   openUpdate.textContent = updateActionText(actionMode);
   updatePanel.classList.remove("hidden");
+}
+
+function renderUpdateProgress(progressPercent) {
+  if (!Number.isFinite(progressPercent)) {
+    updateProgress.classList.add("hidden");
+    updateProgress.removeAttribute("aria-valuenow");
+    updateProgressBar.style.width = "0%";
+    return;
+  }
+
+  const clampedProgress = Math.max(0, Math.min(100, Math.round(progressPercent)));
+  updateProgress.classList.remove("hidden");
+  updateProgress.setAttribute("aria-valuenow", String(clampedProgress));
+  updateProgressBar.style.width = `${clampedProgress}%`;
 }
 
 function updateActionText(actionMode) {
