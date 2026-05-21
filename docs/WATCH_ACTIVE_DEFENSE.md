@@ -74,7 +74,7 @@ To create a Discord webhook:
 1. In Discord, open the server channel that should receive RMM Hunter alerts.
 2. Open channel settings, then **Integrations**, then **Webhooks**.
 3. Create a webhook, name it `RMM Hunter Watch`, choose the alert channel, and copy the webhook URL.
-4. Paste the URL into the RMM Hunter Watch tab, enable Discord alerts, save the policy, then send a test alert.
+4. Paste the URL into the RMM Hunter Watch tab, enable Discord alerts, then send a test alert. The test button saves the current Watch policy before sending.
 
 Use a private alert channel and treat the webhook URL like a password. RMM Hunter accepts only official Discord webhook URLs beginning with `https://discord.com/api/webhooks/` or `https://discordapp.com/api/webhooks/`.
 

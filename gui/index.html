@@ -130,7 +130,7 @@
               <li>In Discord, open the server channel that should receive RMM Hunter alerts.</li>
               <li>Open channel settings, then Integrations, then Webhooks.</li>
               <li>Create a webhook, name it RMM Hunter Watch, choose the alert channel, and copy the webhook URL.</li>
-              <li>Paste the URL here, enable Discord alerts, save the policy, then send a test alert.</li>
+              <li>Paste the URL here, enable Discord alerts, then send a test alert. The test button saves the current policy first.</li>
             </ol>
             <p>Use a private alert channel and treat the webhook URL like a password. RMM Hunter only accepts official Discord webhook URLs that start with <code>https://discord.com/api/webhooks/</code> or <code>https://discordapp.com/api/webhooks/</code>.</p>
           </details>
@@ -338,17 +338,17 @@
       </section>
     </main>
 
-    <section class="update-log-modal hidden" id="desktopUpdateLog" data-update-log-id="desktop-0.3.1" role="dialog" aria-modal="true" aria-labelledby="desktopUpdateLogTitle" aria-describedby="desktopUpdateLogText">
+    <section class="update-log-modal hidden" id="desktopUpdateLog" data-update-log-id="desktop-0.3.2" role="dialog" aria-modal="true" aria-labelledby="desktopUpdateLogTitle" aria-describedby="desktopUpdateLogText">
       <div class="update-log-card">
         <button class="modal-close-button" id="desktopUpdateLogClose" type="button" aria-label="Close update log">&times;</button>
         <span class="eyebrow">Update log</span>
-        <h2 id="desktopUpdateLogTitle">RMM Hunter 0.3.1 is ready.</h2>
-        <p id="desktopUpdateLogText">This release adds the tabbed workspace, a cleaner collapsed sidebar, and Watch Preview alerting polish.</p>
+        <h2 id="desktopUpdateLogTitle">RMM Hunter 0.3.2 is ready.</h2>
+        <p id="desktopUpdateLogText">This release fixes Discord test alerts after pasting a new webhook.</p>
         <ul>
-          <li>Scan, Evidence, Timeline, Watch, Trust health, and Info now have dedicated tabs.</li>
-          <li>The sidebar logo doubles as the expand control when the sidebar is collapsed.</li>
-          <li>Discord alerts can be tested before using them for real findings.</li>
-          <li>AI defense boundaries stay strict: action IDs only, no generated commands.</li>
+          <li>The test-alert button now saves the current Watch policy before sending.</li>
+          <li>Webhook setup errors now show the actual issue instead of Electron IPC wording.</li>
+          <li>Discord alerts still require official Discord webhook URLs.</li>
+          <li>AI defense boundaries remain strict: action IDs only, no generated commands.</li>
         </ul>
         <div class="modal-actions">
           <button class="secondary-button" id="desktopUpdateLogRelease" type="button">Release notes</button>

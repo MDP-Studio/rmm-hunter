@@ -93,7 +93,7 @@ const externalLinks = {
   openCoffee: "https://buymeacoffee.com/meidie",
   openRepo: "https://github.com/MDP-Studio/rmm-hunter",
   openPrivacy: "https://github.com/MDP-Studio/rmm-hunter/blob/main/PRIVACY.md",
-  desktopUpdateLogRelease: "https://github.com/MDP-Studio/rmm-hunter/releases/tag/v0.3.1"
+  desktopUpdateLogRelease: "https://github.com/MDP-Studio/rmm-hunter/releases/tag/v0.3.2"
 };
 
 let currentReport = null;
@@ -308,9 +308,10 @@ watchRunOnce?.addEventListener("click", async () => {
     renderWatchStatus(payload.status);
     appendProgress(`Watch generated ${payload.result?.alert_count || 0} new alert${payload.result?.alert_count === 1 ? "" : "s"}.`);
   } catch (error) {
-    console.info("Watch check failed.", error?.message || error);
-    watchSettingsStatus.textContent = error?.message || "Watch check failed.";
-    appendProgress(error?.message || "Watch check failed.");
+    const message = cleanBridgeError(error, "Watch check failed.");
+    console.info("Watch check failed.", message);
+    watchSettingsStatus.textContent = message;
+    appendProgress(message);
   } finally {
     watchRunOnce.disabled = false;
     watchRunOnce.textContent = "Run Watch check";
@@ -319,13 +320,16 @@ watchRunOnce?.addEventListener("click", async () => {
 
 watchTestAlert?.addEventListener("click", async () => {
   watchTestAlert.disabled = true;
-  watchSettingsStatus.textContent = "Sending Discord test alert";
+  watchSettingsStatus.textContent = "Saving Watch policy and sending Discord test alert";
   try {
+    const status = await desktopBridge.saveWatchSettings(readWatchSettingsForm());
+    renderWatchStatus(status);
     const result = await desktopBridge.sendWatchTestAlert();
     watchSettingsStatus.textContent = result?.message || "Discord test alert sent.";
   } catch (error) {
-    console.info("Watch test alert failed.", error?.message || error);
-    watchSettingsStatus.textContent = error?.message || "Discord test alert failed.";
+    const message = cleanBridgeError(error, "Discord test alert failed.");
+    console.info("Watch test alert failed.", message);
+    watchSettingsStatus.textContent = message;
   } finally {
     watchTestAlert.disabled = false;
   }
@@ -1198,6 +1202,14 @@ function csvInputValue(input) {
     .map((item) => item.trim())
     .filter(Boolean)
     .join(", ");
+}
+
+function cleanBridgeError(error, fallback) {
+  const raw = String(error?.message || error || fallback || "Something went wrong.");
+  return raw
+    .replace(/^Error invoking remote method '[^']+':\s*/i, "")
+    .replace(/^Error:\s*/i, "")
+    .trim() || fallback;
 }
 
 function renderWatchStatus(status) {

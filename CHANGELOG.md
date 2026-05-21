@@ -4,6 +4,11 @@
 
 - Added a brief Discord webhook setup guide to the Watch tab, README, Watch docs, and website copy.
 
+## 0.3.2 - 2026-05-21
+
+- Fixed the Discord test-alert flow so it saves the current Watch form before testing a newly pasted webhook.
+- Cleaned Watch error messages so users see the actual fix, not Electron IPC wording.
+
 ## 0.3.1 - 2026-05-21
 
 - Split the desktop workspace into Scan, Evidence, Timeline, Watch, Trust health, and Info tabs so new features do not crowd the main scan view.
