@@ -119,10 +119,19 @@ jobs:
             Get-ChildItem -Path release -File -Filter "VERIFY_RELEASE.md"
           ) | Select-Object -ExpandProperty FullName
 
-          $existingDraft = gh release view $tag --json isDraft --jq ".isDraft" 2>$null
+          $existingReleaseJson = gh release view $tag --json isDraft,assets 2>$null
           if ($LASTEXITCODE -eq 0) {
-            if ($existingDraft -ne "true") {
-              throw "Release $tag already exists and is not a draft. Refusing to overwrite published assets."
+            $existingRelease = $existingReleaseJson | ConvertFrom-Json
+            if (-not $existingRelease.isDraft) {
+              $expectedNames = @($files | ForEach-Object { Split-Path -Path $_ -Leaf })
+              $actualNames = @($existingRelease.assets | ForEach-Object { $_.name })
+              $missingNames = @($expectedNames | Where-Object { $_ -notin $actualNames })
+              if ($missingNames.Count -gt 0) {
+                $missingList = $missingNames -join ", "
+                throw "Release $tag already exists and is not a draft, but is missing expected asset(s): $missingList. Refusing to overwrite published assets."
+              }
+              Write-Host "Release $tag is already published with all expected assets. Leaving published assets unchanged."
+              return
             }
             gh release upload $tag @files --clobber
             gh release edit $tag --title "RMM Hunter $tag"
