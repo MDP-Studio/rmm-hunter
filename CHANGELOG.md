@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 - 2026-05-21
+
+- Added Watch Preview CLI commands for one-shot checks, continuous watch, scheduled-task install/remove, and dry-run/apply response actions.
+- Added the desktop Watch panel for local policy editing, one-shot Watch checks, Discord webhook test alerts, and recent alert history.
+- Documented the Watch Preview and Active Defense design, including local checkpoint, alert-history, and action-history storage.
+- Documented hybrid monitoring with near-real-time delta checks, full reconciliation scans, and optional user-approved Sysmon support.
+- Documented response modes for `alert_only`, default `approval_required`, `daytime_auto`, and `night_auto`.
+- Documented AI Copilot boundaries, Discord webhook alerting, setup consent for helpers, and the first-release rule that response actions must not delete files automatically.
 
 ## 0.2.1 - 2026-05-21
 

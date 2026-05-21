@@ -469,6 +469,126 @@ class RuleTests(unittest.TestCase):
         self.assertTrue(report["timeline"])
         self.assertEqual(report["timeline"][0]["time_utc"], "2026-05-17T08:00:00Z")
 
+    def test_watch_alert_checkpoint_deduplicates_findings(self):
+        collection = {
+            "artifacts": {
+                "installed_programs": [],
+                "services": [
+                    {
+                        "name": "AnyDesk Service",
+                        "path_name": "C:\\Users\\meidi\\Downloads\\AnyDesk.exe",
+                    }
+                ],
+                "service_install_events": [],
+                "scheduled_tasks": [],
+                "startup_registry": [],
+                "startup_folders": [],
+                "recent_files": [],
+                "defender_events": [],
+                "powershell_events": [],
+                "process_creation_events": [],
+                "wmi_events": [],
+            },
+            "collection_errors": [],
+        }
+        report = rmm_hunter.analyze_artifacts(collection)
+        config = rmm_hunter.load_watch_config(None)
+        checkpoint = {"seen_signatures": {}}
+
+        first = rmm_hunter.new_watch_alerts(report, checkpoint, config)
+        self.assertTrue(first)
+        rmm_hunter.update_watch_checkpoint(checkpoint, first)
+        second = rmm_hunter.new_watch_alerts(report, checkpoint, config)
+
+        self.assertEqual(second, [])
+        self.assertTrue(first[0]["alert_id"].startswith("rmmw-"))
+
+    def test_watch_low_confidence_blocks_auto_action(self):
+        alert = {
+            "severity": "critical",
+            "confidence": "medium",
+            "rule_id": "defender_malware_event",
+            "evidence": [],
+        }
+        config = rmm_hunter.load_watch_config_from_dict({
+            "mode": "night_auto",
+            "auto_actions": {"night_auto": ["network_isolate"]},
+        })
+
+        decision = rmm_hunter.watch_action_decision(alert, "network_isolate", config)
+
+        self.assertFalse(decision["allowed"])
+        self.assertTrue(decision["approval_required"])
+        self.assertIn("confidence", decision["reason"].lower())
+
+    def test_watch_approved_tool_suppresses_auto_containment(self):
+        alert = {
+            "severity": "critical",
+            "confidence": "high",
+            "rule_id": "recent_rmm_service_install",
+            "finding": {"tool": "AnyDesk"},
+            "evidence": [{"source": "services", "name": "AnyDesk Service"}],
+        }
+        config = rmm_hunter.load_watch_config_from_dict({
+            "mode": "night_auto",
+            "approved_tools": ["AnyDesk"],
+            "auto_actions": {"night_auto": ["network_isolate"]},
+        })
+
+        decision = rmm_hunter.watch_action_decision(alert, "network_isolate", config)
+
+        self.assertFalse(decision["allowed"])
+        self.assertIn("approved", decision["reason"].lower())
+
+    def test_watch_night_profile_allows_configured_high_confidence_action(self):
+        alert = {
+            "severity": "critical",
+            "confidence": "high",
+            "rule_id": "defender_malware_event",
+            "finding": {"tool": ""},
+            "evidence": [{"source": "defender_events", "path": "C:\\Users\\Public\\payload.exe"}],
+        }
+        config = rmm_hunter.load_watch_config_from_dict({
+            "mode": "night_auto",
+            "auto_actions": {"night_auto": ["network_isolate"]},
+        })
+
+        decision = rmm_hunter.watch_action_decision(alert, "network_isolate", config)
+
+        self.assertTrue(decision["allowed"])
+        self.assertFalse(decision["approval_required"])
+
+    def test_ai_watch_rejects_unknown_action(self):
+        alert = {"severity": "critical", "confidence": "high", "recommended_actions": []}
+
+        result = rmm_hunter.validate_ai_action_choice(alert, {"action_id": "format_disk"})
+
+        self.assertFalse(result["accepted"])
+        self.assertIn("unknown", result["reason"].lower())
+
+    def test_ai_watch_rejects_shell_command_text(self):
+        alert = {"severity": "critical", "confidence": "high", "recommended_actions": []}
+
+        result = rmm_hunter.validate_ai_action_choice(alert, {"action_id": "preserve_evidence", "note": "run powershell rm -r"})
+
+        self.assertFalse(result["accepted"])
+        self.assertIn("command", result["reason"].lower())
+
+    def test_ai_watch_cannot_override_deterministic_severity(self):
+        alert = {
+            "severity": "medium",
+            "confidence": "low",
+            "recommended_actions": [{"action_id": "preserve_evidence"}],
+        }
+
+        result = rmm_hunter.validate_ai_action_choice(
+            alert,
+            {"action_id": "preserve_evidence", "severity": "critical", "confidence": "high"},
+        )
+
+        self.assertEqual(result["deterministic"]["severity"], "medium")
+        self.assertEqual(result["deterministic"]["confidence"], "low")
+
 
 if __name__ == "__main__":
     unittest.main()

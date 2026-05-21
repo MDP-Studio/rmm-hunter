@@ -28,6 +28,7 @@
         </div>
 
         <div class="side-actions" aria-label="Project sections">
+          <button type="button" data-scroll-target="watchPanel">Watch</button>
           <button type="button" data-scroll-target="trustHealthPanel">Trust health</button>
           <button type="button" data-scroll-target="feedbackSection">Feedback</button>
           <button type="button" data-scroll-target="aboutSection">About</button>
@@ -72,6 +73,58 @@
           <div class="source-actions">
             <button class="secondary-button compact-button" id="selectKapeRoot" type="button">Import KAPE folder</button>
             <button class="link-button hidden" id="clearKapeRoot" type="button">Clear</button>
+          </div>
+        </section>
+
+        <section class="watch-panel" id="watchPanel" aria-label="Watch Preview">
+          <div class="watch-header">
+            <div>
+              <span class="eyebrow">Watch Preview</span>
+              <h3>Always-on detection</h3>
+              <p id="watchStatusText">Approval required. Local alert history only until you enable a destination.</p>
+            </div>
+            <div class="watch-actions">
+              <button class="secondary-button compact-button" id="watchRunOnce" type="button">Run Watch check</button>
+              <button class="secondary-button compact-button" id="watchSaveSettings" type="button">Save policy</button>
+            </div>
+          </div>
+          <div class="watch-grid">
+            <label>
+              Response mode
+              <select id="watchMode">
+                <option value="alert_only">Alert only</option>
+                <option value="approval_required">Approval required</option>
+                <option value="daytime_auto">Daytime guarded auto</option>
+                <option value="night_auto">Night high-confidence auto</option>
+              </select>
+            </label>
+            <label>
+              Discord webhook
+              <input id="watchDiscordWebhook" type="password" autocomplete="off" spellcheck="false" placeholder="Optional">
+            </label>
+            <label>
+              Approved RMM tools
+              <input id="watchApprovedTools" type="text" autocomplete="off" spellcheck="false" placeholder="TeamViewer, AnyDesk">
+            </label>
+            <label>
+              Development folders
+              <input id="watchDevPaths" type="text" autocomplete="off" spellcheck="false" placeholder="C:\Projects, D:\Dev">
+            </label>
+          </div>
+          <div class="watch-footer">
+            <label class="watch-toggle">
+              <input id="watchDiscordEnabled" type="checkbox">
+              <span>Discord alerts</span>
+            </label>
+            <button class="link-button" id="watchTestAlert" type="button">Send test alert</button>
+            <span id="watchSettingsStatus">Watch policy not loaded yet.</span>
+          </div>
+          <div class="watch-alerts" id="watchAlerts">
+            <div class="section-heading">
+              <h4>Alert inbox</h4>
+              <span id="watchAlertHint">No Watch alerts yet</span>
+            </div>
+            <div class="watch-alert-list" id="watchAlertList"></div>
           </div>
         </section>
 
@@ -262,17 +315,17 @@
       </section>
     </main>
 
-    <section class="update-log-modal hidden" id="desktopUpdateLog" data-update-log-id="desktop-0.2.1" role="dialog" aria-modal="true" aria-labelledby="desktopUpdateLogTitle" aria-describedby="desktopUpdateLogText">
+    <section class="update-log-modal hidden" id="desktopUpdateLog" data-update-log-id="desktop-0.3.0" role="dialog" aria-modal="true" aria-labelledby="desktopUpdateLogTitle" aria-describedby="desktopUpdateLogText">
       <div class="update-log-card">
         <button class="modal-close-button" id="desktopUpdateLogClose" type="button" aria-label="Close update log">&times;</button>
         <span class="eyebrow">Update log</span>
-        <h2 id="desktopUpdateLogTitle">RMM Hunter 0.2.1 is ready.</h2>
-        <p id="desktopUpdateLogText">This release keeps the desktop calmer while bringing the GUI closer to CLI evidence coverage.</p>
+        <h2 id="desktopUpdateLogTitle">RMM Hunter 0.3.0 Watch Preview is ready.</h2>
+        <p id="desktopUpdateLogText">This release adds local Watch alerts, policy-gated response previews, and Discord test alerts.</p>
         <ul>
-          <li>Evidence cards and the timeline now sit side by side on wide screens.</li>
-          <li>Timeline rows start compact and can be expanded when more timestamps matter.</li>
-          <li>The desktop app can import a KAPE output folder and merge it with the live Windows scan.</li>
-          <li>Optional AI recommendations stay bring-your-own-key and only run when the user asks.</li>
+          <li>Watch checks write local alert history and preserve deterministic scan verdicts.</li>
+          <li>Response modes start at approval required, with auto-containment opt-in only.</li>
+          <li>Discord alerts can be tested before using them for real findings.</li>
+          <li>AI defense boundaries stay strict: action IDs only, no generated commands.</li>
         </ul>
         <div class="modal-actions">
           <button class="secondary-button" id="desktopUpdateLogRelease" type="button">Release notes</button>

@@ -20,11 +20,15 @@ Scan reports can include:
 
 Reports are written locally on the scanned device. In packaged desktop builds, reports are written under the per-user RMM Hunter profile in `%LOCALAPPDATA%\RMM Hunter\reports`.
 
+Watch Preview also keeps local checkpoint, alert-history, and action-history data on the scanned device. These records may include timestamps, finding summaries, selected response modes, action names, action results, and references to local evidence.
+
 ## No Default Network Uploads
 
 RMM Hunter does not transfer scan reports, artifacts, telemetry, analytics, or usage data to MDP Studio by default.
 
 Do not publish or send raw scan reports unless you have reviewed them. They can contain sensitive local system details.
+
+If Discord webhook alerting is configured, RMM Hunter sends alert notification content to the Discord webhook selected by the user. The first alert channel is Discord webhook plus local history. Users should treat webhook URLs as secrets and choose an appropriate private channel. RMM Hunter should send compact alert summaries rather than raw report files.
 
 ## Update Checks
 
@@ -50,6 +54,14 @@ Supported provider presets include:
 Provider API keys are stored under the local Windows profile and encrypted with Electron safe storage where available. Keys are not written to scan reports or exports.
 
 Users are responsible for reviewing the privacy policy and data handling terms of any AI provider they configure.
+
+In Watch Preview, AI Copilot may receive minimized alert and report context only when the user has configured an AI provider and enabled the AI feature. AI Copilot cannot run arbitrary commands, override deterministic severity or confidence, or bypass response-mode approval requirements.
+
+## Optional Helpers
+
+Watch setup may offer helper installation or configuration, such as a scheduled task, service wrapper, or Sysmon. These helpers are optional and must be user-approved before installation or enablement.
+
+RMM Hunter does not bundle KAPE or third-party collection tools. If a user imports third-party output, the imported files remain under the user's control and should be reviewed before sharing.
 
 ## Security Reports
 

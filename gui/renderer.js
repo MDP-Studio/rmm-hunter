@@ -55,6 +55,19 @@ const vendorLogStatus = document.getElementById("vendorLogStatus");
 const kapeStatus = document.getElementById("kapeStatus");
 const selectKapeRoot = document.getElementById("selectKapeRoot");
 const clearKapeRoot = document.getElementById("clearKapeRoot");
+const watchPanel = document.getElementById("watchPanel");
+const watchStatusText = document.getElementById("watchStatusText");
+const watchRunOnce = document.getElementById("watchRunOnce");
+const watchSaveSettings = document.getElementById("watchSaveSettings");
+const watchMode = document.getElementById("watchMode");
+const watchDiscordWebhook = document.getElementById("watchDiscordWebhook");
+const watchApprovedTools = document.getElementById("watchApprovedTools");
+const watchDevPaths = document.getElementById("watchDevPaths");
+const watchDiscordEnabled = document.getElementById("watchDiscordEnabled");
+const watchTestAlert = document.getElementById("watchTestAlert");
+const watchSettingsStatus = document.getElementById("watchSettingsStatus");
+const watchAlertHint = document.getElementById("watchAlertHint");
+const watchAlertList = document.getElementById("watchAlertList");
 const sidebarToggle = document.getElementById("sidebarToggle");
 const checkUpdatesButton = document.getElementById("checkUpdates");
 const updatePanel = document.getElementById("updatePanel");
@@ -76,13 +89,14 @@ const externalLinks = {
   openCoffee: "https://buymeacoffee.com/meidie",
   openRepo: "https://github.com/MDP-Studio/rmm-hunter",
   openPrivacy: "https://github.com/MDP-Studio/rmm-hunter/blob/main/PRIVACY.md",
-  desktopUpdateLogRelease: "https://github.com/MDP-Studio/rmm-hunter/releases/tag/v0.2.1"
+  desktopUpdateLogRelease: "https://github.com/MDP-Studio/rmm-hunter/releases/tag/v0.3.0"
 };
 
 let currentReport = null;
 let currentPaths = null;
 let currentAiSettings = null;
 let currentUpdate = null;
+let currentWatchStatus = null;
 let scanProgressPercent = 0;
 let desktopUpdateLogPreviousFocus = null;
 let currentTimelineEntries = [];
@@ -124,6 +138,30 @@ const desktopBridge = window.rmmHunter || {
     finding_explanations: [],
     privacy_note: "No report data was sent to an AI provider."
   }),
+  getWatchStatus: async () => ({
+    mode: "approval_required",
+    enabled: false,
+    discordEnabled: false,
+    hasDiscordWebhook: false,
+    approvedTools: [],
+    approvedProviders: [],
+    devPaths: [],
+    recentAlerts: [],
+    secureStorageAvailable: false,
+    stateDir: ""
+  }),
+  saveWatchSettings: async () => {
+    throw new Error("Desktop scanner bridge is unavailable. Start the app with npm.cmd start.");
+  },
+  runWatchOnce: async () => {
+    throw new Error("Desktop scanner bridge is unavailable. Start the app with npm.cmd start.");
+  },
+  sendWatchTestAlert: async () => {
+    throw new Error("Desktop scanner bridge is unavailable. Start the app with npm.cmd start.");
+  },
+  respondToWatchAlert: async () => {
+    throw new Error("Desktop scanner bridge is unavailable. Start the app with npm.cmd start.");
+  },
   showPath: async () => null,
   checkUpdates: async () => ({
     currentVersion: "0.0.0",
@@ -144,6 +182,10 @@ const desktopBridge = window.rmmHunter || {
 
 refreshAiSettings().catch((error) => {
   aiSettingsStatus.textContent = error?.message || "AI settings could not be loaded.";
+});
+
+refreshWatchStatus().catch((error) => {
+  watchSettingsStatus.textContent = error?.message || "Watch settings could not be loaded.";
 });
 
 checkForUpdates({ silent: true }).catch((error) => {
@@ -228,6 +270,55 @@ clearKapeRoot?.addEventListener("click", () => {
   selectedKapeRoot = "";
   renderSourceStatus(currentReport, currentPaths, { phase: "ready" });
   appendProgress("KAPE import cleared for the next scan.");
+});
+
+watchSaveSettings?.addEventListener("click", async () => {
+  watchSaveSettings.disabled = true;
+  watchSettingsStatus.textContent = "Saving Watch policy";
+  try {
+    const status = await desktopBridge.saveWatchSettings(readWatchSettingsForm());
+    renderWatchStatus(status);
+    watchDiscordWebhook.value = "";
+    watchSettingsStatus.textContent = "Watch policy saved locally.";
+  } catch (error) {
+    console.info("Watch policy save failed.", error?.message || error);
+    watchSettingsStatus.textContent = error?.message || "Watch policy could not be saved.";
+  } finally {
+    watchSaveSettings.disabled = false;
+  }
+});
+
+watchRunOnce?.addEventListener("click", async () => {
+  watchRunOnce.disabled = true;
+  watchRunOnce.textContent = "Checking...";
+  watchSettingsStatus.textContent = "Running Watch check";
+  try {
+    const payload = await desktopBridge.runWatchOnce({ kapeRoot: selectedKapeRoot || null });
+    renderWatchResult(payload.result);
+    renderWatchStatus(payload.status);
+    appendProgress(`Watch generated ${payload.result?.alert_count || 0} new alert${payload.result?.alert_count === 1 ? "" : "s"}.`);
+  } catch (error) {
+    console.info("Watch check failed.", error?.message || error);
+    watchSettingsStatus.textContent = error?.message || "Watch check failed.";
+    appendProgress(error?.message || "Watch check failed.");
+  } finally {
+    watchRunOnce.disabled = false;
+    watchRunOnce.textContent = "Run Watch check";
+  }
+});
+
+watchTestAlert?.addEventListener("click", async () => {
+  watchTestAlert.disabled = true;
+  watchSettingsStatus.textContent = "Sending Discord test alert";
+  try {
+    const result = await desktopBridge.sendWatchTestAlert();
+    watchSettingsStatus.textContent = result?.message || "Discord test alert sent.";
+  } catch (error) {
+    console.info("Watch test alert failed.", error?.message || error);
+    watchSettingsStatus.textContent = error?.message || "Discord test alert failed.";
+  } finally {
+    watchTestAlert.disabled = false;
+  }
 });
 
 for (const [buttonId, url] of Object.entries(externalLinks)) {
@@ -993,6 +1084,163 @@ function formatTrustStatus(status) {
     return "needs review";
   }
   return status || "unknown";
+}
+
+async function refreshWatchStatus() {
+  const status = await desktopBridge.getWatchStatus();
+  renderWatchStatus(status);
+  return status;
+}
+
+function readWatchSettingsForm() {
+  return {
+    mode: watchMode?.value || "approval_required",
+    discordWebhook: watchDiscordWebhook?.value || "",
+    discordEnabled: Boolean(watchDiscordEnabled?.checked),
+    approvedTools: csvInputValue(watchApprovedTools),
+    devPaths: csvInputValue(watchDevPaths),
+    approvedProviders: "",
+    pollIntervalSeconds: 15,
+    reconcileIntervalSeconds: 300
+  };
+}
+
+function csvInputValue(input) {
+  return String(input?.value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .join(", ");
+}
+
+function renderWatchStatus(status) {
+  currentWatchStatus = status || {};
+  if (watchMode) {
+    watchMode.value = currentWatchStatus.mode || "approval_required";
+  }
+  if (watchDiscordEnabled) {
+    watchDiscordEnabled.checked = Boolean(currentWatchStatus.discordEnabled);
+  }
+  if (watchApprovedTools) {
+    watchApprovedTools.value = (currentWatchStatus.approvedTools || []).join(", ");
+  }
+  if (watchDevPaths) {
+    watchDevPaths.value = (currentWatchStatus.devPaths || []).join(", ");
+  }
+  if (watchDiscordWebhook) {
+    watchDiscordWebhook.value = "";
+    watchDiscordWebhook.placeholder = currentWatchStatus.hasDiscordWebhook
+      ? "Saved Discord webhook"
+      : "Optional";
+  }
+  const modeText = formatWatchMode(currentWatchStatus.mode);
+  const discordText = currentWatchStatus.discordEnabled && currentWatchStatus.hasDiscordWebhook
+    ? "Discord alerts ready"
+    : "Local alert history only";
+  if (watchStatusText) {
+    watchStatusText.textContent = `${modeText}. ${discordText}.`;
+  }
+  if (watchSettingsStatus) {
+    watchSettingsStatus.textContent = currentWatchStatus.secureStorageAvailable
+      ? `State folder: ${shortPath(currentWatchStatus.stateDir || "")}`
+      : "Secure storage unavailable. Discord webhook saving may fail.";
+  }
+  renderWatchAlerts(currentWatchStatus.recentAlerts || []);
+}
+
+function renderWatchResult(result) {
+  const alerts = Array.isArray(result?.alerts) && result.alerts.length
+    ? result.alerts
+    : (Array.isArray(result?.recent_alerts) ? result.recent_alerts : []);
+  renderWatchAlerts(alerts);
+  if (watchSettingsStatus) {
+    watchSettingsStatus.textContent = result?.alert_count
+      ? `${result.alert_count} new Watch alert${result.alert_count === 1 ? "" : "s"} recorded.`
+      : "No new Watch alerts. Existing history remains available.";
+  }
+}
+
+function renderWatchAlerts(alerts) {
+  const rows = Array.isArray(alerts) ? alerts.slice(0, 8) : [];
+  if (watchAlertHint) {
+    watchAlertHint.textContent = rows.length
+      ? `${rows.length} recent alert${rows.length === 1 ? "" : "s"}`
+      : "No Watch alerts yet";
+  }
+  if (!watchAlertList) {
+    return;
+  }
+  watchAlertList.replaceChildren(...rows.map(renderWatchAlertCard));
+  if (!rows.length) {
+    const empty = document.createElement("p");
+    empty.className = "watch-empty";
+    empty.textContent = "Run a Watch check to populate local alert history.";
+    watchAlertList.append(empty);
+  }
+}
+
+function renderWatchAlertCard(alert) {
+  const card = document.createElement("article");
+  card.className = `watch-alert-card ${alert.severity || "low"}`;
+
+  const header = document.createElement("div");
+  header.className = "watch-alert-header";
+
+  const title = document.createElement("h5");
+  title.textContent = alert.summary || "Watch alert";
+
+  const pill = document.createElement("span");
+  pill.className = `pill ${alert.severity === "critical" ? "high" : alert.severity || "low"}`;
+  pill.textContent = alert.severity || "low";
+
+  header.append(title, pill);
+
+  const meta = document.createElement("p");
+  meta.textContent = `${alert.rule_id || "rule"} | ${alert.confidence || "unknown"} confidence | ${formatTimelineTime(alert.time_utc, "")}`;
+
+  const actions = document.createElement("div");
+  actions.className = "watch-action-row";
+  const recommended = Array.isArray(alert.recommended_actions) ? alert.recommended_actions.slice(0, 3) : [];
+  for (const action of recommended) {
+    const button = document.createElement("button");
+    button.className = "link-button";
+    button.type = "button";
+    button.textContent = action.label || action.action_id || "Action";
+    button.addEventListener("click", () => previewWatchAction(alert.alert_id, action.action_id));
+    actions.append(button);
+  }
+
+  card.append(header, meta);
+  if (actions.childElementCount) {
+    card.append(actions);
+  }
+  return card;
+}
+
+async function previewWatchAction(alertId, actionId) {
+  if (!alertId || !actionId) {
+    return;
+  }
+  try {
+    const result = await desktopBridge.respondToWatchAlert({ alertId, actionId, apply: false });
+    watchSettingsStatus.textContent = result?.decision?.reason || "Watch action preview recorded.";
+  } catch (error) {
+    console.info("Watch action preview failed.", error?.message || error);
+    watchSettingsStatus.textContent = error?.message || "Watch action preview failed.";
+  }
+}
+
+function formatWatchMode(mode) {
+  if (mode === "alert_only") {
+    return "Alert only";
+  }
+  if (mode === "daytime_auto") {
+    return "Daytime guarded auto";
+  }
+  if (mode === "night_auto") {
+    return "Night high-confidence auto";
+  }
+  return "Approval required";
 }
 
 async function refreshAiSettings() {

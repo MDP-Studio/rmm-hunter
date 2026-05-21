@@ -12,6 +12,8 @@ RMM Hunter is a triage tool. It collects endpoint artifacts, applies local rules
 
 It does not delete files, stop services, uninstall software, quarantine artifacts, or change system settings.
 
+The Watch Preview and Active Defense design keeps that default. Watch can monitor for changes and raise alerts. Active response actions are optional, policy-gated, audited, and do not delete files automatically in the first release.
+
 ## Contact
 
 Website: `https://rmmhunter.mdpstudio.com.au`
@@ -55,6 +57,15 @@ Windows MVP:
 - WMI Activity events where available
 - Timeline entries built from timestamped findings
 - Evidence strength and confidence labels for each finding
+
+Watch Preview scope:
+
+- Local checkpoint store for previous scan state, alert history, and action history
+- Hybrid monitoring that combines near-real-time delta checks with scheduled full reconciliation scans
+- Optional Sysmon support when the user chooses to install or connect it
+- Discord webhook alerts plus local history as the first alert channel
+- Response modes: `alert_only`, `approval_required`, `daytime_auto`, and `night_auto`
+- AI Copilot explanations and ranking inside deterministic policy limits
 
 Known remote access tools covered in the initial rules:
 
@@ -146,6 +157,33 @@ Default OpenAI model: `gpt-5-mini`.
 
 AI is only used to explain the report and suggest next steps. It does not set or change the scanner verdict. Before any AI request, the desktop app sends a minimized report summary and strips or summarizes sensitive values such as full user paths, emails, long tokens, encoded blobs, and raw event payloads.
 
+In Watch Preview, AI Copilot remains constrained. It can explain alerts, rank likely next steps, and choose only from pre-approved response actions after deterministic policy gates pass. It cannot run arbitrary commands, create new actions, override severity or confidence, or lower an approval requirement.
+
+### Watch Preview And Active Defense
+
+Watch Preview is a local monitoring mode for repeated checks on the same Windows device. It is not a breach-prevention guarantee. It is intended to help notice new RMM, service, scheduled task, startup, Defender, PowerShell, WMI, process, or trust-health evidence after a baseline scan.
+
+Watch stores local checkpoints so each run can compare current evidence with the previous known state. It also keeps local alert history and action history so the operator can review what changed and what response decision was made.
+
+Monitoring is hybrid:
+
+- Delta checks look for near-real-time changes in selected local sources.
+- Full reconciliation scans run on a slower cadence to catch missed, delayed, or unavailable events.
+- Sysmon is optional and improves process and network-event context only when installed and configured by the user.
+
+Setup must ask before installing helpers such as a Watch scheduled task, service wrapper, or Sysmon configuration. RMM Hunter does not bundle KAPE, Sysmon, or other third-party tools. KAPE output can be imported when the user already has a collection.
+
+Response modes:
+
+| Mode | Behavior |
+| --- | --- |
+| `alert_only` | Record the alert and send configured notifications. No response action is proposed as executable. |
+| `approval_required` | Default mode. Show a proposed action, but require user approval before any response runs. |
+| `daytime_auto` | During configured support hours, allow soft containment only for policy-approved conditions. |
+| `night_auto` | Outside support hours, allow guarded containment only for high-confidence conditions that pass policy gates. |
+
+Active response actions are audited and reversible where possible. The first release must not automatically delete files. Examples of safer response categories include pausing a known suspicious scheduled task, stopping a suspicious service, disabling a startup entry, adding a local block rule, or collecting extra evidence, but only when the action is explicitly pre-approved by policy and available in the selected response mode.
+
 ### CLI
 
 Run from an elevated PowerShell session for the best coverage:
@@ -188,6 +226,28 @@ Merge a live collector artifact file with KAPE output:
 ```powershell
 python .\rmm_hunter.py --input .\reports\rmm_hunter_artifacts_20260507T000000Z.json --kape-root "C:\Cases\Host01\KAPE\ModuleOutput"
 ```
+
+Run one Watch Preview check with a local policy file:
+
+```powershell
+python .\rmm_hunter.py watch --once --config .\watch-config.json --state-dir "$env:LOCALAPPDATA\RMM Hunter\watch"
+```
+
+Install or remove the optional Watch scheduled task:
+
+```powershell
+python .\rmm_hunter.py watch --install-task --config .\watch-config.json
+python .\rmm_hunter.py watch --remove-task
+```
+
+Preview or apply a policy-gated response action:
+
+```powershell
+python .\rmm_hunter.py respond --alert-id rmmw-0123456789abcdef --action preserve_evidence --dry-run
+python .\rmm_hunter.py respond --alert-id rmmw-0123456789abcdef --action preserve_evidence --apply
+```
+
+Hard containment actions remain opt-in and policy-gated. Unknown action IDs, command-like AI output, low-confidence alerts, protected paths, and approved tools are blocked from automatic response.
 
 See `docs/RMM_ARTIFACT_SOURCES.md` and `docs/RMM_ABUSE_INVESTIGATION_CHEATSHEET.md` for the vendor log matrix, KAPE interpretation notes, and safe triage workflow.
 
@@ -321,6 +381,7 @@ Full privacy policy: `PRIVACY.md`
 - `docs/GAP_ADDENDUM.md`: release trust, interoperability, coverage, and mapping gaps
 - `docs/DETECTION_MAPPING.md`: rule-to-ATT&CK/D3FEND matrix and mapped export profile
 - `docs/COVERAGE_SCORECARD.md`: seeded corpus scorecard and coverage boundaries
+- `docs/WATCH_ACTIVE_DEFENSE.md`: Watch Preview and Active Defense guardrails
 - `RELEASE_CHECKLIST.md`: GitHub release readiness checklist
 - `CHANGELOG.md`: release notes
 

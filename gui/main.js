@@ -35,6 +35,10 @@ const DEV_REPORTS_DIR = path.join(ROOT_DIR, "reports");
 const PACKAGED_REPORTS_DIR = path.join(PROFILE_ROOT, "reports");
 const REPORTS_DIR = app.isPackaged ? PACKAGED_REPORTS_DIR : DEV_REPORTS_DIR;
 const AI_SETTINGS_PATH = path.join(PROFILE_ROOT, "ai-settings.json");
+const WATCH_STATE_DIR = path.join(PROFILE_ROOT, "watch");
+const WATCH_SETTINGS_PATH = path.join(PROFILE_ROOT, "watch-settings.json");
+const WATCH_RUNTIME_CONFIG_PATH = path.join(WATCH_STATE_DIR, "watch-runtime-config.json");
+const WATCH_RESULT_PATH = path.join(WATCH_STATE_DIR, "watch-last-result.json");
 const AI_PROVIDERS = Object.freeze({
   openai: {
     id: "openai",
@@ -392,6 +396,88 @@ ipcMain.handle("ai:explainReport", async (_event, report) => {
 
   const sanitizedReport = sanitizeReportForAi(report);
   return callAiExplanation({ config, report: sanitizedReport });
+});
+
+ipcMain.handle("watch:getStatus", async () => buildWatchStatus());
+
+ipcMain.handle("watch:saveSettings", async (_event, settings) => {
+  saveWatchSettings(settings);
+  return buildWatchStatus();
+});
+
+ipcMain.handle("watch:runOnce", async (_event, options = {}) => {
+  fs.mkdirSync(WATCH_STATE_DIR, { recursive: true });
+  const config = buildWatchConfig({ includeSecret: true });
+  writeJsonFile(WATCH_RUNTIME_CONFIG_PATH, config);
+  const args = [
+    "watch",
+    "--once",
+    "--config",
+    WATCH_RUNTIME_CONFIG_PATH,
+    "--state-dir",
+    WATCH_STATE_DIR,
+    "--json-out",
+    WATCH_RESULT_PATH
+  ];
+  const kapeRoot = normalizeKapeRoot(options?.kapeRoot);
+  if (kapeRoot) {
+    args.push("--kape-root", kapeRoot);
+  }
+  sendProgress("Watch check", "Running a single Watch delta check with the current local policy.");
+  await runScanner(args, {
+    stage: "Watch check",
+    detail: "Checking high-value Windows evidence and updating local Watch history."
+  });
+  const result = JSON.parse(fs.readFileSync(WATCH_RESULT_PATH, "utf8"));
+  return {
+    result,
+    status: buildWatchStatus()
+  };
+});
+
+ipcMain.handle("watch:testAlert", async () => {
+  const settings = buildWatchSettings({ includeSecret: true });
+  if (!settings.discordWebhook) {
+    throw new Error("Add a Discord webhook before sending a test alert.");
+  }
+  await sendDiscordWebhook(settings.discordWebhook, {
+    username: "RMM Hunter Watch",
+    embeds: [
+      {
+        title: "RMM Hunter Watch test alert",
+        description: "Your Discord alert destination is connected. No scan evidence was sent.",
+        color: 0x315f9f,
+        timestamp: new Date().toISOString()
+      }
+    ]
+  });
+  return { sent: true, message: "Test alert sent to Discord." };
+});
+
+ipcMain.handle("watch:respond", async (_event, payload = {}) => {
+  fs.mkdirSync(WATCH_STATE_DIR, { recursive: true });
+  const config = buildWatchConfig({ includeSecret: true });
+  writeJsonFile(WATCH_RUNTIME_CONFIG_PATH, config);
+  const outputPath = path.join(WATCH_STATE_DIR, `watch_response_${safeTimestamp()}.json`);
+  const args = [
+    "respond",
+    "--alert-id",
+    safeAlertId(payload.alertId),
+    "--action",
+    safeActionId(payload.actionId),
+    "--config",
+    WATCH_RUNTIME_CONFIG_PATH,
+    "--state-dir",
+    WATCH_STATE_DIR,
+    "--json-out",
+    outputPath,
+    payload.apply ? "--apply" : "--dry-run"
+  ];
+  await runScanner(args, {
+    stage: "Watch response",
+    detail: payload.apply ? "Applying approved Watch response action." : "Previewing Watch response action."
+  });
+  return JSON.parse(fs.readFileSync(outputPath, "utf8"));
 });
 
 ipcMain.handle("path:show", async (_event, targetPath) => {
@@ -871,6 +957,260 @@ function loadAiSettings() {
 function writeAiSettings(settings) {
   fs.mkdirSync(PROFILE_ROOT, { recursive: true });
   fs.writeFileSync(AI_SETTINGS_PATH, JSON.stringify(settings, null, 2) + "\n", "utf8");
+}
+
+function writeJsonFile(filePath, data) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + "\n", "utf8");
+}
+
+function buildWatchStatus() {
+  const settings = buildWatchSettings({ includeSecret: false });
+  return {
+    mode: settings.mode,
+    enabled: settings.enabled,
+    pollIntervalSeconds: settings.pollIntervalSeconds,
+    reconcileIntervalSeconds: settings.reconcileIntervalSeconds,
+    approvedTools: settings.approvedTools,
+    approvedProviders: settings.approvedProviders,
+    devPaths: settings.devPaths,
+    discordEnabled: settings.discordEnabled,
+    hasDiscordWebhook: settings.hasDiscordWebhook,
+    secureStorageAvailable: safeStorage.isEncryptionAvailable(),
+    stateDir: WATCH_STATE_DIR,
+    recentAlerts: readWatchAlerts().slice(0, 12)
+  };
+}
+
+function loadWatchSettings() {
+  try {
+    if (!fs.existsSync(WATCH_SETTINGS_PATH)) {
+      return {};
+    }
+    const parsed = JSON.parse(fs.readFileSync(WATCH_SETTINGS_PATH, "utf8"));
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (error) {
+    console.error(`Could not load Watch settings. ${error.message}`);
+    return {};
+  }
+}
+
+function writeWatchSettings(settings) {
+  fs.mkdirSync(PROFILE_ROOT, { recursive: true });
+  fs.writeFileSync(WATCH_SETTINGS_PATH, JSON.stringify(settings, null, 2) + "\n", "utf8");
+}
+
+function saveWatchSettings(payload) {
+  const existing = loadWatchSettings();
+  const nextSettings = {
+    enabled: Boolean(payload?.enabled),
+    mode: safeWatchMode(payload?.mode),
+    pollIntervalSeconds: safePositiveInteger(payload?.pollIntervalSeconds, 15, 10, 3600),
+    reconcileIntervalSeconds: safePositiveInteger(payload?.reconcileIntervalSeconds, 300, 60, 86400),
+    approvedTools: safeCsvList(payload?.approvedTools),
+    approvedProviders: safeCsvList(payload?.approvedProviders),
+    devPaths: safeCsvList(payload?.devPaths),
+    discordEnabled: Boolean(payload?.discordEnabled)
+  };
+  const webhook = String(payload?.discordWebhook || "").trim();
+  if (webhook) {
+    if (!safeDiscordWebhookUrl(webhook)) {
+      throw new Error("Discord webhook must be an official https://discord.com/api/webhooks/ URL.");
+    }
+    nextSettings.discordSecret = encryptWatchSecret(webhook, "discord");
+  } else if (payload?.clearDiscordWebhook) {
+    delete nextSettings.discordSecret;
+  } else if (existing.discordSecret) {
+    nextSettings.discordSecret = existing.discordSecret;
+  }
+  writeWatchSettings(nextSettings);
+}
+
+function buildWatchSettings({ includeSecret }) {
+  const settings = loadWatchSettings();
+  const webhook = includeSecret ? decryptWatchSecret(settings.discordSecret, "discord") : "";
+  return {
+    enabled: Boolean(settings.enabled),
+    mode: safeWatchMode(settings.mode),
+    pollIntervalSeconds: safePositiveInteger(settings.pollIntervalSeconds, 15, 10, 3600),
+    reconcileIntervalSeconds: safePositiveInteger(settings.reconcileIntervalSeconds, 300, 60, 86400),
+    approvedTools: safeCsvList(settings.approvedTools),
+    approvedProviders: safeCsvList(settings.approvedProviders),
+    devPaths: safeCsvList(settings.devPaths),
+    discordEnabled: Boolean(settings.discordEnabled),
+    discordWebhook: webhook,
+    hasDiscordWebhook: Boolean(settings.discordSecret || webhook)
+  };
+}
+
+function buildWatchConfig({ includeSecret }) {
+  const settings = buildWatchSettings({ includeSecret });
+  return {
+    schema_version: "1.0",
+    mode: settings.mode,
+    poll_interval_seconds: settings.pollIntervalSeconds,
+    reconcile_interval_seconds: settings.reconcileIntervalSeconds,
+    lookback_days: 1,
+    max_recent_files: 300,
+    approved_tools: settings.approvedTools,
+    approved_providers: settings.approvedProviders,
+    dev_paths: settings.devPaths,
+    alert_sinks: {
+      discord: {
+        enabled: settings.discordEnabled && Boolean(settings.discordWebhook),
+        webhook_url: includeSecret ? settings.discordWebhook : ""
+      }
+    },
+    auto_actions: {
+      daytime_auto: ["preserve_evidence", "send_alert", "defender_quick_scan"],
+      night_auto: ["preserve_evidence", "send_alert", "defender_quick_scan", "network_isolate"]
+    }
+  };
+}
+
+function safeWatchMode(value) {
+  const mode = String(value || "approval_required").trim();
+  return ["alert_only", "approval_required", "daytime_auto", "night_auto"].includes(mode)
+    ? mode
+    : "approval_required";
+}
+
+function safePositiveInteger(value, fallback, min, max) {
+  const number = Number.parseInt(value, 10);
+  if (!Number.isFinite(number)) {
+    return fallback;
+  }
+  return Math.max(min, Math.min(max, number));
+}
+
+function safeCsvList(value) {
+  const list = Array.isArray(value)
+    ? value
+    : String(value || "").split(",");
+  return list
+    .map((item) => String(item || "").trim())
+    .filter(Boolean)
+    .slice(0, 40);
+}
+
+function encryptWatchSecret(value, purpose) {
+  if (!safeStorage.isEncryptionAvailable()) {
+    throw new Error("Secure secret storage is unavailable on this Windows profile.");
+  }
+  return {
+    purpose,
+    storage: "electron-safe-storage",
+    value: safeStorage.encryptString(value).toString("base64")
+  };
+}
+
+function decryptWatchSecret(secret, purpose) {
+  try {
+    if (
+      secret?.storage !== "electron-safe-storage" ||
+      secret?.purpose !== purpose ||
+      !secret.value ||
+      !safeStorage.isEncryptionAvailable()
+    ) {
+      return "";
+    }
+    return safeStorage.decryptString(Buffer.from(secret.value, "base64"));
+  } catch (error) {
+    console.error(`Could not decrypt Watch secret. ${error.message}`);
+    return "";
+  }
+}
+
+function safeDiscordWebhookUrl(value) {
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === "https:" &&
+      ["discord.com", "discordapp.com"].includes(url.hostname.toLowerCase()) &&
+      url.pathname.startsWith("/api/webhooks/")
+    );
+  } catch (error) {
+    console.info("Rejected Discord webhook URL.", error?.message || error);
+    return false;
+  }
+}
+
+function sendDiscordWebhook(webhookUrl, payload) {
+  if (!safeDiscordWebhookUrl(webhookUrl)) {
+    return Promise.reject(new Error("Discord webhook URL is not allowed."));
+  }
+  return new Promise((resolve, reject) => {
+    const url = new URL(webhookUrl);
+    const body = JSON.stringify(payload);
+    const request = https.request(
+      {
+        protocol: url.protocol,
+        hostname: url.hostname,
+        path: `${url.pathname}${url.search}`,
+        method: "POST",
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(body),
+          "User-Agent": APP_USER_AGENT
+        },
+        timeout: 15000
+      },
+      (response) => {
+        let data = "";
+        response.on("data", (chunk) => {
+          data += chunk;
+        });
+        response.on("end", () => {
+          if (response.statusCode < 200 || response.statusCode >= 300) {
+            reject(new Error(`Discord test alert failed with HTTP ${response.statusCode}. ${data.slice(0, 160)}`));
+            return;
+          }
+          resolve(true);
+        });
+      }
+    );
+    request.on("timeout", () => {
+      request.destroy(new Error("Discord test alert timed out."));
+    });
+    request.on("error", reject);
+    request.write(body);
+    request.end();
+  });
+}
+
+function readWatchAlerts() {
+  const alertsPath = path.join(WATCH_STATE_DIR, "alerts.jsonl");
+  if (!fs.existsSync(alertsPath)) {
+    return [];
+  }
+  try {
+    return fs.readFileSync(alertsPath, "utf8")
+      .split(/\r?\n/)
+      .filter(Boolean)
+      .slice(-50)
+      .reverse()
+      .map((line) => JSON.parse(line));
+  } catch (error) {
+    console.error(`Could not read Watch alerts. ${error.message}`);
+    return [];
+  }
+}
+
+function safeAlertId(value) {
+  const text = String(value || "");
+  if (!/^rmmw-[a-f0-9]{16}$/i.test(text)) {
+    throw new Error("Invalid Watch alert ID.");
+  }
+  return text;
+}
+
+function safeActionId(value) {
+  const text = String(value || "");
+  if (!/^[a-z_]{3,80}$/.test(text)) {
+    throw new Error("Invalid Watch action ID.");
+  }
+  return text;
 }
 
 function saveAiSettings(payload) {

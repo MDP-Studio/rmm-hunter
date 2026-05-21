@@ -10,19 +10,25 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import logging
 import os
 import re
 import shutil
+import sqlite3
 import subprocess
 import sys
 import tempfile
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
-SCANNER_VERSION = "0.2.1"
+SCANNER_VERSION = "0.3.0"
 LOGGER = logging.getLogger(__name__)
 
 REMOTE_TOOLS: dict[str, tuple[str, ...]] = {
@@ -225,6 +231,184 @@ EVIDENCE_STRENGTH_BY_CATEGORY = {
     "trust_validation_issue": "strong",
     "trusted_root_store_issue": "strong",
 }
+
+WATCH_SCHEMA_VERSION = "1.0"
+WATCH_TASK_NAME = "RMM Hunter Watch"
+WATCH_ALERT_CATEGORIES = {
+    "known_rmm_service",
+    "known_rmm_scheduled_task",
+    "known_rmm_startup_registry",
+    "known_rmm_startup_folder",
+    "rmm_vendor_log",
+    "rmm_connection_log",
+    "service_from_user_writable_path",
+    "recent_rmm_service_install",
+    "recent_service_install_from_suspicious_path",
+    "scheduled_task_from_suspicious_path",
+    "startup_registry_suspicious_path",
+    "recent_remote_tool_file",
+    "odd_unsigned_recent_executable",
+    "encoded_powershell",
+    "encoded_powershell_process",
+    "powershell_download_cradle",
+    "powershell_policy_or_hidden_window",
+    "msiexec_from_browser_or_download_path",
+    "suspicious_wmi_activity",
+    "defender_malware_event",
+    "defender_sensitive_configuration_event",
+    "defender_health_issue",
+    "trust_validation_issue",
+    "trusted_root_store_issue",
+}
+
+WATCH_CRITICAL_CATEGORIES = {"defender_malware_event"}
+WATCH_SOFT_ACTIONS = {
+    "preserve_evidence",
+    "send_alert",
+    "defender_quick_scan",
+    "defender_full_scan",
+    "open_protection_history",
+    "recommend_kape_collection",
+}
+WATCH_HARD_ACTIONS = {
+    "network_isolate",
+    "release_network_isolation",
+    "stop_process",
+    "stop_service",
+    "disable_scheduled_task",
+    "block_suspicious_path",
+}
+WATCH_ACTIONS = {
+    "preserve_evidence": {
+        "label": "Preserve evidence snapshot",
+        "type": "soft",
+        "reversible": False,
+        "description": "Write the alert packet and evidence context to the local Watch evidence folder.",
+    },
+    "send_alert": {
+        "label": "Send configured alert",
+        "type": "soft",
+        "reversible": False,
+        "description": "Send the alert to configured alert sinks such as Discord.",
+    },
+    "defender_quick_scan": {
+        "label": "Start Defender quick scan",
+        "type": "soft",
+        "reversible": False,
+        "description": "Ask Microsoft Defender Antivirus to start a quick scan.",
+    },
+    "defender_full_scan": {
+        "label": "Start Defender full scan",
+        "type": "soft",
+        "reversible": False,
+        "description": "Ask Microsoft Defender Antivirus to start a full scan.",
+    },
+    "open_protection_history": {
+        "label": "Open Defender protection history",
+        "type": "soft",
+        "reversible": False,
+        "description": "Show where to review Defender Protection History.",
+    },
+    "recommend_kape_collection": {
+        "label": "Recommend KAPE collection",
+        "type": "soft",
+        "reversible": False,
+        "description": "Tell the operator to preserve a KAPE collection for deeper DFIR review.",
+    },
+    "network_isolate": {
+        "label": "Emergency network isolation",
+        "type": "hard",
+        "reversible": True,
+        "description": "Add Windows Firewall rules that block inbound and outbound traffic except loopback.",
+    },
+    "release_network_isolation": {
+        "label": "Release emergency network isolation",
+        "type": "hard",
+        "reversible": True,
+        "description": "Remove RMM Hunter Watch emergency isolation firewall rules.",
+    },
+    "stop_process": {
+        "label": "Stop suspicious process",
+        "type": "hard",
+        "reversible": False,
+        "description": "Stop a suspicious process when a process ID exists in the alert evidence.",
+    },
+    "stop_service": {
+        "label": "Stop suspicious service",
+        "type": "hard",
+        "reversible": True,
+        "description": "Stop a suspicious service and record the service name for rollback guidance.",
+    },
+    "disable_scheduled_task": {
+        "label": "Disable suspicious scheduled task",
+        "type": "hard",
+        "reversible": True,
+        "description": "Disable a scheduled task and record its name for rollback guidance.",
+    },
+    "block_suspicious_path": {
+        "label": "Block suspicious path",
+        "type": "hard",
+        "reversible": True,
+        "description": "Reserve a local execution block for a suspicious path. Preview builds only report this action.",
+    },
+}
+
+WATCH_DEFAULT_CONFIG: dict[str, Any] = {
+    "schema_version": WATCH_SCHEMA_VERSION,
+    "mode": "approval_required",
+    "poll_interval_seconds": 15,
+    "reconcile_interval_seconds": 300,
+    "lookback_days": 1,
+    "max_recent_files": 300,
+    "approved_tools": [],
+    "approved_providers": [],
+    "dev_paths": [],
+    "business_hours": {
+        "timezone": "local",
+        "start": "09:00",
+        "end": "17:30",
+        "weekdays": [1, 2, 3, 4, 5],
+    },
+    "alert_sinks": {
+        "discord": {
+            "enabled": False,
+            "webhook_url": "",
+        }
+    },
+    "auto_actions": {
+        "daytime_auto": ["preserve_evidence", "send_alert", "defender_quick_scan"],
+        "night_auto": ["preserve_evidence", "send_alert", "defender_quick_scan", "network_isolate"],
+    },
+    "enabled_actions": [
+        "preserve_evidence",
+        "send_alert",
+        "defender_quick_scan",
+        "defender_full_scan",
+        "open_protection_history",
+        "recommend_kape_collection",
+        "network_isolate",
+        "release_network_isolation",
+        "stop_process",
+        "stop_service",
+        "disable_scheduled_task",
+        "block_suspicious_path",
+    ],
+    "install_helpers": {
+        "watch_task": "ask",
+        "sysmon": "ask",
+        "process_creation_audit": "ask",
+    },
+}
+
+WATCH_SEVERITY_ORDER = {"low": 1, "medium": 2, "high": 3, "critical": 4}
+WATCH_CONFIDENCE_ORDER = {"low": 1, "medium": 2, "high": 3}
+WATCH_PROTECTED_PATH_MARKERS = (
+    "\\windows\\",
+    "\\program files\\",
+    "\\program files (x86)\\",
+    "\\microsoft defender\\",
+    "\\windows defender\\",
+)
 
 DEFENDER_HIGH_RISK_IDS = {1116, 1117, 1118, 1119, 1121, 1122}
 DEFENDER_CONFIG_IDS = {5001, 5004, 5007, 5013}
@@ -2575,6 +2759,862 @@ def build_mapped_detection_export(report: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def clone_json(value: Any) -> Any:
+    return json.loads(json.dumps(value, default=str))
+
+
+def deep_merge_dict(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+    merged = clone_json(base)
+    for key, value in (override or {}).items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = deep_merge_dict(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
+def default_watch_root() -> Path:
+    local_app_data = os.environ.get("LOCALAPPDATA")
+    if local_app_data:
+        return Path(local_app_data) / "RMM Hunter" / "watch"
+    return app_base_dir() / "watch"
+
+
+def default_watch_config_path() -> Path:
+    return default_watch_root() / "watch-config.json"
+
+
+def load_watch_config(path: Path | None = None) -> dict[str, Any]:
+    config = clone_json(WATCH_DEFAULT_CONFIG)
+    if path and path.exists():
+        loaded = load_json(path)
+        if isinstance(loaded, dict):
+            config = deep_merge_dict(config, loaded)
+    config["mode"] = normalize_watch_mode(config.get("mode"))
+    config["enabled_actions"] = normalize_action_list(config.get("enabled_actions"))
+    for mode in ("daytime_auto", "night_auto"):
+        configured = ((config.get("auto_actions") or {}).get(mode))
+        config.setdefault("auto_actions", {})[mode] = normalize_action_list(configured)
+    for key in ("approved_tools", "approved_providers", "dev_paths"):
+        config[key] = normalize_string_list(config.get(key))
+    return config
+
+
+def write_watch_config(path: Path, config: dict[str, Any]) -> None:
+    write_json(path, load_watch_config_from_dict(config))
+
+
+def load_watch_config_from_dict(config: dict[str, Any]) -> dict[str, Any]:
+    return deep_merge_dict(WATCH_DEFAULT_CONFIG, config or {})
+
+
+def normalize_watch_mode(value: Any) -> str:
+    mode = str(value or "approval_required").strip().lower()
+    if mode in {"alert_only", "approval_required", "daytime_auto", "night_auto"}:
+        return mode
+    return "approval_required"
+
+
+def normalize_string_list(value: Any) -> list[str]:
+    if isinstance(value, str):
+        value = [item.strip() for item in value.split(",")]
+    if not isinstance(value, list):
+        return []
+    return [str(item).strip() for item in value if str(item).strip()]
+
+
+def normalize_action_list(value: Any) -> list[str]:
+    actions = normalize_string_list(value)
+    return [action for action in actions if action in WATCH_ACTIONS]
+
+
+def watch_paths(state_dir: Path | None = None) -> dict[str, Path]:
+    root = (state_dir or default_watch_root()).resolve()
+    return {
+        "root": root,
+        "checkpoint": root / "checkpoint.json",
+        "alerts_jsonl": root / "alerts.jsonl",
+        "actions_jsonl": root / "actions.jsonl",
+        "history_db": root / "watch-history.sqlite3",
+        "evidence": root / "evidence",
+        "snapshots": root / "snapshots",
+    }
+
+
+def ensure_watch_state(state_dir: Path | None = None) -> dict[str, Path]:
+    paths = watch_paths(state_dir)
+    for key in ("root", "evidence", "snapshots"):
+        paths[key].mkdir(parents=True, exist_ok=True)
+    init_watch_db(paths["history_db"])
+    return paths
+
+
+def init_watch_db(path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(path) as connection:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS alerts (
+                alert_id TEXT PRIMARY KEY,
+                time_utc TEXT NOT NULL,
+                severity TEXT NOT NULL,
+                confidence TEXT NOT NULL,
+                rule_id TEXT NOT NULL,
+                source TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'new',
+                summary TEXT NOT NULL,
+                payload_json TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS actions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                alert_id TEXT NOT NULL,
+                action_id TEXT NOT NULL,
+                time_utc TEXT NOT NULL,
+                applied INTEGER NOT NULL,
+                result_json TEXT NOT NULL
+            )
+            """
+        )
+        connection.commit()
+
+
+def append_jsonl(path: Path, item: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(item, ensure_ascii=True, sort_keys=False) + "\n")
+
+
+def load_watch_checkpoint(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {"schema_version": WATCH_SCHEMA_VERSION, "seen_signatures": {}}
+    try:
+        checkpoint = load_json(path)
+        if isinstance(checkpoint, dict):
+            checkpoint.setdefault("schema_version", WATCH_SCHEMA_VERSION)
+            checkpoint.setdefault("seen_signatures", {})
+            return checkpoint
+    except (OSError, json.JSONDecodeError) as exc:
+        LOGGER.warning("Could not load Watch checkpoint %s: %s", path, exc)
+    return {"schema_version": WATCH_SCHEMA_VERSION, "seen_signatures": {}}
+
+
+def save_watch_checkpoint(path: Path, checkpoint: dict[str, Any]) -> None:
+    checkpoint["updated_at_utc"] = utc_now_iso()
+    write_json(path, checkpoint)
+
+
+def update_watch_checkpoint(checkpoint: dict[str, Any], alerts: list[dict[str, Any]]) -> None:
+    seen = checkpoint.setdefault("seen_signatures", {})
+    for alert in alerts:
+        signature = str(alert.get("dedupe_signature") or "")
+        if signature:
+            seen[signature] = alert.get("time_utc") or utc_now_iso()
+
+
+def watch_alert_signature(finding: dict[str, Any]) -> str:
+    artifacts = [artifact for artifact in finding.get("artifacts", []) if isinstance(artifact, dict)]
+    first = artifacts[0] if artifacts else {}
+    source = str(first.get("source") or finding.get("category") or "")
+    raw = "|".join(
+        [
+            str(finding.get("category") or ""),
+            str(finding.get("title") or ""),
+            str(finding.get("tool") or first.get("tool") or ""),
+            artifact_identity(source, first) if first else "",
+        ]
+    )
+    return hashlib.sha256(raw.encode("utf-8", errors="ignore")).hexdigest()
+
+
+def watch_alert_id(signature: str) -> str:
+    return f"rmmw-{signature[:16]}"
+
+
+def watch_alert_severity(finding: dict[str, Any]) -> str:
+    category = str(finding.get("category") or "")
+    if category in WATCH_CRITICAL_CATEGORIES:
+        return "critical"
+    severity = str(finding.get("severity") or "low").lower()
+    return severity if severity in WATCH_SEVERITY_ORDER else "low"
+
+
+def watch_alert_confidence(finding: dict[str, Any]) -> str:
+    label = str(finding.get("confidence_label") or "").lower()
+    if label in WATCH_CONFIDENCE_ORDER:
+        return label
+    try:
+        return confidence_label(float(finding.get("confidence") or 0))
+    except (TypeError, ValueError) as exc:
+        LOGGER.debug("Could not parse Watch finding confidence %r: %s", finding.get("confidence"), exc)
+        return "low"
+
+
+def finding_source(finding: dict[str, Any]) -> str:
+    for artifact in finding.get("artifacts", []) or []:
+        if isinstance(artifact, dict) and artifact.get("source"):
+            return str(artifact.get("source"))
+    return str(finding.get("category") or "scanner")
+
+
+def finding_to_watch_alert(finding: dict[str, Any], report: dict[str, Any], config: dict[str, Any]) -> dict[str, Any]:
+    signature = watch_alert_signature(finding)
+    evidence = [
+        clone_json(artifact)
+        for artifact in finding.get("artifacts", []) or []
+        if isinstance(artifact, dict)
+    ][:5]
+    alert = {
+        "schema_version": WATCH_SCHEMA_VERSION,
+        "alert_id": watch_alert_id(signature),
+        "dedupe_signature": signature,
+        "time_utc": alert_time_from_finding(finding),
+        "severity": watch_alert_severity(finding),
+        "confidence": watch_alert_confidence(finding),
+        "rule_id": str(finding.get("category") or "unknown_rule"),
+        "source": finding_source(finding),
+        "summary": str(finding.get("title") or finding.get("reason") or "RMM Hunter Watch alert"),
+        "details": str(finding.get("plain_language") or finding.get("reason") or ""),
+        "evidence": evidence,
+        "finding": {
+            "id": finding.get("id"),
+            "title": finding.get("title"),
+            "severity": finding.get("severity"),
+            "category": finding.get("category"),
+            "tool": finding.get("tool"),
+            "confidence": finding.get("confidence"),
+            "confidence_label": finding.get("confidence_label"),
+            "evidence_strength": finding.get("evidence_strength"),
+            "artifact_count": finding.get("artifact_count"),
+        },
+        "recommended_actions": [],
+        "mode": normalize_watch_mode(config.get("mode")),
+        "deterministic_verdict": report.get("verdict"),
+        "risk_score": report.get("risk_score"),
+        "status": "new",
+        "created_by": "deterministic_rules",
+        "files_changed": 0,
+    }
+    alert["recommended_actions"] = recommended_watch_actions(alert, config)
+    return alert
+
+
+def alert_time_from_finding(finding: dict[str, Any]) -> str:
+    for artifact in finding.get("artifacts", []) or []:
+        if not isinstance(artifact, dict):
+            continue
+        timestamp = artifact_timestamp(artifact)
+        if timestamp:
+            return timestamp[0]
+    return utc_now_iso()
+
+
+def recommended_watch_actions(alert: dict[str, Any], config: dict[str, Any]) -> list[dict[str, Any]]:
+    severity = str(alert.get("severity") or "low")
+    rule_id = str(alert.get("rule_id") or "")
+    candidates = ["preserve_evidence", "send_alert"]
+    if rule_id == "defender_malware_event":
+        candidates.extend(["defender_full_scan", "open_protection_history", "recommend_kape_collection"])
+    elif "defender" in rule_id:
+        candidates.append("open_protection_history")
+    if "rmm" in rule_id or "service" in rule_id or severity in {"high", "critical"}:
+        candidates.append("recommend_kape_collection")
+    if severity == "critical":
+        candidates.append("network_isolate")
+
+    seen: set[str] = set()
+    rows: list[dict[str, Any]] = []
+    for action_id in candidates:
+        if action_id in seen or action_id not in WATCH_ACTIONS:
+            continue
+        seen.add(action_id)
+        decision = watch_action_decision(alert, action_id, config, manual_approval=False)
+        action = WATCH_ACTIONS[action_id]
+        rows.append(
+            {
+                "action_id": action_id,
+                "label": action["label"],
+                "type": action["type"],
+                "reversible": action["reversible"],
+                "auto_allowed": decision["allowed"],
+                "approval_required": decision["approval_required"],
+                "reason": decision["reason"],
+            }
+        )
+    return rows
+
+
+def new_watch_alerts(report: dict[str, Any], checkpoint: dict[str, Any], config: dict[str, Any]) -> list[dict[str, Any]]:
+    seen = checkpoint.get("seen_signatures") if isinstance(checkpoint.get("seen_signatures"), dict) else {}
+    alerts: list[dict[str, Any]] = []
+    for finding in report.get("findings") or []:
+        if not isinstance(finding, dict):
+            continue
+        category = str(finding.get("category") or "")
+        if category not in WATCH_ALERT_CATEGORIES:
+            continue
+        alert = finding_to_watch_alert(finding, report, config)
+        if alert["dedupe_signature"] in seen:
+            continue
+        alerts.append(alert)
+    alerts.sort(key=lambda alert: (WATCH_SEVERITY_ORDER.get(str(alert.get("severity")), 0), alert.get("time_utc", "")), reverse=True)
+    return alerts
+
+
+def record_watch_alerts(alerts: list[dict[str, Any]], state_dir: Path | None = None) -> None:
+    if not alerts:
+        return
+    paths = ensure_watch_state(state_dir)
+    with sqlite3.connect(paths["history_db"]) as connection:
+        for alert in alerts:
+            payload = json.dumps(alert, ensure_ascii=True, sort_keys=False)
+            connection.execute(
+                """
+                INSERT OR IGNORE INTO alerts
+                    (alert_id, time_utc, severity, confidence, rule_id, source, status, summary, payload_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    alert.get("alert_id"),
+                    alert.get("time_utc"),
+                    alert.get("severity"),
+                    alert.get("confidence"),
+                    alert.get("rule_id"),
+                    alert.get("source"),
+                    alert.get("status", "new"),
+                    alert.get("summary"),
+                    payload,
+                ),
+            )
+            append_jsonl(paths["alerts_jsonl"], alert)
+        connection.commit()
+
+
+def load_recent_watch_alerts(state_dir: Path | None = None, limit: int = 30) -> list[dict[str, Any]]:
+    paths = ensure_watch_state(state_dir)
+    with sqlite3.connect(paths["history_db"]) as connection:
+        rows = connection.execute(
+            "SELECT payload_json FROM alerts ORDER BY time_utc DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    alerts = []
+    for (payload,) in rows:
+        try:
+            alerts.append(json.loads(payload))
+        except json.JSONDecodeError as exc:
+            LOGGER.warning("Could not parse stored Watch alert: %s", exc)
+    return alerts
+
+
+def load_watch_alert(state_dir: Path | None, alert_id: str) -> dict[str, Any]:
+    paths = ensure_watch_state(state_dir)
+    with sqlite3.connect(paths["history_db"]) as connection:
+        row = connection.execute("SELECT payload_json FROM alerts WHERE alert_id = ?", (alert_id,)).fetchone()
+    if not row:
+        raise RuntimeError(f"Watch alert was not found: {alert_id}")
+    return json.loads(row[0])
+
+
+def alert_text(alert: dict[str, Any]) -> str:
+    return artifact_text(alert)
+
+
+def alert_tool_is_approved(alert: dict[str, Any], config: dict[str, Any]) -> bool:
+    approved = [item.lower() for item in normalize_string_list(config.get("approved_tools"))]
+    if not approved:
+        return False
+    tool = str((alert.get("finding") or {}).get("tool") or "").lower()
+    text = alert_text(alert)
+    return any(item and (item in tool or item in text) for item in approved)
+
+
+def alert_provider_is_approved(alert: dict[str, Any], config: dict[str, Any]) -> bool:
+    approved = [item.lower() for item in normalize_string_list(config.get("approved_providers"))]
+    text = alert_text(alert)
+    return bool(approved and any(item and item in text for item in approved))
+
+
+def alert_path_is_protected(alert: dict[str, Any]) -> bool:
+    text = alert_text(alert).replace("/", "\\").lower()
+    return any(marker in text for marker in WATCH_PROTECTED_PATH_MARKERS)
+
+
+def watch_action_decision(
+    alert: dict[str, Any],
+    action_id: str,
+    config: dict[str, Any] | None = None,
+    *,
+    manual_approval: bool = False,
+) -> dict[str, Any]:
+    config = load_watch_config_from_dict(config or {})
+    mode = normalize_watch_mode(config.get("mode"))
+    action = WATCH_ACTIONS.get(action_id)
+    if not action:
+        return {"allowed": False, "approval_required": True, "reason": "Unknown action ID."}
+    if action_id not in normalize_action_list(config.get("enabled_actions")):
+        return {"allowed": False, "approval_required": True, "reason": "Action is disabled in local policy."}
+    if mode == "alert_only":
+        if action_id in {"preserve_evidence", "send_alert"}:
+            return {"allowed": True, "approval_required": False, "reason": "Alert-only mode permits evidence and alert records only."}
+        return {"allowed": False, "approval_required": True, "reason": "Alert-only mode never performs containment actions."}
+
+    severity = str(alert.get("severity") or "low")
+    confidence = str(alert.get("confidence") or "low")
+    is_hard = action_id in WATCH_HARD_ACTIONS
+
+    if manual_approval:
+        if action_id == "block_suspicious_path":
+            return {"allowed": False, "approval_required": True, "reason": "Execution blocking is preview-only in this release."}
+        return {"allowed": True, "approval_required": False, "reason": "Operator approval provided."}
+
+    if action_id in WATCH_SOFT_ACTIONS and mode == "approval_required":
+        return {"allowed": False, "approval_required": True, "reason": "Default mode records alerts and asks before running response actions."}
+
+    if is_hard and mode not in {"daytime_auto", "night_auto"}:
+        return {"allowed": False, "approval_required": True, "reason": "Hard containment requires an auto-response mode or explicit approval."}
+    if WATCH_CONFIDENCE_ORDER.get(confidence, 0) < WATCH_CONFIDENCE_ORDER["high"]:
+        return {"allowed": False, "approval_required": True, "reason": "Low or medium confidence requires approval."}
+    if WATCH_SEVERITY_ORDER.get(severity, 0) < WATCH_SEVERITY_ORDER["high"]:
+        return {"allowed": False, "approval_required": True, "reason": "Auto-response requires high or critical severity."}
+    if alert_tool_is_approved(alert, config) or alert_provider_is_approved(alert, config):
+        return {"allowed": False, "approval_required": True, "reason": "Approved tool or provider suppresses auto containment."}
+    if is_hard and alert_path_is_protected(alert):
+        return {"allowed": False, "approval_required": True, "reason": "Protected Windows or business-app path requires approval."}
+    if action_id not in normalize_action_list((config.get("auto_actions") or {}).get(mode)):
+        return {"allowed": False, "approval_required": True, "reason": f"Action is not configured for {mode}."}
+    return {"allowed": True, "approval_required": False, "reason": f"Policy permits {mode} auto-response."}
+
+
+AI_FORBIDDEN_ACTION_TEXT = (
+    "powershell",
+    "cmd.exe",
+    "bash",
+    "sh -c",
+    "wmic",
+    "reg add",
+    "reg delete",
+    "schtasks",
+    "netsh",
+    "del ",
+    "remove-item",
+    "rm ",
+    "curl ",
+    "invoke-webrequest",
+)
+
+
+def sanitize_alert_for_ai(alert: dict[str, Any]) -> dict[str, Any]:
+    allowed_action_ids = [
+        action.get("action_id")
+        for action in alert.get("recommended_actions", [])
+        if isinstance(action, dict) and action.get("action_id") in WATCH_ACTIONS
+    ]
+    return {
+        "alert_id": alert.get("alert_id"),
+        "time_utc": alert.get("time_utc"),
+        "severity": alert.get("severity"),
+        "confidence": alert.get("confidence"),
+        "rule_id": alert.get("rule_id"),
+        "source": alert.get("source"),
+        "summary": compact_text(alert.get("summary"), 400),
+        "details": compact_text(alert.get("details"), 700),
+        "allowed_action_ids": allowed_action_ids,
+        "evidence": clone_json(alert.get("evidence", [])[:3]),
+    }
+
+
+def extract_ai_action_ids(ai_choice: Any) -> list[str]:
+    if isinstance(ai_choice, str):
+        return [ai_choice]
+    if isinstance(ai_choice, list):
+        return [str(item) for item in ai_choice]
+    if not isinstance(ai_choice, dict):
+        return []
+    if isinstance(ai_choice.get("action_ids"), list):
+        return [str(item) for item in ai_choice["action_ids"]]
+    if isinstance(ai_choice.get("actions"), list):
+        return [
+            str(item.get("action_id") if isinstance(item, dict) else item)
+            for item in ai_choice["actions"]
+        ]
+    if ai_choice.get("action_id"):
+        return [str(ai_choice["action_id"])]
+    return []
+
+
+def validate_ai_action_choice(alert: dict[str, Any], ai_choice: Any, config: dict[str, Any] | None = None) -> dict[str, Any]:
+    serialized = json.dumps(ai_choice, ensure_ascii=True, default=str).lower()
+    if any(term in serialized for term in AI_FORBIDDEN_ACTION_TEXT):
+        return {
+            "accepted": False,
+            "reason": "AI output contained command-like text. Only action IDs are accepted.",
+            "accepted_actions": [],
+            "deterministic": {"severity": alert.get("severity"), "confidence": alert.get("confidence")},
+        }
+
+    action_ids = extract_ai_action_ids(ai_choice)
+    if not action_ids:
+        return {
+            "accepted": False,
+            "reason": "AI output did not choose an action ID.",
+            "accepted_actions": [],
+            "deterministic": {"severity": alert.get("severity"), "confidence": alert.get("confidence")},
+        }
+
+    unknown = [action_id for action_id in action_ids if action_id not in WATCH_ACTIONS]
+    if unknown:
+        return {
+            "accepted": False,
+            "reason": f"AI output included unknown action ID: {', '.join(unknown)}.",
+            "accepted_actions": [],
+            "deterministic": {"severity": alert.get("severity"), "confidence": alert.get("confidence")},
+        }
+
+    accepted = []
+    rejected = []
+    for action_id in action_ids:
+        decision = watch_action_decision(alert, action_id, config, manual_approval=False)
+        row = {"action_id": action_id, **decision}
+        if decision["allowed"]:
+            accepted.append(row)
+        else:
+            rejected.append(row)
+
+    return {
+        "accepted": bool(accepted),
+        "reason": "Accepted pre-approved action IDs." if accepted else "No selected AI action passed deterministic policy gates.",
+        "accepted_actions": accepted,
+        "rejected_actions": rejected,
+        "deterministic": {"severity": alert.get("severity"), "confidence": alert.get("confidence")},
+    }
+
+
+def discord_webhook_is_allowed(value: str) -> bool:
+    try:
+        url = urllib.parse.urlparse(value)
+    except Exception as exc:
+        LOGGER.info("Rejected Discord webhook URL: %s", exc)
+        return False
+    return url.scheme == "https" and url.netloc.lower() in {"discord.com", "discordapp.com"} and url.path.startswith("/api/webhooks/")
+
+
+def send_discord_alert(alert: dict[str, Any], webhook_url: str) -> dict[str, Any]:
+    if not webhook_url:
+        return {"sent": False, "reason": "Discord webhook is not configured."}
+    if not discord_webhook_is_allowed(webhook_url):
+        return {"sent": False, "reason": "Discord webhook URL is not an allowed Discord webhook endpoint."}
+
+    content = {
+        "username": "RMM Hunter Watch",
+        "embeds": [
+            {
+                "title": f"{str(alert.get('severity') or 'unknown').upper()} - {alert.get('summary')}",
+                "description": compact_text(alert.get("details") or "Review RMM Hunter Watch alert history.", 900),
+                "color": discord_color(alert.get("severity")),
+                "fields": [
+                    {"name": "Alert ID", "value": str(alert.get("alert_id")), "inline": True},
+                    {"name": "Rule", "value": str(alert.get("rule_id")), "inline": True},
+                    {"name": "Confidence", "value": str(alert.get("confidence")), "inline": True},
+                ],
+                "timestamp": alert.get("time_utc") or utc_now_iso(),
+            }
+        ],
+    }
+    payload = json.dumps(content).encode("utf-8")
+    request = urllib.request.Request(
+        webhook_url,
+        data=payload,
+        headers={"Content-Type": "application/json", "User-Agent": f"RMM-Hunter/{SCANNER_VERSION}"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=15) as response:
+            return {"sent": 200 <= response.status < 300, "status": response.status}
+    except urllib.error.URLError as exc:
+        LOGGER.warning("Discord Watch alert failed: %s", exc)
+        return {"sent": False, "reason": str(exc)}
+
+
+def discord_color(severity: Any) -> int:
+    return {
+        "critical": 0x8B0000,
+        "high": 0xBC2E37,
+        "medium": 0xA96500,
+        "low": 0x315F9F,
+    }.get(str(severity or "").lower(), 0x687386)
+
+
+def build_watch_collection(args: argparse.Namespace, config: dict[str, Any]) -> dict[str, Any]:
+    if getattr(args, "input", None):
+        collection = load_json(args.input)
+    elif getattr(args, "kape_root", None):
+        collection = import_kape_output(args.kape_root)
+    else:
+        paths = watch_paths(getattr(args, "state_dir", None))
+        artifacts_out = paths["snapshots"] / f"watch_artifacts_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}.json"
+        collection = run_collector(
+            collector=getattr(args, "collector", app_base_dir() / "collect_windows.ps1"),
+            artifacts_out=artifacts_out,
+            lookback_days=int(config.get("lookback_days") or 1),
+            max_recent_files=int(config.get("max_recent_files") or 300),
+        )
+
+    if getattr(args, "input", None) and getattr(args, "kape_root", None):
+        collection = merge_collections(collection, import_kape_output(args.kape_root))
+    return collection
+
+
+def run_watch_once(args: argparse.Namespace, config: dict[str, Any]) -> dict[str, Any]:
+    paths = ensure_watch_state(getattr(args, "state_dir", None))
+    checkpoint = load_watch_checkpoint(paths["checkpoint"])
+    collection = build_watch_collection(args, config)
+    report = analyze_artifacts(collection)
+    alerts = new_watch_alerts(report, checkpoint, config)
+    record_watch_alerts(alerts, paths["root"])
+    update_watch_checkpoint(checkpoint, alerts)
+    save_watch_checkpoint(paths["checkpoint"], checkpoint)
+    result = {
+        "schema_version": WATCH_SCHEMA_VERSION,
+        "scanner": {
+            "name": "RMM Hunter Watch",
+            "version": SCANNER_VERSION,
+            "generated_at_utc": utc_now_iso(),
+        },
+        "mode": normalize_watch_mode(config.get("mode")),
+        "state_dir": str(paths["root"]),
+        "alert_count": len(alerts),
+        "alerts": alerts,
+        "recent_alerts": load_recent_watch_alerts(paths["root"]),
+        "report": report,
+        "policy": public_watch_policy(config),
+    }
+    for alert in alerts:
+        for action in alert.get("recommended_actions", []):
+            if action.get("action_id") == "send_alert" and action.get("auto_allowed"):
+                discord = ((config.get("alert_sinks") or {}).get("discord") or {})
+                if discord.get("enabled"):
+                    send_discord_alert(alert, str(discord.get("webhook_url") or ""))
+    return result
+
+
+def public_watch_policy(config: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "mode": normalize_watch_mode(config.get("mode")),
+        "poll_interval_seconds": int(config.get("poll_interval_seconds") or 15),
+        "reconcile_interval_seconds": int(config.get("reconcile_interval_seconds") or 300),
+        "approved_tools_count": len(normalize_string_list(config.get("approved_tools"))),
+        "approved_providers_count": len(normalize_string_list(config.get("approved_providers"))),
+        "dev_paths_count": len(normalize_string_list(config.get("dev_paths"))),
+        "discord_enabled": bool(((config.get("alert_sinks") or {}).get("discord") or {}).get("enabled")),
+        "enabled_actions": normalize_action_list(config.get("enabled_actions")),
+    }
+
+
+def run_watch_loop(args: argparse.Namespace, config: dict[str, Any]) -> int:
+    interval = max(10, int(config.get("poll_interval_seconds") or 15))
+    print(f"RMM Hunter Watch running every {interval} seconds. Press Ctrl+C to stop.")
+    try:
+        while True:
+            result = run_watch_once(args, config)
+            print(f"{utc_now_iso()} alerts={result['alert_count']} mode={result['mode']}")
+            time.sleep(interval)
+    except KeyboardInterrupt:
+        print("RMM Hunter Watch stopped.")
+        return 0
+
+
+def record_watch_action(state_dir: Path | None, alert_id: str, action_id: str, applied: bool, result: dict[str, Any]) -> None:
+    paths = ensure_watch_state(state_dir)
+    row = {
+        "alert_id": alert_id,
+        "action_id": action_id,
+        "time_utc": utc_now_iso(),
+        "applied": applied,
+        "result": result,
+    }
+    append_jsonl(paths["actions_jsonl"], row)
+    with sqlite3.connect(paths["history_db"]) as connection:
+        connection.execute(
+            """
+            INSERT INTO actions (alert_id, action_id, time_utc, applied, result_json)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (alert_id, action_id, row["time_utc"], 1 if applied else 0, json.dumps(result, ensure_ascii=True)),
+        )
+        connection.commit()
+
+
+def run_response_action(
+    alert: dict[str, Any],
+    action_id: str,
+    config: dict[str, Any],
+    state_dir: Path | None,
+    *,
+    apply: bool,
+) -> dict[str, Any]:
+    decision = watch_action_decision(alert, action_id, config, manual_approval=apply)
+    if apply and not decision["allowed"]:
+        result = {"applied": False, "decision": decision}
+        record_watch_action(state_dir, str(alert.get("alert_id")), action_id, False, result)
+        return result
+    if not apply:
+        result = {"applied": False, "dry_run": True, "decision": decision, "action": WATCH_ACTIONS.get(action_id)}
+        record_watch_action(state_dir, str(alert.get("alert_id")), action_id, False, result)
+        return result
+
+    if action_id == "preserve_evidence":
+        result = preserve_watch_evidence(alert, state_dir)
+    elif action_id == "send_alert":
+        discord = ((config.get("alert_sinks") or {}).get("discord") or {})
+        result = send_discord_alert(alert, str(discord.get("webhook_url") or "")) if discord.get("enabled") else {"sent": False, "reason": "Discord is disabled."}
+    elif action_id in {"defender_quick_scan", "defender_full_scan"}:
+        result = start_defender_scan(action_id)
+    elif action_id == "open_protection_history":
+        result = open_defender_protection_history()
+    elif action_id == "recommend_kape_collection":
+        result = {"applied": True, "message": "Recommendation recorded. Collect KAPE output and import it into RMM Hunter for deeper review."}
+    elif action_id == "network_isolate":
+        result = set_network_isolation(True)
+    elif action_id == "release_network_isolation":
+        result = set_network_isolation(False)
+    elif action_id == "stop_process":
+        result = stop_alert_process(alert)
+    elif action_id == "stop_service":
+        result = stop_alert_service(alert)
+    elif action_id == "disable_scheduled_task":
+        result = disable_alert_task(alert)
+    else:
+        result = {"applied": False, "reason": "Action is not implemented in this preview."}
+    record_watch_action(state_dir, str(alert.get("alert_id")), action_id, bool(result.get("applied") or result.get("sent")), result)
+    return result
+
+
+def preserve_watch_evidence(alert: dict[str, Any], state_dir: Path | None = None) -> dict[str, Any]:
+    paths = ensure_watch_state(state_dir)
+    output = paths["evidence"] / f"{alert.get('alert_id', 'alert')}_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}.json"
+    write_json(output, alert)
+    return {"applied": True, "path": str(output), "rollback": "Evidence snapshots are files. Delete manually only after retention policy allows it."}
+
+
+def start_defender_scan(action_id: str) -> dict[str, Any]:
+    scan_type = "FullScan" if action_id == "defender_full_scan" else "QuickScan"
+    powershell = find_powershell()
+    if not powershell:
+        return {"applied": False, "reason": "PowerShell was not found."}
+    command = [powershell, "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", f"Start-MpScan -ScanType {scan_type}"]
+    result = subprocess.run(command, capture_output=True, text=True, timeout=30)
+    return {
+        "applied": result.returncode == 0,
+        "scan_type": scan_type,
+        "exit_code": result.returncode,
+        "stdout": compact_text(result.stdout, 500),
+        "stderr": compact_text(result.stderr, 500),
+    }
+
+
+def open_defender_protection_history() -> dict[str, Any]:
+    try:
+        subprocess.Popen(["cmd", "/c", "start", "", "windowsdefender:"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return {"applied": True, "message": "Opened Windows Security. Use Protection history to review Defender actions."}
+    except OSError as exc:
+        LOGGER.warning("Could not open Windows Security: %s", exc)
+        return {"applied": False, "reason": str(exc)}
+
+
+def set_network_isolation(enable: bool) -> dict[str, Any]:
+    rule_names = [
+        "RMM Hunter Watch Emergency Isolation Outbound",
+        "RMM Hunter Watch Emergency Isolation Inbound",
+    ]
+    commands = (
+        [
+            ["netsh", "advfirewall", "firewall", "add", "rule", f"name={rule_names[0]}", "dir=out", "action=block", "enable=yes"],
+            ["netsh", "advfirewall", "firewall", "add", "rule", f"name={rule_names[1]}", "dir=in", "action=block", "enable=yes"],
+        ]
+        if enable
+        else [
+            ["netsh", "advfirewall", "firewall", "delete", "rule", f"name={rule_names[0]}"],
+            ["netsh", "advfirewall", "firewall", "delete", "rule", f"name={rule_names[1]}"],
+        ]
+    )
+    results = []
+    for command in commands:
+        result = subprocess.run(command, capture_output=True, text=True, timeout=30)
+        results.append({"command": command[:4], "exit_code": result.returncode, "stderr": compact_text(result.stderr, 300)})
+    return {
+        "applied": all(item["exit_code"] == 0 for item in results),
+        "enabled": enable,
+        "results": results,
+        "rollback": "Use release_network_isolation to remove RMM Hunter Watch firewall isolation rules.",
+    }
+
+
+def first_alert_value(alert: dict[str, Any], keys: Iterable[str]) -> str:
+    for artifact in alert.get("evidence", []) or []:
+        if not isinstance(artifact, dict):
+            continue
+        value = first_present(artifact, keys)
+        if value not in (None, "", []):
+            return str(value)
+    return ""
+
+
+def stop_alert_process(alert: dict[str, Any]) -> dict[str, Any]:
+    pid = first_alert_value(alert, ("process_id", "pid", "ProcessId"))
+    if not re.fullmatch(r"\d{1,10}", pid or ""):
+        return {"applied": False, "reason": "Alert did not include a process ID."}
+    result = subprocess.run(["taskkill", "/PID", pid, "/T", "/F"], capture_output=True, text=True, timeout=30)
+    return {"applied": result.returncode == 0, "pid": pid, "exit_code": result.returncode, "stderr": compact_text(result.stderr, 300)}
+
+
+def stop_alert_service(alert: dict[str, Any]) -> dict[str, Any]:
+    service = first_alert_value(alert, ("service_name", "name", "Name"))
+    if not re.fullmatch(r"[A-Za-z0-9_. -]{1,120}", service or ""):
+        return {"applied": False, "reason": "Alert did not include a safe service name."}
+    powershell = find_powershell()
+    if not powershell:
+        return {"applied": False, "reason": "PowerShell was not found."}
+    result = subprocess.run(
+        [powershell, "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "Stop-Service -Name $args[0] -ErrorAction Stop", service],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    return {"applied": result.returncode == 0, "service": service, "exit_code": result.returncode, "stderr": compact_text(result.stderr, 300), "rollback": "Start the service again if containment was not needed."}
+
+
+def disable_alert_task(alert: dict[str, Any]) -> dict[str, Any]:
+    task = first_alert_value(alert, ("task_name", "TaskName", "name"))
+    if not task or len(task) > 260:
+        return {"applied": False, "reason": "Alert did not include a scheduled task name."}
+    result = subprocess.run(["schtasks", "/Change", "/TN", task, "/Disable"], capture_output=True, text=True, timeout=30)
+    return {"applied": result.returncode == 0, "task": task, "exit_code": result.returncode, "stderr": compact_text(result.stderr, 300), "rollback": "Re-enable the scheduled task if it was authorized."}
+
+
+def install_watch_task(config_path: Path, state_dir: Path | None = None) -> dict[str, Any]:
+    state = ensure_watch_state(state_dir)
+    cli = Path(sys.executable if getattr(sys, "frozen", False) else __file__).resolve()
+    if getattr(sys, "frozen", False):
+        command = f'"{cli}" watch --config "{config_path}" --state-dir "{state["root"]}"'
+    else:
+        command = f'"{sys.executable}" "{cli}" watch --config "{config_path}" --state-dir "{state["root"]}"'
+    result = subprocess.run(
+        ["schtasks", "/Create", "/TN", WATCH_TASK_NAME, "/SC", "ONLOGON", "/RL", "LIMITED", "/F", "/TR", command],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    return {"applied": result.returncode == 0, "task_name": WATCH_TASK_NAME, "exit_code": result.returncode, "stderr": compact_text(result.stderr, 500), "command": command}
+
+
+def remove_watch_task() -> dict[str, Any]:
+    result = subprocess.run(["schtasks", "/Delete", "/TN", WATCH_TASK_NAME, "/F"], capture_output=True, text=True, timeout=30)
+    return {"applied": result.returncode == 0, "task_name": WATCH_TASK_NAME, "exit_code": result.returncode, "stderr": compact_text(result.stderr, 500)}
+
+
 def single_line(value: Any) -> str:
     return " ".join(str(value).split())
 
@@ -2658,8 +3698,103 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def parse_watch_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        prog="rmm-hunter watch",
+        description="Run RMM Hunter Watch preview for always-on alerting and policy-gated response."
+    )
+    parser.add_argument("--config", type=Path, default=None, help="Watch policy JSON path.")
+    parser.add_argument("--state-dir", type=Path, default=default_watch_root(), help="Local Watch checkpoint and history directory.")
+    parser.add_argument("--input", type=Path, help="Analyze an existing collector artifacts JSON file instead of live collection.")
+    parser.add_argument("--kape-root", type=Path, help="Include KAPE output when generating Watch alerts.")
+    parser.add_argument("--collector", type=Path, default=app_base_dir() / "collect_windows.ps1", help="PowerShell collector path.")
+    parser.add_argument("--once", action="store_true", help="Run one Watch delta check and exit.")
+    parser.add_argument("--install-task", action="store_true", help="Install the current Watch policy as a Windows scheduled task.")
+    parser.add_argument("--remove-task", action="store_true", help="Remove the RMM Hunter Watch scheduled task.")
+    parser.add_argument("--json-out", type=Path, help="Write Watch result JSON.")
+    parser.add_argument("--print-alerts", action="store_true", help="Print generated alerts to stdout as JSON.")
+    return parser.parse_args(argv)
+
+
+def parse_respond_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        prog="rmm-hunter respond",
+        description="Dry-run or apply a pre-approved RMM Hunter Watch response action."
+    )
+    parser.add_argument("--config", type=Path, default=None, help="Watch policy JSON path.")
+    parser.add_argument("--state-dir", type=Path, default=default_watch_root(), help="Local Watch checkpoint and history directory.")
+    parser.add_argument("--alert-id", required=True, help="Watch alert ID.")
+    parser.add_argument("--action", required=True, dest="action_id", help="Action ID to dry-run or apply.")
+    parser.add_argument("--dry-run", action="store_true", help="Show what would happen without applying the action.")
+    parser.add_argument("--apply", action="store_true", help="Apply the action as an operator-approved response.")
+    parser.add_argument("--json-out", type=Path, help="Write response result JSON.")
+    return parser.parse_args(argv)
+
+
+def main_watch(argv: list[str]) -> int:
+    args = parse_watch_args(argv)
+    try:
+        config = load_watch_config(args.config)
+        if args.install_task:
+            config_path = args.config or default_watch_config_path()
+            if not config_path.exists():
+                write_json(config_path, config)
+            result = install_watch_task(config_path, args.state_dir)
+            write_optional_result(args.json_out, result)
+            print(json.dumps(result, indent=2))
+            return 0 if result.get("applied") else 1
+        if args.remove_task:
+            result = remove_watch_task()
+            write_optional_result(args.json_out, result)
+            print(json.dumps(result, indent=2))
+            return 0 if result.get("applied") else 1
+        if args.once:
+            result = run_watch_once(args, config)
+            write_optional_result(args.json_out, result)
+            if args.print_alerts:
+                print(json.dumps(result["alerts"], indent=2))
+            else:
+                print(f"Watch alerts: {result['alert_count']}")
+                print(f"Watch state: {result['state_dir']}")
+            return 0
+        return run_watch_loop(args, config)
+    except Exception as exc:
+        print(f"RMM Hunter Watch failed: {exc}", file=sys.stderr)
+        return 1
+
+
+def main_respond(argv: list[str]) -> int:
+    args = parse_respond_args(argv)
+    try:
+        if args.apply and args.dry_run:
+            raise RuntimeError("Use either --dry-run or --apply, not both.")
+        apply_action = bool(args.apply)
+        config = load_watch_config(args.config)
+        alert = load_watch_alert(args.state_dir, args.alert_id)
+        result = run_response_action(alert, args.action_id, config, args.state_dir, apply=apply_action)
+        write_optional_result(args.json_out, result)
+        print(json.dumps(result, indent=2))
+        return 0 if not apply_action or result.get("applied") or result.get("sent") else 1
+    except Exception as exc:
+        print(f"RMM Hunter response failed: {exc}", file=sys.stderr)
+        return 1
+
+
+def write_optional_result(path: Path | None, result: dict[str, Any]) -> None:
+    if path:
+        write_json(path, result)
+
+
 def main(argv: list[str] | None = None) -> int:
-    args = parse_args(argv or sys.argv[1:])
+    raw_args = argv or sys.argv[1:]
+    if raw_args:
+        command = raw_args[0].lower()
+        if command == "watch":
+            return main_watch(raw_args[1:])
+        if command == "respond":
+            return main_respond(raw_args[1:])
+
+    args = parse_args(raw_args)
 
     try:
         if args.input:
