@@ -869,6 +869,8 @@ h3 {
 .whats-new-section,
 .split-section,
 .trust-section,
+.facts-section,
+.faq-section,
 .does-section,
 .download-section {
   padding: 110px 0;
@@ -1312,6 +1314,64 @@ h3 {
   outline: none;
 }
 
+.facts-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.facts-grid article,
+.faq-list article {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(99, 179, 255, 0.08), rgba(53, 231, 173, 0.035)),
+    rgba(12, 18, 29, 0.78);
+  box-shadow: 0 18px 52px rgba(0, 0, 0, 0.2);
+}
+
+.facts-grid article {
+  min-height: 214px;
+  padding: 24px;
+}
+
+.facts-grid h3,
+.faq-list h3 {
+  color: var(--text);
+}
+
+.facts-grid p,
+.faq-list p {
+  margin-top: 10px;
+  color: var(--muted);
+}
+
+.facts-grid code {
+  padding: 2px 6px;
+  border: 1px solid rgba(151, 174, 210, 0.16);
+  border-radius: 6px;
+  color: #d9f7ff;
+  background: rgba(255, 255, 255, 0.045);
+  font-size: 0.9em;
+}
+
+.facts-grid a {
+  display: inline-flex;
+  margin-top: 14px;
+  color: var(--blue-2);
+  font-weight: 800;
+}
+
+.faq-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.faq-list article {
+  padding: 26px;
+}
+
 .site-footer {
   width: min(var(--max), calc(100% - 36px));
   margin: 0 auto;
@@ -1565,7 +1625,9 @@ h3 {
 
   .source-rail,
   .whats-new-grid,
-  .trust-grid {
+  .trust-grid,
+  .facts-grid,
+  .faq-list {
     grid-template-columns: 1fr;
   }
 

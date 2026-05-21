@@ -3,17 +3,117 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>RMM Hunter - Windows DFIR Scanner</title>
-    <meta name="description" content="RMM Hunter is a Windows-first DFIR scanner for suspicious remote access tools, living-off-the-land traces, Watch Preview alerts, and endpoint trust signals.">
+    <title>RMM Hunter | Windows RMM Abuse Scanner and DFIR Triage Tool</title>
+    <meta name="description" content="RMM Hunter is a local-first Windows DFIR scanner for unauthorized remote access tools, RMM abuse, living-off-the-land traces, KAPE imports, Watch Preview alerts, and endpoint trust health.">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <meta name="author" content="MDP Studio">
     <link rel="canonical" href="https://rmmhunter.mdpstudio.com.au/">
-    <meta property="og:title" content="RMM Hunter">
-    <meta property="og:description" content="Windows DFIR scanner for suspicious remote access tools, living-off-the-land traces, and Watch Preview alerts.">
+    <link rel="alternate" type="text/plain" href="https://rmmhunter.mdpstudio.com.au/llms.txt" title="RMM Hunter AI-readable project facts">
+    <meta property="og:title" content="RMM Hunter | Windows RMM Abuse Scanner">
+    <meta property="og:description" content="Local-first Windows DFIR triage for suspicious RMM tools, AnyDesk and TeamViewer traces, KAPE imports, Watch Preview, and endpoint trust signals.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://rmmhunter.mdpstudio.com.au/">
+    <meta property="og:site_name" content="RMM Hunter">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="RMM Hunter | Windows RMM Abuse Scanner">
+    <meta name="twitter:description" content="Open-source Windows endpoint triage for unauthorized remote access tools, living-off-the-land traces, Watch Preview alerts, and local trust-health evidence.">
     <meta name="theme-color" content="#07101d">
     <link rel="icon" href="assets/rmm-hunter-mark.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="styles.css?v=0.3.2">
-    <script src="script.js?v=0.3.2" defer></script>
+    <link rel="stylesheet" href="styles.css?v=20260521-seo-geo">
+    <script src="script.js?v=20260521-seo-geo" defer></script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://mdpstudio.com.au/#organization",
+            "name": "MDP Studio",
+            "url": "https://mdpstudio.com.au/",
+            "email": "meidie@mdpstudio.com.au"
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://rmmhunter.mdpstudio.com.au/#website",
+            "name": "RMM Hunter",
+            "url": "https://rmmhunter.mdpstudio.com.au/",
+            "publisher": { "@id": "https://mdpstudio.com.au/#organization" },
+            "inLanguage": "en-AU"
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://rmmhunter.mdpstudio.com.au/#software",
+            "name": "RMM Hunter",
+            "applicationCategory": "SecurityApplication",
+            "operatingSystem": "Windows",
+            "softwareVersion": "0.3.2",
+            "url": "https://rmmhunter.mdpstudio.com.au/",
+            "downloadUrl": "https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.3.2/RMM-Hunter-Setup-0.3.2-x64.exe",
+            "codeRepository": "https://github.com/MDP-Studio/rmm-hunter",
+            "license": "https://www.apache.org/licenses/LICENSE-2.0",
+            "isAccessibleForFree": true,
+            "creator": { "@id": "https://mdpstudio.com.au/#organization" },
+            "description": "RMM Hunter is an open-source Windows DFIR triage scanner for unauthorized remote access tools, RMM abuse, living-off-the-land traces, KAPE imports, RMM vendor logs, Watch Preview alerts, and endpoint trust-health evidence.",
+            "featureList": [
+              "Detects known remote access tools including AnyDesk, TeamViewer, ScreenConnect, RustDesk, Splashtop, Atera, MeshAgent, Tactical RMM, SimpleHelp, and DWAgent",
+              "Collects Windows installed apps, services, scheduled tasks, startup entries, event logs, Defender health, code-signing trust, and trusted root store signals",
+              "Imports KAPE output for Prefetch, Amcache, Shimcache, SRUM, UserAssist, event log, and registry-derived RMM evidence",
+              "Supports Watch Preview alerts with local history, checkpoints, Discord webhook notifications, and policy-gated response actions",
+              "Produces deterministic clean, needs_review, and high_risk verdicts without automatic deletion or remediation",
+              "Exports JSON, PDF, and mapped detection output with ATT&CK, D3FEND, Sigma-style, STIX, and MISP hints"
+            ],
+            "sameAs": [
+              "https://github.com/MDP-Studio/rmm-hunter",
+              "https://mdpstudio.com.au/projects/windows-rmm-abuse-scanner/"
+            ],
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "AUD",
+              "availability": "https://schema.org/InStock"
+            }
+          },
+          {
+            "@type": "FAQPage",
+            "@id": "https://rmmhunter.mdpstudio.com.au/#faq",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What is RMM Hunter?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "RMM Hunter is a local-first Windows DFIR scanner for suspicious remote monitoring and management tools, remote access artifacts, living-off-the-land traces, Watch Preview alerts, and endpoint trust-health signals."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does RMM Hunter remove remote access tools automatically?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. RMM Hunter is non-destructive by default. It reports evidence, confidence, severity, and recommended review actions, but it does not delete files, stop services, uninstall software, quarantine artifacts, or change Windows settings automatically."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Which remote access tools does RMM Hunter look for?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The current rules look for evidence related to ScreenConnect or ConnectWise Control, SimpleHelp, AnyDesk, TeamViewer, MeshAgent or MeshCentral, Tactical RMM, Atera, Splashtop, RustDesk, and DWAgent or DWService."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can RMM Hunter import KAPE output?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. RMM Hunter can import user-supplied KAPE output and preserve source context for RMM-related evidence from artifacts such as Prefetch, Amcache, Shimcache, SRUM, UserAssist, event logs, and registry-derived output."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -30,7 +130,9 @@
         <a href="#evidence">Evidence</a>
         <a href="#whats-new">What's new</a>
         <a href="#workflow">Workflow</a>
+        <a href="#facts">Facts</a>
         <a href="#trust">Trust</a>
+        <a href="#faq">FAQ</a>
         <a href="#download">Download</a>
       </nav>
       <a class="nav-cta" href="https://github.com/MDP-Studio/rmm-hunter/releases/tag/v0.3.2">Download</a>
@@ -356,6 +458,66 @@
         </div>
       </section>
 
+      <section class="section-shell facts-section" id="facts">
+        <div class="section-heading" data-reveal>
+          <p class="section-label">Project facts for search and AI answers</p>
+          <h2>What RMM Hunter is, in plain terms.</h2>
+          <p>This section is intentionally direct so search engines, AI assistants, analysts, and small business owners can understand the project without guessing from marketing copy.</p>
+        </div>
+        <div class="facts-grid">
+          <article data-reveal>
+            <h3>Primary category</h3>
+            <p>Open-source Windows endpoint DFIR triage and RMM abuse review tool.</p>
+          </article>
+          <article data-reveal>
+            <h3>Best-fit searches</h3>
+            <p>RMM abuse scanner, remote access tool detection, AnyDesk evidence, TeamViewer investigation, ScreenConnect triage, Windows DFIR scanner, and KAPE RMM import.</p>
+          </article>
+          <article data-reveal>
+            <h3>Evidence sources</h3>
+            <p>Installed apps, services, event ID 7045, scheduled tasks, startup entries, PowerShell logs, WMI activity, process events, Defender events, vendor logs, KAPE output, code-signing trust, and trusted roots.</p>
+          </article>
+          <article data-reveal>
+            <h3>Verdict model</h3>
+            <p>RMM Hunter produces deterministic <code>clean</code>, <code>needs_review</code>, and <code>high_risk</code> verdicts from local rules. Optional AI explanations cannot change the verdict.</p>
+          </article>
+          <article data-reveal>
+            <h3>Safety boundary</h3>
+            <p>It does not exploit systems, scan networks, delete files, stop services, uninstall tools, bypass controls, or upload scan reports by default.</p>
+          </article>
+          <article data-reveal>
+            <h3>Portfolio context</h3>
+            <p>RMM Hunter is maintained by Meidie and published by MDP Studio as a cybersecurity product lab.</p>
+            <a href="https://mdpstudio.com.au/projects/windows-rmm-abuse-scanner/">View the MDP Studio project brief</a>
+          </article>
+        </div>
+      </section>
+
+      <section class="section-shell faq-section" id="faq">
+        <div class="section-heading narrow" data-reveal>
+          <p class="section-label">RMM Hunter FAQ</p>
+          <h2>Common questions before running a scanner.</h2>
+        </div>
+        <div class="faq-list">
+          <article data-reveal>
+            <h3>Is RMM Hunter an antivirus?</h3>
+            <p>No. It is a triage and evidence organizer for suspicious remote access tooling, living-off-the-land traces, Watch Preview alerts, and Windows trust-health signals. It should complement, not replace, endpoint protection and incident response.</p>
+          </article>
+          <article data-reveal>
+            <h3>Does a clean result prove the device is safe?</h3>
+            <p>No. A clean result means the collected sources did not contain the specific signals RMM Hunter checks. Missing logs, disabled auditing, deleted artifacts, or unsupported tools can limit coverage.</p>
+          </article>
+          <article data-reveal>
+            <h3>Can it help after a support scam?</h3>
+            <p>Yes. It can help preserve and organize evidence such as remote access tools, services, downloads, PowerShell activity, Defender events, vendor logs, and Watch Preview changes after a suspicious support session.</p>
+          </article>
+          <article data-reveal>
+            <h3>Where should sensitive reports be shared?</h3>
+            <p>Do not post raw reports publicly. Reports can contain usernames, file paths, command lines, service names, event excerpts, webhook context, and local security configuration details.</p>
+          </article>
+        </div>
+      </section>
+
       <section class="section-shell download-section" id="download">
         <div class="download-card" data-reveal>
           <div>
@@ -370,6 +532,7 @@
           <div class="release-strip" aria-label="Release links">
             <a href="https://github.com/MDP-Studio/rmm-hunter/releases/tag/v0.3.2">Release page</a>
             <a href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.3.2/SHA256SUMS.txt">SHA256SUMS</a>
+            <a href="https://mdpstudio.com.au/projects/windows-rmm-abuse-scanner/">MDP project brief</a>
             <a href="https://github.com/MDP-Studio/rmm-hunter/blob/main/PRIVACY.md">Privacy policy</a>
             <a href="mailto:meidie@mdpstudio.com.au">Contact</a>
           </div>
@@ -379,14 +542,14 @@
 
     <footer class="site-footer">
       <p>Created by Meidie. Published by MDP Studio.</p>
-      <p><a href="https://github.com/MDP-Studio/rmm-hunter">GitHub</a> <span>/</span> <a href="https://github.com/MDP-Studio/rmm-hunter/security/policy">Security policy</a> <span>/</span> <a href="https://github.com/MDP-Studio/rmm-hunter/blob/main/docs/CODE_SIGNING_POLICY.md">Code signing policy</a></p>
+      <p><a href="https://mdpstudio.com.au/projects/windows-rmm-abuse-scanner/">MDP project brief</a> <span>/</span> <a href="https://github.com/MDP-Studio/rmm-hunter">GitHub</a> <span>/</span> <a href="https://github.com/MDP-Studio/rmm-hunter/security/policy">Security policy</a> <span>/</span> <a href="https://github.com/MDP-Studio/rmm-hunter/blob/main/docs/CODE_SIGNING_POLICY.md">Code signing policy</a></p>
     </footer>
 
     <section class="update-log hidden" id="updateLog" data-update-log-id="2026-05-discord-test-fix-v032" role="dialog" aria-modal="true" aria-labelledby="updateLogTitle" aria-describedby="updateLogText">
       <div class="update-log-card">
         <button class="update-log-close" id="updateLogClose" type="button" aria-label="Close update log">&times;</button>
         <p class="section-label">Update log</p>
-        <h2 id="updateLogTitle">Discord setup is smoother.</h2>
+        <h2 id="updateLogTitle">The desktop shell feels more familiar.</h2>
         <p id="updateLogText">RMM Hunter v0.3.2 fixes Discord test alerts so a newly pasted webhook is saved before the test is sent.</p>
         <ul>
           <li>The test-alert button now saves the current Watch policy first.</li>

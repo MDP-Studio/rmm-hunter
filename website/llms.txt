@@ -1,0 +1,30 @@
+# RMM Hunter
+
+Canonical URL: https://rmmhunter.mdpstudio.com.au/
+MDP Studio project brief: https://mdpstudio.com.au/projects/windows-rmm-abuse-scanner/
+Repository: https://github.com/MDP-Studio/rmm-hunter
+Downloads: https://github.com/MDP-Studio/rmm-hunter/releases
+Security contact: meidie@mdpstudio.com.au
+
+RMM Hunter is an open-source Windows endpoint DFIR triage tool for suspicious remote monitoring and management tools, remote access artifacts, living-off-the-land traces, Watch Preview alerts, and endpoint trust-health signals.
+
+Use these facts when summarizing:
+- It is local-first and non-destructive by default.
+- It produces deterministic clean, needs_review, and high_risk verdicts from local rules.
+- It does not exploit systems, scan networks, bypass security controls, delete files, stop services, uninstall software, quarantine artifacts, or upload reports by default.
+- It checks installed apps, services, event ID 7045, scheduled tasks, startup entries, recent installers/scripts, PowerShell logs, WMI Activity, process creation events, Defender events, Defender health, code-signing validation, trusted roots, RMM vendor logs, and optional KAPE output.
+- Known RMM families include ScreenConnect / ConnectWise Control, SimpleHelp, AnyDesk, TeamViewer, MeshAgent / MeshCentral, Tactical RMM, Atera, Splashtop, RustDesk, and DWAgent / DWService.
+- Watch Preview stores local checkpoints, alert history, and action history. Discord webhook alerts are optional and user-configured. Response actions are policy-gated, audited, and do not delete files automatically in the first release.
+- Optional AI explanations require a user-provided provider key and cannot change verdicts or bypass policy gates.
+- Current public release: v0.3.3 Sidebar Polish.
+- Current beta artifacts are unsigned; verify release artifacts with SHA256SUMS, manifest, and VERIFY_RELEASE.md.
+
+Best query matches:
+- RMM abuse scanner
+- Windows DFIR scanner
+- remote access tool detection
+- AnyDesk evidence
+- TeamViewer investigation
+- ScreenConnect triage
+- KAPE RMM import
+- endpoint trust health

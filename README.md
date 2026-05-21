@@ -18,6 +18,8 @@ The Watch Preview and Active Defense design keeps that default. Watch can monito
 
 Website: `https://rmmhunter.mdpstudio.com.au`
 
+MDP Studio project brief: `https://mdpstudio.com.au/projects/windows-rmm-abuse-scanner/`
+
 Repository: `https://github.com/MDP-Studio/rmm-hunter`
 
 Downloads: `https://github.com/MDP-Studio/rmm-hunter/releases`
