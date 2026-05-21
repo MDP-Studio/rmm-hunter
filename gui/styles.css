@@ -75,7 +75,7 @@ body.sidebar-collapsed .app-shell {
 }
 
 .sidebar-header {
-  align-items: flex-start;
+  align-items: center;
   display: flex;
   gap: 8px;
   justify-content: space-between;
@@ -90,9 +90,14 @@ body.sidebar-collapsed .app-shell {
 }
 
 .brand-mark {
+  display: block;
+  grid-area: 1 / 1;
   border-radius: 8px;
   height: 48px;
   object-fit: contain;
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
   width: 48px;
 }
 
@@ -114,24 +119,61 @@ body.sidebar-collapsed .app-shell {
 
 .sidebar-toggle {
   align-items: center;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 12px;
   color: #dce5f3;
   cursor: pointer;
-  display: inline-flex;
+  display: grid;
   flex: 0 0 auto;
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 800;
-  height: 32px;
+  height: 54px;
   justify-content: center;
-  width: 32px;
+  padding: 0;
+  position: relative;
+  width: 54px;
+}
+
+.sidebar-toggle-icon {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  color: #f7f9fc;
+  display: flex;
+  font-size: 18px;
+  font-weight: 900;
+  inset: 2px;
+  justify-content: center;
+  opacity: 0;
+  position: absolute;
+  transform: scale(0.9);
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    opacity 140ms ease,
+    transform 140ms ease;
 }
 
 .sidebar-toggle:hover,
 .sidebar-toggle:focus-visible {
   background: rgba(255, 255, 255, 0.1);
   outline: none;
+}
+
+.sidebar-toggle:hover .brand-mark,
+.sidebar-toggle:focus-visible .brand-mark {
+  opacity: 0;
+  transform: scale(0.86);
+}
+
+.sidebar-toggle:hover .sidebar-toggle-icon,
+.sidebar-toggle:focus-visible .sidebar-toggle-icon {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.28);
+  opacity: 1;
+  transform: scale(1);
 }
 
 .brand p,

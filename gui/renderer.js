@@ -69,6 +69,7 @@ const watchSettingsStatus = document.getElementById("watchSettingsStatus");
 const watchAlertHint = document.getElementById("watchAlertHint");
 const watchAlertList = document.getElementById("watchAlertList");
 const sidebarToggle = document.getElementById("sidebarToggle");
+const sidebarToggleIcon = sidebarToggle?.querySelector(".sidebar-toggle-icon");
 const checkUpdatesButton = document.getElementById("checkUpdates");
 const updatePanel = document.getElementById("updatePanel");
 const updateStatus = document.getElementById("updateStatus");
@@ -754,7 +755,10 @@ function setSidebarCollapsed(shouldCollapse, { remember = true } = {}) {
     sidebarToggle.setAttribute("aria-expanded", String(!shouldCollapse));
     sidebarToggle.setAttribute("aria-label", shouldCollapse ? "Expand sidebar" : "Collapse sidebar");
     sidebarToggle.setAttribute("title", shouldCollapse ? "Expand sidebar" : "Collapse sidebar");
-    sidebarToggle.textContent = shouldCollapse ? ">" : "<";
+    sidebarToggle.dataset.state = shouldCollapse ? "collapsed" : "expanded";
+  }
+  if (sidebarToggleIcon) {
+    sidebarToggleIcon.textContent = shouldCollapse ? ">" : "<";
   }
   if (!remember) {
     return;

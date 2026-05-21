@@ -12,13 +12,15 @@
       <aside class="sidebar" aria-label="Scan status">
         <div class="sidebar-header">
           <div class="brand">
-            <img class="brand-mark" src="./assets/logo.svg" alt="RMM Hunter logo">
+            <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Collapse sidebar" aria-expanded="true" title="Collapse sidebar">
+              <img class="brand-mark" src="./assets/logo.svg" alt="" aria-hidden="true">
+              <span class="sidebar-toggle-icon" aria-hidden="true">&lt;</span>
+            </button>
             <div>
               <h1>RMM Hunter</h1>
               <p>Windows endpoint scanner</p>
             </div>
           </div>
-          <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Collapse sidebar" aria-expanded="true" title="Collapse sidebar">&lt;</button>
         </div>
 
         <div class="verdict-panel verdict-idle" id="verdictPanel">
