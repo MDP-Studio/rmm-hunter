@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added a brief Discord webhook setup guide to the Watch tab, README, Watch docs, and website copy.
+
 ## 0.3.1 - 2026-05-21
 
 - Split the desktop workspace into Scan, Evidence, Timeline, Watch, Trust health, and Info tabs so new features do not crowd the main scan view.

@@ -67,6 +67,17 @@ The first alert channel is:
 
 Discord webhook URLs are secrets. Alert payloads should be compact and should not include raw report files. The local report remains the technical source of truth.
 
+### Discord Webhook Setup
+
+To create a Discord webhook:
+
+1. In Discord, open the server channel that should receive RMM Hunter alerts.
+2. Open channel settings, then **Integrations**, then **Webhooks**.
+3. Create a webhook, name it `RMM Hunter Watch`, choose the alert channel, and copy the webhook URL.
+4. Paste the URL into the RMM Hunter Watch tab, enable Discord alerts, save the policy, then send a test alert.
+
+Use a private alert channel and treat the webhook URL like a password. RMM Hunter accepts only official Discord webhook URLs beginning with `https://discord.com/api/webhooks/` or `https://discordapp.com/api/webhooks/`.
+
 ## Response Modes
 
 | Mode | Default | Intended behavior |

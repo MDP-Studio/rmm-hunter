@@ -67,6 +67,8 @@ Watch Preview scope:
 - Response modes: `alert_only`, `approval_required`, `daytime_auto`, and `night_auto`
 - AI Copilot explanations and ranking inside deterministic policy limits
 
+Discord alert setup: create a webhook from the target Discord channel's **Settings > Integrations > Webhooks**, paste it into the Watch tab, enable Discord alerts, save the policy, and send a test alert. Use a private alert channel and treat the webhook URL like a password.
+
 Known remote access tools covered in the initial rules:
 
 - ScreenConnect / ConnectWise Control

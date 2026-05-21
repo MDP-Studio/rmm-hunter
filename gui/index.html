@@ -124,6 +124,16 @@
               <input id="watchDevPaths" type="text" autocomplete="off" spellcheck="false" placeholder="C:\Projects, D:\Dev">
             </label>
           </div>
+          <details class="watch-help">
+            <summary>How to get a Discord webhook</summary>
+            <ol>
+              <li>In Discord, open the server channel that should receive RMM Hunter alerts.</li>
+              <li>Open channel settings, then Integrations, then Webhooks.</li>
+              <li>Create a webhook, name it RMM Hunter Watch, choose the alert channel, and copy the webhook URL.</li>
+              <li>Paste the URL here, enable Discord alerts, save the policy, then send a test alert.</li>
+            </ol>
+            <p>Use a private alert channel and treat the webhook URL like a password. RMM Hunter only accepts official Discord webhook URLs that start with <code>https://discord.com/api/webhooks/</code> or <code>https://discordapp.com/api/webhooks/</code>.</p>
+          </details>
           <div class="watch-footer">
             <label class="watch-toggle">
               <input id="watchDiscordEnabled" type="checkbox">
