@@ -2,8 +2,12 @@
 
 ## Unreleased
 
+## 0.3.1 - 2026-05-21
+
 - Split the desktop workspace into Scan, Evidence, Timeline, Watch, Trust health, and Info tabs so new features do not crowd the main scan view.
 - Combined the collapsed sidebar logo and expand/collapse control into one hoverable button.
+- Updated the website and desktop update log for the tabbed workspace release.
+- Added regression coverage for Discord webhook validation so alert destinations stay restricted to official Discord webhook URLs.
 
 ## 0.3.0 - 2026-05-21
 

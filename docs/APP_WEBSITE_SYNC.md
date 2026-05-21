@@ -105,7 +105,7 @@ After deployment, verify the live site:
 ```powershell
 $html = Invoke-WebRequest -Uri "https://rmmhunter.mdpstudio.com.au/" -UseBasicParsing
 $html.StatusCode
-$html.Content -match "v0.3.0"
+$html.Content -match "v0.3.1"
 ```
 
 Update the version check to the release being shipped. Also confirm old version strings are not still present when they should be gone.

@@ -589,6 +589,27 @@ class RuleTests(unittest.TestCase):
         self.assertEqual(result["deterministic"]["severity"], "medium")
         self.assertEqual(result["deterministic"]["confidence"], "low")
 
+    def test_discord_webhook_allowlist_accepts_official_webhook_hosts(self):
+        self.assertTrue(rmm_hunter.discord_webhook_is_allowed("https://discord.com/api/webhooks/123/token"))
+        self.assertTrue(rmm_hunter.discord_webhook_is_allowed("https://discordapp.com/api/webhooks/123/token"))
+
+    def test_discord_webhook_allowlist_rejects_lookalike_or_insecure_hosts(self):
+        self.assertFalse(rmm_hunter.discord_webhook_is_allowed("http://discord.com/api/webhooks/123/token"))
+        self.assertFalse(rmm_hunter.discord_webhook_is_allowed("https://discord.com.evil.example/api/webhooks/123/token"))
+        self.assertFalse(rmm_hunter.discord_webhook_is_allowed("https://example.com/api/webhooks/123/token"))
+        self.assertFalse(rmm_hunter.discord_webhook_is_allowed("https://discord.com/not-webhooks/123/token"))
+
+    def test_send_discord_alert_requires_configured_allowed_webhook(self):
+        alert = {"severity": "high", "summary": "Test alert", "alert_id": "rmmw-test", "rule_id": "test", "confidence": "high"}
+
+        missing = rmm_hunter.send_discord_alert(alert, "")
+        rejected = rmm_hunter.send_discord_alert(alert, "https://example.com/api/webhooks/123/token")
+
+        self.assertFalse(missing["sent"])
+        self.assertIn("not configured", missing["reason"])
+        self.assertFalse(rejected["sent"])
+        self.assertIn("allowed Discord", rejected["reason"])
+
 
 if __name__ == "__main__":
     unittest.main()
