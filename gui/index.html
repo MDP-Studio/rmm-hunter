@@ -64,6 +64,23 @@
           </div>
         </header>
 
+        <section class="update-panel hidden" id="updatePanel" aria-live="polite">
+          <div class="update-copy">
+            <span class="eyebrow" id="updateStatus">Updates</span>
+            <h3 id="updateTitle">Checking for updates</h3>
+            <p id="updateText">Looking at the official GitHub Releases page.</p>
+            <div class="update-progress hidden" id="updateProgress" role="progressbar" aria-label="Update download progress" aria-valuemin="0" aria-valuemax="100">
+              <div class="update-progress-track">
+                <div class="update-progress-bar" id="updateProgressBar"></div>
+              </div>
+            </div>
+          </div>
+          <div class="update-actions">
+            <button class="secondary-button" id="openUpdate" type="button">Open release page</button>
+            <button class="link-button" id="dismissUpdate" type="button">Dismiss</button>
+          </div>
+        </section>
+
         <nav class="workspace-tabs" aria-label="Workspace views">
           <button class="tab-button active" type="button" data-tab-target="scanTab" aria-pressed="true">Scan</button>
           <button class="tab-button" type="button" data-tab-target="evidenceTab" aria-pressed="false">Evidence</button>
@@ -148,23 +165,6 @@
               <span id="watchAlertHint">No Watch alerts yet</span>
             </div>
             <div class="watch-alert-list" id="watchAlertList"></div>
-          </div>
-        </section>
-
-        <section class="update-panel hidden" id="updatePanel" aria-live="polite">
-          <div class="update-copy">
-            <span class="eyebrow" id="updateStatus">Updates</span>
-            <h3 id="updateTitle">Checking for updates</h3>
-            <p id="updateText">Looking at the official GitHub Releases page.</p>
-            <div class="update-progress hidden" id="updateProgress" role="progressbar" aria-label="Update download progress" aria-valuemin="0" aria-valuemax="100">
-              <div class="update-progress-track">
-                <div class="update-progress-bar" id="updateProgressBar"></div>
-              </div>
-            </div>
-          </div>
-          <div class="update-actions">
-            <button class="secondary-button" id="openUpdate" type="button">Open release page</button>
-            <button class="link-button" id="dismissUpdate" type="button">Dismiss</button>
           </div>
         </section>
 
