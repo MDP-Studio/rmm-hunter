@@ -5,5 +5,6 @@ COPY website/styles.css /usr/share/nginx/html/styles.css
 COPY website/script.js /usr/share/nginx/html/script.js
 COPY website/robots.txt /usr/share/nginx/html/robots.txt
 COPY website/sitemap.xml /usr/share/nginx/html/sitemap.xml
+COPY website/llms.txt /usr/share/nginx/html/llms.txt
 COPY website/assets/ /usr/share/nginx/html/assets/
 COPY website/nginx.conf /etc/nginx/conf.d/default.conf
