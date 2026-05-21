@@ -29,11 +29,13 @@
           <span id="riskScore">Risk score unavailable</span>
         </div>
 
-        <div class="side-actions" aria-label="Project sections">
-          <button type="button" data-scroll-target="watchPanel">Watch</button>
-          <button type="button" data-scroll-target="trustHealthPanel">Trust health</button>
-          <button type="button" data-scroll-target="feedbackSection">Feedback</button>
-          <button type="button" data-scroll-target="aboutSection">About</button>
+        <div class="side-actions" aria-label="Workspace sections">
+          <button class="active" type="button" data-tab-target="scanTab" aria-pressed="true">Scan</button>
+          <button type="button" data-tab-target="evidenceTab" aria-pressed="false">Evidence</button>
+          <button type="button" data-tab-target="timelineTab" aria-pressed="false">Timeline</button>
+          <button type="button" data-tab-target="watchTab" aria-pressed="false">Watch</button>
+          <button type="button" data-tab-target="trustTab" aria-pressed="false">Trust health</button>
+          <button type="button" data-tab-target="infoTab" aria-pressed="false">Info</button>
         </div>
 
         <div class="scope-list" aria-label="Scan coverage">
@@ -62,7 +64,16 @@
           </div>
         </header>
 
-        <section class="source-panel" id="sourcePanel" aria-label="Evidence sources">
+        <nav class="workspace-tabs" aria-label="Workspace views">
+          <button class="tab-button active" type="button" data-tab-target="scanTab" aria-pressed="true">Scan</button>
+          <button class="tab-button" type="button" data-tab-target="evidenceTab" aria-pressed="false">Evidence</button>
+          <button class="tab-button" type="button" data-tab-target="timelineTab" aria-pressed="false">Timeline</button>
+          <button class="tab-button" type="button" data-tab-target="watchTab" aria-pressed="false">Watch</button>
+          <button class="tab-button" type="button" data-tab-target="trustTab" aria-pressed="false">Trust</button>
+          <button class="tab-button" type="button" data-tab-target="infoTab" aria-pressed="false">Info</button>
+        </nav>
+
+        <section class="source-panel" id="sourcePanel" data-tab-panel="scanTab" aria-label="Evidence sources">
           <div class="source-copy">
             <span class="eyebrow">Evidence sources</span>
             <p id="sourceSummary">Live Windows collection, RMM vendor logs, and optional KAPE output use the same report model as the CLI.</p>
@@ -78,7 +89,7 @@
           </div>
         </section>
 
-        <section class="watch-panel" id="watchPanel" aria-label="Watch Preview">
+        <section class="watch-panel tab-hidden" id="watchPanel" data-tab-panel="watchTab" aria-label="Watch Preview">
           <div class="watch-header">
             <div>
               <span class="eyebrow">Watch Preview</span>
@@ -147,7 +158,7 @@
           </div>
         </section>
 
-        <section class="progress-panel hidden" id="progressPanel" aria-live="polite">
+        <section class="progress-panel hidden" id="progressPanel" data-tab-panel="scanTab" aria-live="polite">
           <div class="progress-header">
             <div>
               <span class="eyebrow">Scanning</span>
@@ -161,7 +172,7 @@
           <ol class="progress-log" id="progressLog"></ol>
         </section>
 
-        <section class="results-grid" id="resultsGrid">
+        <section class="results-grid" id="resultsGrid" data-tab-panel="scanTab">
           <article class="metric">
             <span>Findings</span>
             <strong id="findingCount">0</strong>
@@ -180,7 +191,7 @@
           </article>
         </section>
 
-        <section class="summary-panel" id="summaryPanel">
+        <section class="summary-panel" id="summaryPanel" data-tab-panel="scanTab">
           <div>
             <span class="eyebrow">Summary</span>
             <p id="summaryText">Run a scan to see the endpoint verdict, evidence, and export options.</p>
@@ -199,7 +210,7 @@
           </div>
         </section>
 
-        <section class="ai-panel hidden" id="aiPanel">
+        <section class="ai-panel hidden" id="aiPanel" data-tab-panel="scanTab">
           <div class="section-heading">
             <h3>AI explanation</h3>
             <div class="section-heading-actions">
@@ -238,7 +249,7 @@
           <p class="privacy-note" id="aiPrivacyNote"></p>
         </section>
 
-        <section class="recommendations-panel hidden" id="recommendationsPanel">
+        <section class="recommendations-panel hidden" id="recommendationsPanel" data-tab-panel="scanTab">
           <div class="section-heading">
             <h3>Recommended next steps</h3>
             <span id="recommendationsHint">Based on deterministic scan rules</span>
@@ -246,7 +257,7 @@
           <ul class="recommendation-list" id="recommendationList"></ul>
         </section>
 
-        <section class="trust-health-panel hidden" id="trustHealthPanel">
+        <section class="trust-health-panel tab-hidden" id="trustHealthPanel" data-tab-panel="trustTab">
           <div class="section-heading">
             <h3>System Trust Health</h3>
             <span id="trustHealthHint">Defender and Windows trust checks</span>
@@ -254,8 +265,8 @@
           <div class="trust-health-list" id="trustHealthList"></div>
         </section>
 
-        <section class="review-grid" id="reviewGrid">
-          <section class="evidence-section">
+        <section class="review-grid tab-hidden" id="reviewGrid">
+          <section class="evidence-section" data-tab-panel="evidenceTab">
             <div class="section-heading">
               <h3>Evidence</h3>
               <span id="evidenceHint">No findings yet</span>
@@ -263,7 +274,7 @@
             <div class="evidence-list" id="evidenceList"></div>
           </section>
 
-          <section class="timeline-panel hidden" id="timelinePanel">
+          <section class="timeline-panel tab-hidden" id="timelinePanel" data-tab-panel="timelineTab">
             <div class="section-heading">
               <h3>Timeline</h3>
               <div class="section-heading-actions">
@@ -275,7 +286,7 @@
           </section>
         </section>
 
-        <section class="info-panel" id="feedbackSection">
+        <section class="info-panel tab-hidden" id="feedbackSection" data-tab-panel="infoTab">
           <div class="section-heading">
             <h3>Feedback</h3>
             <span>False positives, bugs, and detector ideas</span>
@@ -300,7 +311,7 @@
           </div>
         </section>
 
-        <section class="info-panel" id="aboutSection">
+        <section class="info-panel tab-hidden" id="aboutSection" data-tab-panel="infoTab">
           <div class="section-heading">
             <h3>About</h3>
             <span>Open-source Windows triage tool</span>

@@ -105,6 +105,7 @@ npm.cmd start
 The GUI provides:
 
 - Big `Scan this device` action
+- Tabbed workspace for Scan, Evidence, Timeline, Watch, Trust health, and Info
 - Progress screen during collection and analysis
 - Dashboard verdict: `clean`, `needs_review`, or `high_risk`
 - Evidence cards for each finding

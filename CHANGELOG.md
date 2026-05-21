@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Split the desktop workspace into Scan, Evidence, Timeline, Watch, Trust health, and Info tabs so new features do not crowd the main scan view.
+- Combined the collapsed sidebar logo and expand/collapse control into one hoverable button.
+
 ## 0.3.0 - 2026-05-21
 
 - Added Watch Preview CLI commands for one-shot checks, continuous watch, scheduled-task install/remove, and dry-run/apply response actions.

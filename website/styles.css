@@ -506,11 +506,12 @@ h3 {
 
 .mock-side-buttons span {
   display: block;
-  padding: 8px 10px;
+  padding: 7px 9px;
   border: 1px solid rgba(151, 174, 210, 0.2);
   border-radius: var(--radius);
   background: #1f232c;
   color: #eff6ff;
+  font-size: 0.72rem;
   font-weight: 820;
 }
 
@@ -623,6 +624,30 @@ h3 {
 .mock-topbar-actions strong {
   min-width: 134px;
   border-color: #171a22;
+  background: #171a22;
+  color: #ffffff;
+}
+
+.mock-tabs {
+  display: flex;
+  gap: 5px;
+  overflow: hidden;
+  padding: 5px;
+  border: 1px solid #d4dbe7;
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.mock-tabs span {
+  flex: 0 0 auto;
+  padding: 6px 9px;
+  border-radius: 7px;
+  color: #5c687c;
+  font-size: 0.66rem;
+  font-weight: 900;
+}
+
+.mock-tabs span.active {
   background: #171a22;
   color: #ffffff;
 }

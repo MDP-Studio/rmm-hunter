@@ -70,6 +70,9 @@ const watchAlertHint = document.getElementById("watchAlertHint");
 const watchAlertList = document.getElementById("watchAlertList");
 const sidebarToggle = document.getElementById("sidebarToggle");
 const sidebarToggleIcon = sidebarToggle?.querySelector(".sidebar-toggle-icon");
+const tabButtons = Array.from(document.querySelectorAll("[data-tab-target]"));
+const tabPanels = Array.from(document.querySelectorAll("[data-tab-panel]"));
+const workspace = document.querySelector(".workspace");
 const checkUpdatesButton = document.getElementById("checkUpdates");
 const updatePanel = document.getElementById("updatePanel");
 const updateStatus = document.getElementById("updateStatus");
@@ -105,6 +108,8 @@ let timelineVisibleCount = 0;
 let selectedKapeRoot = "";
 const timelineInitialCount = 5;
 const timelineIncrement = 10;
+const defaultTabId = "scanTab";
+const reviewTabIds = new Set(["evidenceTab", "timelineTab"]);
 const desktopBridge = window.rmmHunter || {
   startScan: async () => {
     throw new Error("Desktop scanner bridge is unavailable. Start the app with npm.cmd start.");
@@ -196,7 +201,10 @@ checkForUpdates({ silent: true }).catch((error) => {
 window.setTimeout(openDesktopUpdateLog, 700);
 
 initializeSidebarState();
+initializeTabs();
 renderSourceStatus(null, null, { phase: "ready" });
+renderTrustHealth([]);
+renderTimeline([]);
 
 desktopBridge.onProgress((payload) => {
   progressPanel.classList.remove("hidden");
@@ -214,6 +222,7 @@ desktopBridge.onUpdateStatus((payload) => {
 });
 
 scanButton.addEventListener("click", async () => {
+  activateTab("scanTab");
   setScanning(true);
   resetResults();
 
@@ -333,10 +342,30 @@ for (const [buttonId, url] of Object.entries(externalLinks)) {
   }
 }
 
-document.querySelectorAll("[data-scroll-target]").forEach((button) => {
+tabButtons.forEach((button) => {
   button.addEventListener("click", () => {
-    const target = document.getElementById(button.dataset.scrollTarget);
-    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+    activateTab(button.dataset.tabTarget);
+  });
+
+  button.addEventListener("keydown", (event) => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {
+      return;
+    }
+    const visibleButtons = tabButtons.filter((item) => item.classList.contains("tab-button"));
+    const currentIndex = visibleButtons.indexOf(button);
+    if (currentIndex === -1) {
+      return;
+    }
+    event.preventDefault();
+    const nextIndex = event.key === "Home"
+      ? 0
+      : event.key === "End"
+        ? visibleButtons.length - 1
+        : event.key === "ArrowRight"
+          ? (currentIndex + 1) % visibleButtons.length
+          : (currentIndex - 1 + visibleButtons.length) % visibleButtons.length;
+    visibleButtons[nextIndex]?.focus();
+    activateTab(visibleButtons[nextIndex]?.dataset.tabTarget);
   });
 });
 
@@ -465,6 +494,7 @@ async function requestAiExplanation() {
     return;
   }
 
+  activateTab("scanTab");
   aiExplain.disabled = true;
   aiExplain.textContent = "Checking AI setup...";
   hideAiSetupNotice();
@@ -770,6 +800,49 @@ function setSidebarCollapsed(shouldCollapse, { remember = true } = {}) {
   }
 }
 
+function initializeTabs() {
+  let storedTab = defaultTabId;
+  try {
+    storedTab = window.localStorage.getItem("rmm-hunter:active-tab") || defaultTabId;
+  } catch (error) {
+    console.info("Tab preference unavailable.", error?.name || error);
+  }
+  activateTab(storedTab, { remember: false, scrollTop: false });
+}
+
+function activateTab(tabId, { remember = true, scrollTop = true } = {}) {
+  const knownTab = tabButtons.some((button) => button.dataset.tabTarget === tabId)
+    ? tabId
+    : defaultTabId;
+
+  tabButtons.forEach((button) => {
+    const isActive = button.dataset.tabTarget === knownTab;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+
+  tabPanels.forEach((panel) => {
+    panel.classList.toggle("tab-hidden", panel.dataset.tabPanel !== knownTab);
+  });
+
+  if (reviewGrid) {
+    reviewGrid.classList.toggle("tab-hidden", !reviewTabIds.has(knownTab));
+  }
+
+  if (scrollTop && workspace) {
+    workspace.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  if (!remember) {
+    return;
+  }
+  try {
+    window.localStorage.setItem("rmm-hunter:active-tab", knownTab);
+  } catch (error) {
+    console.info("Tab preference was not saved.", error?.name || error);
+  }
+}
+
 function setScanning(isScanning) {
   scanButton.disabled = isScanning;
   scanButton.textContent = isScanning ? "Scanning..." : "Scan this device";
@@ -801,12 +874,8 @@ function resetResults() {
   aiExplain.disabled = true;
   recommendationsPanel.classList.add("hidden");
   recommendationList.replaceChildren();
-  trustHealthPanel.classList.add("hidden");
-  trustHealthList.replaceChildren();
-  timelinePanel.classList.add("hidden");
-  timelineList.replaceChildren();
-  timelineMore?.classList.add("hidden");
-  reviewGrid?.classList.remove("timeline-visible");
+  renderTrustHealth([]);
+  renderTimeline([]);
   currentTimelineEntries = [];
   timelineVisibleCount = 0;
   aiPanel.classList.add("hidden");
@@ -972,9 +1041,14 @@ function renderTimeline(entries) {
   currentTimelineEntries = Array.isArray(entries) ? entries : [];
   timelineVisibleCount = Math.min(timelineInitialCount, currentTimelineEntries.length);
   if (!currentTimelineEntries.length) {
-    timelinePanel.classList.add("hidden");
+    timelinePanel.classList.remove("hidden");
     timelineMore?.classList.add("hidden");
     reviewGrid?.classList.remove("timeline-visible");
+    timelineHint.textContent = "Run a scan to build a timeline";
+    const empty = document.createElement("li");
+    empty.className = "timeline-empty";
+    empty.textContent = "No timestamped artifacts are available yet.";
+    timelineList.append(empty);
     return;
   }
 
@@ -1037,7 +1111,16 @@ function formatTimelineTime(value, type) {
 function renderTrustHealth(checks) {
   trustHealthList.replaceChildren();
   if (!Array.isArray(checks) || !checks.length) {
-    trustHealthPanel.classList.add("hidden");
+    trustHealthPanel.classList.remove("hidden");
+    trustHealthHint.textContent = "Run a scan to check Defender and Windows trust signals";
+    const empty = document.createElement("article");
+    empty.className = "trust-health-card";
+    const title = document.createElement("h4");
+    title.textContent = "No trust-health checks yet";
+    const detail = document.createElement("p");
+    detail.textContent = "After a scan, this tab shows Defender state, security intelligence age, exclusions, code-signing checks, and trusted-root-store notes.";
+    empty.append(title, detail);
+    trustHealthList.append(empty);
     return;
   }
 
@@ -1312,6 +1395,7 @@ function buildAiSettingsStatusText(settings, provider) {
 }
 
 function renderAiSetupNeeded(message) {
+  activateTab("scanTab", { scrollTop: false });
   const setupText = message || "Add your own provider API key to generate AI recommendations.";
   aiPanel.classList.add("hidden");
   aiSettings.classList.add("hidden");
@@ -1343,6 +1427,7 @@ function hideAiSetupNotice() {
 }
 
 function openAiSettings({ focusApiKey = false } = {}) {
+  activateTab("scanTab");
   aiPanel.classList.remove("hidden");
   aiSettings.classList.remove("hidden");
   requestAnimationFrame(() => {
@@ -1356,6 +1441,7 @@ function openAiSettings({ focusApiKey = false } = {}) {
 }
 
 function renderAiExplanation(explanation) {
+  activateTab("scanTab", { scrollTop: false });
   aiPanel.classList.remove("hidden");
   if (explanation.available && !explanation.needs_setup) {
     aiSettings.classList.add("hidden");
@@ -1547,10 +1633,7 @@ function renderError(error) {
   exportJson.disabled = true;
   exportPdf.disabled = true;
   aiExplain.disabled = true;
-  timelinePanel.classList.add("hidden");
-  timelineList.replaceChildren();
-  timelineMore?.classList.add("hidden");
-  reviewGrid?.classList.remove("timeline-visible");
+  renderTimeline([]);
   renderSourceStatus(null, null, { phase: "ready" });
 
   const card = document.createElement("article");

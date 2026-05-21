@@ -244,6 +244,12 @@ body.sidebar-collapsed .app-shell {
   background: rgba(255, 255, 255, 0.1);
 }
 
+.side-actions button.active {
+  background: rgba(94, 151, 246, 0.22);
+  border-color: rgba(139, 184, 255, 0.48);
+  color: #ffffff;
+}
+
 .scope-list {
   background: rgba(255, 255, 255, 0.045);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -355,6 +361,43 @@ body.sidebar-collapsed .scope-list {
   line-height: 1.45;
   margin-top: 6px;
   max-width: 680px;
+}
+
+.workspace-tabs {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(34, 42, 56, 0.08);
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 6px;
+  scrollbar-width: thin;
+}
+
+.tab-button {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: #4f5a6d;
+  cursor: pointer;
+  flex: 0 0 auto;
+  font-weight: 800;
+  min-height: 38px;
+  padding: 0 14px;
+}
+
+.tab-button:hover,
+.tab-button:focus-visible {
+  background: #eef3fa;
+  color: #202633;
+  outline: none;
+}
+
+.tab-button.active {
+  background: #17191f;
+  color: #ffffff;
 }
 
 .source-panel {
@@ -844,7 +887,7 @@ body.sidebar-collapsed .scope-list {
   align-items: start;
   display: grid;
   gap: 18px;
-  grid-template-columns: minmax(0, 1.22fr) minmax(360px, 0.78fr);
+  grid-template-columns: 1fr;
 }
 
 .review-grid:not(.timeline-visible) {
@@ -1277,6 +1320,15 @@ body.sidebar-collapsed .scope-list {
   padding: 10px;
 }
 
+.timeline-empty {
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: #4f5a6d;
+  line-height: 1.45;
+  padding: 14px;
+}
+
 .timeline-item.high {
   border-left-color: var(--red);
 }
@@ -1533,6 +1585,10 @@ body.sidebar-collapsed .scope-list {
   display: none;
 }
 
+.tab-hidden {
+  display: none !important;
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -1597,6 +1653,7 @@ body.sidebar-collapsed .scope-list {
   }
 
   .topbar-actions,
+  .workspace-tabs,
   .update-actions {
     justify-content: flex-start;
   }
