@@ -2,17 +2,23 @@
 
 ## Unreleased
 
-- Added a brief Discord webhook setup guide to the Watch tab, README, Watch docs, and website copy.
+## 0.3.3 - 2026-05-21
+
+- Matched the desktop sidebar behavior to the HomeWorkr and ApplyPilot app shells.
+- Restored the expanded-sidebar collapse control as a separate button beside the app name.
+- Replaced arrow collapse text with a generic sidebar split icon.
+- Updated the website mock and release copy to match the desktop sidebar behavior.
 
 ## 0.3.2 - 2026-05-21
 
+- Added a brief Discord webhook setup guide to the Watch tab, README, Watch docs, and website copy.
 - Fixed the Discord test-alert flow so it saves the current Watch form before testing a newly pasted webhook.
 - Cleaned Watch error messages so users see the actual fix, not Electron IPC wording.
 
 ## 0.3.1 - 2026-05-21
 
 - Split the desktop workspace into Scan, Evidence, Timeline, Watch, Trust health, and Info tabs so new features do not crowd the main scan view.
-- Combined the collapsed sidebar logo and expand/collapse control into one hoverable button.
+- Experimented with a combined logo/collapse control, later replaced in `0.3.3`.
 - Updated the website and desktop update log for the tabbed workspace release.
 - Added regression coverage for Discord webhook validation so alert destinations stay restricted to official Discord webhook URLs.
 

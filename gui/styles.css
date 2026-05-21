@@ -77,28 +77,60 @@ body.sidebar-collapsed .app-shell {
 .sidebar-header {
   align-items: center;
   display: flex;
-  gap: 8px;
+  gap: 10px;
   justify-content: space-between;
   min-width: 0;
 }
 
 .brand {
   align-items: center;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
   display: flex;
   gap: 14px;
   min-width: 0;
+  padding: 0;
+  position: relative;
+  text-align: left;
+  width: 100%;
+}
+
+.brand:hover,
+.brand:focus-visible {
+  outline: none;
 }
 
 .brand-mark {
-  display: block;
-  grid-area: 1 / 1;
-  border-radius: 8px;
+  align-items: center;
+  border-radius: 10px;
+  display: grid;
+  flex: 0 0 48px;
   height: 48px;
-  object-fit: contain;
+  justify-items: center;
+  overflow: hidden;
+  width: 48px;
+}
+
+.brand-logo,
+.brand-open-icon {
+  grid-area: 1 / 1;
   transition:
     opacity 140ms ease,
     transform 140ms ease;
+}
+
+.brand-logo {
+  display: block;
+  height: 48px;
+  object-fit: contain;
   width: 48px;
+}
+
+.brand-open-icon {
+  opacity: 0;
+  transform: scale(0.74);
 }
 
 .brand h1,
@@ -119,61 +151,90 @@ body.sidebar-collapsed .app-shell {
 
 .sidebar-toggle {
   align-items: center;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
   color: #dce5f3;
   cursor: pointer;
-  display: grid;
+  display: flex;
   flex: 0 0 auto;
-  font-size: 18px;
-  font-weight: 800;
-  height: 54px;
+  height: 36px;
   justify-content: center;
   padding: 0;
   position: relative;
-  width: 54px;
-}
-
-.sidebar-toggle-icon {
-  align-items: center;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 12px;
-  color: #f7f9fc;
-  display: flex;
-  font-size: 18px;
-  font-weight: 900;
-  inset: 2px;
-  justify-content: center;
-  opacity: 0;
-  position: absolute;
-  transform: scale(0.9);
   transition:
     background 140ms ease,
     border-color 140ms ease,
-    opacity 140ms ease,
     transform 140ms ease;
+  width: 36px;
+}
+
+.sidebar-icon {
+  border: 2px solid currentColor;
+  border-radius: 5px;
+  color: #dce5f3;
+  display: block;
+  height: 18px;
+  position: relative;
+  width: 18px;
+}
+
+.sidebar-icon::before {
+  background: currentColor;
+  border-radius: 999px;
+  content: "";
+  height: 12px;
+  left: 5px;
+  opacity: 0.8;
+  position: absolute;
+  top: 1px;
+  width: 2px;
+}
+
+.icon-open::before {
+  left: auto;
+  right: 5px;
 }
 
 .sidebar-toggle:hover,
 .sidebar-toggle:focus-visible {
   background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #f7f9fc;
   outline: none;
+  transform: translateY(-1px);
 }
 
-.sidebar-toggle:hover .brand-mark,
-.sidebar-toggle:focus-visible .brand-mark {
+.sidebar-toggle::after,
+body.sidebar-collapsed .brand::after {
+  background: #070707;
+  border-radius: 8px;
+  color: #ffffff;
+  content: attr(data-tooltip);
+  font-size: 12px;
+  font-weight: 800;
+  left: calc(100% + 10px);
+  line-height: 1;
   opacity: 0;
-  transform: scale(0.86);
+  padding: 8px 10px;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%) translateX(-3px);
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+  white-space: nowrap;
+  width: max-content;
+  z-index: 20;
 }
 
-.sidebar-toggle:hover .sidebar-toggle-icon,
-.sidebar-toggle:focus-visible .sidebar-toggle-icon {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.28);
+.sidebar-toggle:hover::after,
+.sidebar-toggle:focus-visible::after,
+body.sidebar-collapsed .brand:hover::after,
+body.sidebar-collapsed .brand:focus-visible::after {
   opacity: 1;
-  transform: scale(1);
+  transform: translateY(-50%) translateX(0);
 }
 
 .brand p,
@@ -309,13 +370,31 @@ body.sidebar-collapsed .sidebar {
 body.sidebar-collapsed .sidebar-header {
   align-items: center;
   flex-direction: column;
+  width: 100%;
 }
 
 body.sidebar-collapsed .brand {
   justify-content: center;
+  width: auto;
 }
 
-body.sidebar-collapsed .brand div,
+body.sidebar-collapsed .sidebar-toggle {
+  display: none;
+}
+
+body.sidebar-collapsed .brand:hover .brand-logo,
+body.sidebar-collapsed .brand:focus-visible .brand-logo {
+  opacity: 0;
+  transform: scale(0.74);
+}
+
+body.sidebar-collapsed .brand:hover .brand-open-icon,
+body.sidebar-collapsed .brand:focus-visible .brand-open-icon {
+  opacity: 1;
+  transform: scale(1);
+}
+
+body.sidebar-collapsed .brand-copy,
 body.sidebar-collapsed .verdict-panel,
 body.sidebar-collapsed .side-actions,
 body.sidebar-collapsed .scope-list {

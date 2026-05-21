@@ -428,11 +428,19 @@ h3 {
   font-size: 0.84rem;
 }
 
+.mock-sidebar-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 8px;
+}
+
 .mock-brand {
   display: grid;
   grid-template-columns: 38px minmax(0, 1fr);
   align-items: center;
   gap: 10px;
+  min-width: 0;
 }
 
 .mock-brand img {
@@ -454,6 +462,37 @@ h3 {
   color: #c5d7f2;
   font-size: 0.68rem;
   line-height: 1.32;
+}
+
+.mock-sidebar-toggle {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #dce5f3;
+}
+
+.mock-sidebar-toggle i {
+  position: relative;
+  display: block;
+  width: 14px;
+  height: 14px;
+  border: 1.7px solid currentColor;
+  border-radius: 4px;
+}
+
+.mock-sidebar-toggle i::before {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 4px;
+  width: 1.7px;
+  border-radius: 999px;
+  background: currentColor;
+  content: "";
 }
 
 .mock-verdict {

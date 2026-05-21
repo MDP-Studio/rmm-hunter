@@ -1,6 +1,6 @@
 {
   "name": "rmm-hunter",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Windows desktop scanner for unauthorized remote access tools, living-off-the-land traces, and endpoint trust health.",
   "main": "gui/main.js",
   "author": "Meidie <meidie@mdpstudio.com.au>",

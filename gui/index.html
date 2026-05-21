@@ -11,16 +11,19 @@
     <main class="app-shell">
       <aside class="sidebar" aria-label="Scan status">
         <div class="sidebar-header">
-          <div class="brand">
-            <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Collapse sidebar" aria-expanded="true" title="Collapse sidebar">
-              <img class="brand-mark" src="./assets/logo.svg" alt="" aria-hidden="true">
-              <span class="sidebar-toggle-icon" aria-hidden="true">&lt;</span>
-            </button>
-            <div>
+          <button class="brand" id="brandButton" type="button" aria-label="Open scan dashboard">
+            <span class="brand-mark" aria-hidden="true">
+              <img class="brand-logo" src="./assets/logo.svg" alt="">
+              <span class="brand-open-icon sidebar-icon icon-open" aria-hidden="true"></span>
+            </span>
+            <span class="brand-copy">
               <h1>RMM Hunter</h1>
               <p>Windows endpoint scanner</p>
-            </div>
-          </div>
+            </span>
+          </button>
+          <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Collapse sidebar" aria-expanded="true" title="Collapse sidebar" data-tooltip="Close sidebar">
+            <span class="sidebar-icon icon-close" aria-hidden="true"></span>
+          </button>
         </div>
 
         <div class="verdict-panel verdict-idle" id="verdictPanel">
@@ -338,17 +341,17 @@
       </section>
     </main>
 
-    <section class="update-log-modal hidden" id="desktopUpdateLog" data-update-log-id="desktop-0.3.2" role="dialog" aria-modal="true" aria-labelledby="desktopUpdateLogTitle" aria-describedby="desktopUpdateLogText">
+    <section class="update-log-modal hidden" id="desktopUpdateLog" data-update-log-id="desktop-0.3.3" role="dialog" aria-modal="true" aria-labelledby="desktopUpdateLogTitle" aria-describedby="desktopUpdateLogText">
       <div class="update-log-card">
         <button class="modal-close-button" id="desktopUpdateLogClose" type="button" aria-label="Close update log">&times;</button>
         <span class="eyebrow">Update log</span>
-        <h2 id="desktopUpdateLogTitle">RMM Hunter 0.3.2 is ready.</h2>
-        <p id="desktopUpdateLogText">This release fixes Discord test alerts after pasting a new webhook.</p>
+        <h2 id="desktopUpdateLogTitle">RMM Hunter 0.3.3 is ready.</h2>
+        <p id="desktopUpdateLogText">This release makes the sidebar behave like the HomeWorkr and ApplyPilot app shells.</p>
         <ul>
-          <li>The test-alert button now saves the current Watch policy before sending.</li>
-          <li>Webhook setup errors now show the actual issue instead of Electron IPC wording.</li>
-          <li>Discord alerts still require official Discord webhook URLs.</li>
-          <li>AI defense boundaries remain strict: action IDs only, no generated commands.</li>
+          <li>The expanded sidebar uses a dedicated collapse button beside the app name.</li>
+          <li>The collapsed logo reveals the split-panel expand icon on hover.</li>
+          <li>The control uses a generic sidebar split icon instead of arrow text.</li>
+          <li>Watch and AI safety boundaries are unchanged.</li>
         </ul>
         <div class="modal-actions">
           <button class="secondary-button" id="desktopUpdateLogRelease" type="button">Release notes</button>

@@ -68,8 +68,8 @@ const watchTestAlert = document.getElementById("watchTestAlert");
 const watchSettingsStatus = document.getElementById("watchSettingsStatus");
 const watchAlertHint = document.getElementById("watchAlertHint");
 const watchAlertList = document.getElementById("watchAlertList");
+const brandButton = document.getElementById("brandButton");
 const sidebarToggle = document.getElementById("sidebarToggle");
-const sidebarToggleIcon = sidebarToggle?.querySelector(".sidebar-toggle-icon");
 const tabButtons = Array.from(document.querySelectorAll("[data-tab-target]"));
 const tabPanels = Array.from(document.querySelectorAll("[data-tab-panel]"));
 const workspace = document.querySelector(".workspace");
@@ -93,7 +93,7 @@ const externalLinks = {
   openCoffee: "https://buymeacoffee.com/meidie",
   openRepo: "https://github.com/MDP-Studio/rmm-hunter",
   openPrivacy: "https://github.com/MDP-Studio/rmm-hunter/blob/main/PRIVACY.md",
-  desktopUpdateLogRelease: "https://github.com/MDP-Studio/rmm-hunter/releases/tag/v0.3.2"
+  desktopUpdateLogRelease: "https://github.com/MDP-Studio/rmm-hunter/releases/tag/v0.3.3"
 };
 
 let currentReport = null;
@@ -375,6 +375,14 @@ tabButtons.forEach((button) => {
 
 sidebarToggle?.addEventListener("click", () => {
   setSidebarCollapsed(!document.body.classList.contains("sidebar-collapsed"));
+});
+
+brandButton?.addEventListener("click", () => {
+  if (document.body.classList.contains("sidebar-collapsed")) {
+    setSidebarCollapsed(false);
+    return;
+  }
+  activateTab(defaultTabId);
 });
 
 timelineMore?.addEventListener("click", () => {
@@ -787,12 +795,17 @@ function setSidebarCollapsed(shouldCollapse, { remember = true } = {}) {
   document.body.classList.toggle("sidebar-collapsed", shouldCollapse);
   if (sidebarToggle) {
     sidebarToggle.setAttribute("aria-expanded", String(!shouldCollapse));
-    sidebarToggle.setAttribute("aria-label", shouldCollapse ? "Expand sidebar" : "Collapse sidebar");
-    sidebarToggle.setAttribute("title", shouldCollapse ? "Expand sidebar" : "Collapse sidebar");
+    sidebarToggle.setAttribute("aria-label", "Collapse sidebar");
+    sidebarToggle.setAttribute("title", "Collapse sidebar");
     sidebarToggle.dataset.state = shouldCollapse ? "collapsed" : "expanded";
   }
-  if (sidebarToggleIcon) {
-    sidebarToggleIcon.textContent = shouldCollapse ? ">" : "<";
+  if (brandButton) {
+    brandButton.setAttribute("aria-label", shouldCollapse ? "Expand sidebar" : "Open scan dashboard");
+    if (shouldCollapse) {
+      brandButton.dataset.tooltip = "Open sidebar";
+    } else {
+      delete brandButton.dataset.tooltip;
+    }
   }
   if (!remember) {
     return;

@@ -28,7 +28,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
-SCANNER_VERSION = "0.3.2"
+SCANNER_VERSION = "0.3.3"
 LOGGER = logging.getLogger(__name__)
 
 REMOTE_TOOLS: dict[str, tuple[str, ...]] = {
