@@ -382,6 +382,7 @@ Full privacy policy: `PRIVACY.md`
 - `docs/DETECTION_MAPPING.md`: rule-to-ATT&CK/D3FEND matrix and mapped export profile
 - `docs/COVERAGE_SCORECARD.md`: seeded corpus scorecard and coverage boundaries
 - `docs/WATCH_ACTIVE_DEFENSE.md`: Watch Preview and Active Defense guardrails
+- `docs/APP_WEBSITE_SYNC.md`: required app and website sync checklist for future agents
 - `RELEASE_CHECKLIST.md`: GitHub release readiness checklist
 - `CHANGELOG.md`: release notes
 

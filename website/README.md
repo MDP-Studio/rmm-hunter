@@ -12,6 +12,8 @@ The site is intentionally static and dependency-free. It links to the public Git
 
 The update-log notice is also static. It stores a local `rmm-hunter:update-log:*` flag in the visitor's browser so each update notice is only shown once per browser. Change the `data-update-log-id` value in `index.html` whenever the notice should appear again for a new release or major website update.
 
+When changing the desktop app, scanner, installer, release flow, security boundaries, privacy behavior, or public feature set, follow `docs/APP_WEBSITE_SYNC.md` from the repository root. App-facing changes must either update this website or explicitly record `Website impact: none`.
+
 Local preview:
 
 ```powershell
