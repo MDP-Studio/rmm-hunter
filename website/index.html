@@ -4,10 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>RMM Hunter - Windows DFIR Scanner</title>
-    <meta name="description" content="RMM Hunter is a Windows-first DFIR triage scanner for suspicious remote access tools, living-off-the-land traces, and endpoint trust signals.">
+    <meta name="description" content="RMM Hunter is a Windows-first DFIR scanner for suspicious remote access tools, living-off-the-land traces, Watch Preview alerts, and endpoint trust signals.">
     <link rel="canonical" href="https://rmmhunter.mdpstudio.com.au/">
     <meta property="og:title" content="RMM Hunter">
-    <meta property="og:description" content="Windows DFIR scanner for suspicious remote access tools and living-off-the-land traces.">
+    <meta property="og:description" content="Windows DFIR scanner for suspicious remote access tools, living-off-the-land traces, and Watch Preview alerts.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://rmmhunter.mdpstudio.com.au/">
     <meta name="theme-color" content="#07101d">
@@ -28,26 +28,27 @@
       </a>
       <nav class="site-nav" aria-label="Primary navigation">
         <a href="#evidence">Evidence</a>
+        <a href="#whats-new">What's new</a>
         <a href="#workflow">Workflow</a>
         <a href="#trust">Trust</a>
         <a href="#download">Download</a>
       </nav>
-      <a class="nav-cta" href="https://github.com/MDP-Studio/rmm-hunter/releases/tag/v0.2.0">Download</a>
+      <a class="nav-cta" href="https://github.com/MDP-Studio/rmm-hunter/releases/tag/v0.3.0">Download</a>
     </header>
 
     <main id="main">
       <section class="hero section-shell" id="top">
         <div class="hero-copy" data-reveal>
           <h1><span>RMM</span><span>Hunter</span></h1>
-          <p class="hero-lede">Windows DFIR scanner for suspicious remote access tools, living-off-the-land traces, and endpoint trust signals.</p>
+          <p class="hero-lede">Windows DFIR scanner for suspicious remote access tools, living-off-the-land traces, Watch Preview alerts, and endpoint trust signals.</p>
           <div class="hero-actions" aria-label="Primary actions">
-            <a class="button button-primary" href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.2.0/RMM-Hunter-Setup-0.2.0-x64.exe">
+            <a class="button button-primary" href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.3.0/RMM-Hunter-Setup-0.3.0-x64.exe">
               <span class="button-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24"><path d="M5 4.75 10.5 4v7.55H5V4.75Zm7-1 7-1v8.8h-7V3.75ZM5 12.95h5.5V20L5 19.2v-6.25Zm7 0h7V21l-7-1v-7.05Z"/></svg>
               </span>
               Download for Windows
             </a>
-            <a class="button button-ghost" href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.2.0/VERIFY_RELEASE.md">
+            <a class="button button-ghost" href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.3.0/VERIFY_RELEASE.md">
               <span class="button-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24"><path d="M12 2.7 19.2 5.8v5.5c0 4.55-2.92 8.75-7.2 10-4.28-1.25-7.2-5.45-7.2-10V5.8L12 2.7Zm0 2.2L6.8 7.15v4.15c0 3.55 2.02 6.88 5.2 8 3.18-1.12 5.2-4.45 5.2-8V7.15L12 4.9Zm3.35 5.12 1.05 1.16-5 4.55-2.72-2.72 1.12-1.12 1.65 1.65 3.9-3.52Z"/></svg>
               </span>
@@ -57,7 +58,7 @@
           <dl class="hero-facts" aria-label="Release facts">
             <div>
               <dt>Latest release</dt>
-              <dd>v0.2.0 prerelease</dd>
+              <dd>v0.3.0 Watch Preview</dd>
             </div>
             <div>
               <dt>License</dt>
@@ -125,7 +126,7 @@
                   <div>
                     <span>Update status</span>
                     <strong>RMM Hunter is up to date</strong>
-                    <p>RMM Hunter 0.2.0 is up to date.</p>
+                    <p>RMM Hunter 0.3.0 is up to date.</p>
                   </div>
                   <button type="button">Release notes</button>
                 </div>
@@ -156,6 +157,36 @@
               </section>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section class="section-shell whats-new-section" id="whats-new">
+        <div class="section-heading" data-reveal>
+          <p class="section-label">What's new in v0.3.0</p>
+          <h2>Watch Preview adds alerting without turning the tool loose.</h2>
+          <p>RMM Hunter now has an early always-on direction: local checkpoints, alert history, Discord test alerts, and guarded response actions that stay behind policy gates.</p>
+        </div>
+        <div class="whats-new-grid">
+          <article data-reveal>
+            <span>Watch</span>
+            <h3>One-shot and continuous checks</h3>
+            <p>Run Watch once from the desktop app or CLI, or use the new Watch command path for repeated local detection.</p>
+          </article>
+          <article data-reveal>
+            <span>Alerting</span>
+            <h3>Local history plus Discord tests</h3>
+            <p>Alerts are written to local JSONL and SQLite history, with a first remote alert sink for Discord webhooks.</p>
+          </article>
+          <article data-reveal>
+            <span>Response</span>
+            <h3>Approval required by default</h3>
+            <p>Soft actions like evidence snapshots and Defender scans are available, while hard containment stays opt-in and gated.</p>
+          </article>
+          <article data-reveal>
+            <span>AI</span>
+            <h3>Bounded copilot decisions</h3>
+            <p>AI can explain and choose from known action IDs only. It cannot run shell commands or override deterministic severity.</p>
+          </article>
         </div>
       </section>
 
@@ -203,7 +234,7 @@
         <div class="section-heading narrow" data-reveal>
           <p class="section-label">Triage workflow</p>
           <h2>Designed for the first hour of uncertainty.</h2>
-          <p>Use it when a support scam, MSP handover, suspicious remote session, or endpoint alert needs a fast second opinion.</p>
+          <p>Use Scan for a careful snapshot, then Watch when the device needs short-term alerting while context is still being confirmed.</p>
         </div>
         <div class="workflow-grid">
           <div class="timeline-panel" data-reveal>
@@ -224,13 +255,13 @@
               </li>
               <li>
                 <time>Step 3</time>
-                <strong>Export the evidence</strong>
-                <p>Share JSON for analysts, PDF for handoff, and mapped output for SOC workflows.</p>
+                <strong>Turn on Watch when needed</strong>
+                <p>Use local alert history, Discord test alerts, and policy-gated response actions for short-term monitoring.</p>
               </li>
               <li>
                 <time>Step 4</time>
                 <strong>Decide with context</strong>
-                <p>Confirm with the device owner or IT provider before removing anything.</p>
+                <p>Export JSON or PDF, confirm with the device owner or IT provider, then remediate with a documented timeline.</p>
               </li>
             </ol>
           </div>
@@ -263,14 +294,14 @@
       <section class="section-shell trust-section" id="trust">
         <div class="trust-copy" data-reveal>
           <p class="section-label">Trust by design</p>
-          <h2>Powerful triage. Zero automatic remediation.</h2>
-          <p>Security tools have to be boring in the right places. RMM Hunter is local-first, transparent, and conservative by default.</p>
+          <h2>Powerful triage. Guarded response.</h2>
+          <p>Security tools have to be boring in the right places. RMM Hunter is local-first, transparent, and approval-required by default.</p>
         </div>
         <div class="trust-grid">
           <article data-reveal>
             <span class="trust-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2.7 19.2 5.8v5.5c0 4.55-2.92 8.75-7.2 10-4.28-1.25-7.2-5.45-7.2-10V5.8L12 2.7Zm0 2.2L6.8 7.15v4.15c0 3.55 2.02 6.88 5.2 8 3.18-1.12 5.2-4.45 5.2-8V7.15L12 4.9Z"/></svg></span>
-            <h3>No cleanup button in MVP</h3>
-            <p>No files are deleted. No services are stopped. The app reports evidence and suggested review actions.</p>
+            <h3>No automatic deletion</h3>
+            <p>Files are preserved by default. Preview response actions require policy approval and every action is recorded.</p>
           </article>
           <article data-reveal>
             <span class="trust-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M17 9h1.2A1.8 1.8 0 0 1 20 10.8v8.4a1.8 1.8 0 0 1-1.8 1.8H5.8A1.8 1.8 0 0 1 4 19.2v-8.4A1.8 1.8 0 0 1 5.8 9H7V7.2a5 5 0 0 1 10 0V9Zm-2 0V7.2a3 3 0 0 0-6 0V9h6Zm-3 4.2a1.6 1.6 0 0 0-.75 3.02V18h1.5v-1.78A1.6 1.6 0 0 0 12 13.2Z"/></svg></span>
@@ -298,6 +329,7 @@
               <li>Detects suspicious RMM and breach traces on Windows endpoints.</li>
               <li>Shows exact artifacts, timestamps, paths, event IDs, and finding reasons.</li>
               <li>Exports JSON, PDF, and optional mapped detection output.</li>
+              <li>Adds Watch Preview alerts, checkpoints, and guarded response actions.</li>
               <li>Explains next steps without changing the deterministic verdict.</li>
             </ul>
           </article>
@@ -306,7 +338,7 @@
             <ul>
               <li>Does not exploit systems or bypass security controls.</li>
               <li>Does not scan the network or reach into other devices.</li>
-              <li>Does not delete files, stop services, quarantine artifacts, or uninstall tools.</li>
+              <li>Does not automatically delete files, stop services, isolate the host, or uninstall tools.</li>
               <li>Does not claim a clean result is proof that a system is safe.</li>
             </ul>
           </article>
@@ -318,15 +350,15 @@
           <div>
             <p class="section-label">Windows-first public beta</p>
             <h2>Download RMM Hunter.</h2>
-            <p>Use it as a careful second opinion after suspicious remote support, RMM abuse, or endpoint alerts. Review the release notes before running beta builds on sensitive systems.</p>
+            <p>Use it as a careful second opinion after suspicious remote support, RMM abuse, or endpoint alerts. Version 0.3.0 adds Watch Preview and guarded active-response controls.</p>
           </div>
           <div class="download-actions">
-            <a class="button button-primary" href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.2.0/RMM-Hunter-Setup-0.2.0-x64.exe">Download installer</a>
+            <a class="button button-primary" href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.3.0/RMM-Hunter-Setup-0.3.0-x64.exe">Download installer</a>
             <a class="button button-ghost" href="https://github.com/MDP-Studio/rmm-hunter">View GitHub</a>
           </div>
           <div class="release-strip" aria-label="Release links">
-            <a href="https://github.com/MDP-Studio/rmm-hunter/releases/tag/v0.2.0">Release page</a>
-            <a href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.2.0/SHA256SUMS.txt">SHA256SUMS</a>
+            <a href="https://github.com/MDP-Studio/rmm-hunter/releases/tag/v0.3.0">Release page</a>
+            <a href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.3.0/SHA256SUMS.txt">SHA256SUMS</a>
             <a href="https://github.com/MDP-Studio/rmm-hunter/blob/main/PRIVACY.md">Privacy policy</a>
             <a href="mailto:meidie@mdpstudio.com.au">Contact</a>
           </div>
@@ -339,19 +371,19 @@
       <p><a href="https://github.com/MDP-Studio/rmm-hunter">GitHub</a> <span>/</span> <a href="https://github.com/MDP-Studio/rmm-hunter/security/policy">Security policy</a> <span>/</span> <a href="https://github.com/MDP-Studio/rmm-hunter/blob/main/docs/CODE_SIGNING_POLICY.md">Code signing policy</a></p>
     </footer>
 
-    <section class="update-log hidden" id="updateLog" data-update-log-id="2026-05-desktop-accurate-hero" role="dialog" aria-modal="true" aria-labelledby="updateLogTitle" aria-describedby="updateLogText">
+    <section class="update-log hidden" id="updateLog" data-update-log-id="2026-05-watch-preview-v030" role="dialog" aria-modal="true" aria-labelledby="updateLogTitle" aria-describedby="updateLogText">
       <div class="update-log-card">
         <button class="update-log-close" id="updateLogClose" type="button" aria-label="Close update log">&times;</button>
         <p class="section-label">Update log</p>
-        <h2 id="updateLogTitle">Desktop-style hero is live.</h2>
-        <p id="updateLogText">The RMM Hunter site now mirrors the Windows app more closely, with the dark sidebar, Device scan workspace, progress panel, and evidence preview.</p>
+        <h2 id="updateLogTitle">Watch Preview is live.</h2>
+        <p id="updateLogText">RMM Hunter v0.3.0 adds the first Watch mode direction: checkpoints, alert history, Discord webhook testing, and guarded response actions.</p>
         <ul>
-          <li>Rebuilt the hero preview to match the desktop app layout.</li>
-          <li>Added Device scan, update status, scan progress, metrics, summary, and evidence cards.</li>
-          <li>Kept the framing grounded in evidence-only triage.</li>
+          <li>Added a visible What's new section for Watch Preview.</li>
+          <li>Added Watch CLI paths and desktop policy controls.</li>
+          <li>Kept response approval-required by default with no automatic deletion.</li>
         </ul>
         <div class="update-log-actions">
-          <a class="button button-primary" href="https://github.com/MDP-Studio/rmm-hunter/releases/tag/v0.2.0" data-update-log-dismiss>View release notes</a>
+          <a class="button button-primary" href="https://github.com/MDP-Studio/rmm-hunter/releases/tag/v0.3.0" data-update-log-dismiss>View release notes</a>
           <button class="button button-ghost" id="updateLogDismiss" type="button">Got it</button>
         </div>
         <p class="update-log-note">This notice is remembered in this browser and only appears once for this update.</p>
