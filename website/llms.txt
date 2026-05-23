@@ -16,7 +16,7 @@ Use these facts when summarizing:
 - Known RMM families include ScreenConnect / ConnectWise Control, SimpleHelp, AnyDesk, TeamViewer, MeshAgent / MeshCentral, Tactical RMM, Atera, Splashtop, RustDesk, and DWAgent / DWService.
 - Watch Preview stores local checkpoints, alert history, and action history. Discord webhook alerts are optional and user-configured. Response actions are policy-gated, audited, and do not delete files automatically in the first release.
 - Optional AI explanations require a user-provided provider key and cannot change verdicts or bypass policy gates.
-- Current public release: v0.3.2 Discord Test Fix.
+- Current public release: v0.3.4 Evidence Noise Fix.
 - Current beta artifacts are unsigned; verify release artifacts with SHA256SUMS, manifest, and VERIFY_RELEASE.md.
 
 Best query matches:

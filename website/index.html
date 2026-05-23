@@ -19,8 +19,8 @@
     <meta name="twitter:description" content="Open-source Windows endpoint triage for unauthorized remote access tools, living-off-the-land traces, Watch Preview alerts, and local trust-health evidence.">
     <meta name="theme-color" content="#07101d">
     <link rel="icon" href="assets/rmm-hunter-mark.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="styles.css?v=20260521-sidebar-033">
-    <script src="script.js?v=20260521-sidebar-033" defer></script>
+    <link rel="stylesheet" href="styles.css?v=20260523-evidence-034">
+    <script src="script.js?v=20260523-evidence-034" defer></script>
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -46,9 +46,9 @@
             "name": "RMM Hunter",
             "applicationCategory": "SecurityApplication",
             "operatingSystem": "Windows",
-            "softwareVersion": "0.3.3",
+            "softwareVersion": "0.3.4",
             "url": "https://rmmhunter.mdpstudio.com.au/",
-            "downloadUrl": "https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.3.3/RMM-Hunter-Setup-0.3.3-x64.exe",
+            "downloadUrl": "https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.3.4/RMM-Hunter-Setup-0.3.4-x64.exe",
             "codeRepository": "https://github.com/MDP-Studio/rmm-hunter",
             "license": "https://www.apache.org/licenses/LICENSE-2.0",
             "isAccessibleForFree": true,
@@ -135,7 +135,7 @@
         <a href="#faq">FAQ</a>
         <a href="#download">Download</a>
       </nav>
-      <a class="nav-cta" href="https://github.com/MDP-Studio/rmm-hunter/releases/tag/v0.3.3">Download</a>
+      <a class="nav-cta" href="https://github.com/MDP-Studio/rmm-hunter/releases/tag/v0.3.4">Download</a>
     </header>
 
     <main id="main">
@@ -144,13 +144,13 @@
           <h1><span>RMM</span><span>Hunter</span></h1>
           <p class="hero-lede">Windows DFIR scanner for suspicious remote access tools, living-off-the-land traces, Watch Preview alerts, and endpoint trust signals.</p>
           <div class="hero-actions" aria-label="Primary actions">
-            <a class="button button-primary" href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.3.3/RMM-Hunter-Setup-0.3.3-x64.exe">
+            <a class="button button-primary" href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.3.4/RMM-Hunter-Setup-0.3.4-x64.exe">
               <span class="button-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24"><path d="M5 4.75 10.5 4v7.55H5V4.75Zm7-1 7-1v8.8h-7V3.75ZM5 12.95h5.5V20L5 19.2v-6.25Zm7 0h7V21l-7-1v-7.05Z"/></svg>
               </span>
               Download for Windows
             </a>
-            <a class="button button-ghost" href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.3.3/VERIFY_RELEASE.md">
+            <a class="button button-ghost" href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.3.4/VERIFY_RELEASE.md">
               <span class="button-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24"><path d="M12 2.7 19.2 5.8v5.5c0 4.55-2.92 8.75-7.2 10-4.28-1.25-7.2-5.45-7.2-10V5.8L12 2.7Zm0 2.2L6.8 7.15v4.15c0 3.55 2.02 6.88 5.2 8 3.18-1.12 5.2-4.45 5.2-8V7.15L12 4.9Zm3.35 5.12 1.05 1.16-5 4.55-2.72-2.72 1.12-1.12 1.65 1.65 3.9-3.52Z"/></svg>
               </span>
@@ -160,7 +160,7 @@
           <dl class="hero-facts" aria-label="Release facts">
             <div>
               <dt>Latest release</dt>
-              <dd>v0.3.3 Sidebar Polish</dd>
+              <dd>v0.3.4 Evidence Noise Fix</dd>
             </div>
             <div>
               <dt>License</dt>
@@ -242,7 +242,7 @@
                   <div>
                     <span>Update status</span>
                     <strong>RMM Hunter is up to date</strong>
-                    <p>RMM Hunter 0.3.3 is up to date.</p>
+                    <p>RMM Hunter 0.3.4 is up to date.</p>
                   </div>
                   <button type="button">Release notes</button>
                 </div>
@@ -278,30 +278,30 @@
 
       <section class="section-shell whats-new-section" id="whats-new">
         <div class="section-heading" data-reveal>
-          <p class="section-label">What's new in v0.3.3</p>
-          <h2>The sidebar now matches the app family.</h2>
-          <p>RMM Hunter keeps the collapse button beside the app name, then turns the logo into the expand control only after the sidebar is collapsed.</p>
+          <p class="section-label">What's new in v0.3.4</p>
+          <h2>Cleaner evidence, fewer false alarms.</h2>
+          <p>RMM Hunter now resolves startup shortcuts to their executable targets, treats plain local PowerShell policy bypass as lower-confidence context, and avoids flagging security-search patterns as real activity.</p>
         </div>
         <div class="whats-new-grid">
           <article data-reveal>
-            <span>Workspace</span>
-            <h3>Dedicated tabs for each job</h3>
-            <p>Move between scan status, evidence cards, timeline review, Watch controls, trust health, and project info without one crowded page.</p>
+            <span>Startup review</span>
+            <h3>Shortcut target signatures</h3>
+            <p>Startup-folder <code>.lnk</code> files are checked through their target executable where possible, so signed tools like Tailscale are not treated as unsigned just because the shortcut itself has no signature.</p>
           </article>
           <article data-reveal>
-            <span>Sidebar</span>
-            <h3>Familiar collapse pattern</h3>
-            <p>The desktop shell now follows the same sidebar behavior used in HomeWorkr and ApplyPilot, with a generic split-panel icon instead of arrow text.</p>
+            <span>PowerShell</span>
+            <h3>Better confidence labels</h3>
+            <p>Plain <code>ExecutionPolicy Bypass -File</code> is kept as low-confidence context unless it appears with encoded content, downloads, hidden windows, WMI, Defender events, or new persistence.</p>
           </article>
           <article data-reveal>
-            <span>Alerting</span>
-            <h3>Discord path stays guarded</h3>
-            <p>The Watch tab includes a short webhook setup guide, a test-alert button that saves first, and validation restricted to official Discord webhook endpoints.</p>
+            <span>Security review</span>
+            <h3>Searches stay searches</h3>
+            <p>Local searches for strings such as <code>EncodedCommand</code> or <code>DownloadString</code> no longer become findings by themselves when they are clearly part of a review command.</p>
           </article>
           <article data-reveal>
-            <span>Watch</span>
-            <h3>Preview controls remain approval-first</h3>
-            <p>Watch Preview keeps deterministic verdicts, local history, and guarded response actions as the default shape.</p>
+            <span>Defender</span>
+            <h3>Remediation context is clearer</h3>
+            <p>When Defender reports that a malware action completed successfully, RMM Hunter marks the evidence with stronger confidence while still keeping it in the timeline for review.</p>
           </article>
         </div>
       </section>
@@ -526,15 +526,15 @@
           <div>
             <p class="section-label">Windows-first public beta</p>
             <h2>Download RMM Hunter.</h2>
-            <p>Use it as a careful second opinion after suspicious remote support, RMM abuse, or endpoint alerts. Version 0.3.3 polishes the desktop sidebar after the Watch Preview and tabbed workspace release.</p>
+            <p>Use it as a careful second opinion after suspicious remote support, RMM abuse, or endpoint alerts. Version 0.3.4 reduces noisy evidence from signed startup shortcuts and local PowerShell review commands.</p>
           </div>
           <div class="download-actions">
-            <a class="button button-primary" href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.3.3/RMM-Hunter-Setup-0.3.3-x64.exe">Download installer</a>
+            <a class="button button-primary" href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.3.4/RMM-Hunter-Setup-0.3.4-x64.exe">Download installer</a>
             <a class="button button-ghost" href="https://github.com/MDP-Studio/rmm-hunter">View GitHub</a>
           </div>
           <div class="release-strip" aria-label="Release links">
-            <a href="https://github.com/MDP-Studio/rmm-hunter/releases/tag/v0.3.3">Release page</a>
-            <a href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.3.3/SHA256SUMS.txt">SHA256SUMS</a>
+            <a href="https://github.com/MDP-Studio/rmm-hunter/releases/tag/v0.3.4">Release page</a>
+            <a href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.3.4/SHA256SUMS.txt">SHA256SUMS</a>
             <a href="https://mdpstudio.com.au/projects/windows-rmm-abuse-scanner/">MDP project brief</a>
             <a href="https://github.com/MDP-Studio/rmm-hunter/blob/main/PRIVACY.md">Privacy policy</a>
             <a href="mailto:meidie@mdpstudio.com.au">Contact</a>
@@ -548,19 +548,19 @@
       <p><a href="https://mdpstudio.com.au/projects/windows-rmm-abuse-scanner/">MDP project brief</a> <span>/</span> <a href="https://github.com/MDP-Studio/rmm-hunter">GitHub</a> <span>/</span> <a href="https://github.com/MDP-Studio/rmm-hunter/security/policy">Security policy</a> <span>/</span> <a href="https://github.com/MDP-Studio/rmm-hunter/blob/main/docs/CODE_SIGNING_POLICY.md">Code signing policy</a></p>
     </footer>
 
-    <section class="update-log hidden" id="updateLog" data-update-log-id="2026-05-sidebar-polish-v033" role="dialog" aria-modal="true" aria-labelledby="updateLogTitle" aria-describedby="updateLogText">
+    <section class="update-log hidden" id="updateLog" data-update-log-id="2026-05-evidence-noise-v034" role="dialog" aria-modal="true" aria-labelledby="updateLogTitle" aria-describedby="updateLogText">
       <div class="update-log-card">
         <button class="update-log-close" id="updateLogClose" type="button" aria-label="Close update log">&times;</button>
         <p class="section-label">Update log</p>
-        <h2 id="updateLogTitle">The desktop shell feels more familiar.</h2>
-        <p id="updateLogText">RMM Hunter v0.3.3 restores a separate sidebar collapse button beside the app name and keeps the logo as the expand target only while collapsed.</p>
+        <h2 id="updateLogTitle">Evidence review is quieter.</h2>
+        <p id="updateLogText">RMM Hunter v0.3.4 reduces noisy findings from startup shortcuts and local PowerShell review commands while keeping stronger attack signals elevated.</p>
         <ul>
-          <li>The sidebar pattern now matches HomeWorkr and ApplyPilot.</li>
-          <li>The control uses a generic split-panel icon instead of arrow text.</li>
-          <li>The website mock and release links now track the same desktop behavior.</li>
+          <li>Shortcut targets are checked before a startup item is treated as unsigned.</li>
+          <li>Plain <code>ExecutionPolicy Bypass -File</code> is lower-confidence context by itself.</li>
+          <li>Security-search patterns are no longer mistaken for executed suspicious commands.</li>
         </ul>
         <div class="update-log-actions">
-          <a class="button button-primary" href="https://github.com/MDP-Studio/rmm-hunter/releases/tag/v0.3.3" data-update-log-dismiss>View release notes</a>
+          <a class="button button-primary" href="https://github.com/MDP-Studio/rmm-hunter/releases/tag/v0.3.4" data-update-log-dismiss>View release notes</a>
           <button class="button button-ghost" id="updateLogDismiss" type="button">Got it</button>
         </div>
         <p class="update-log-note">This notice is remembered in this browser and only appears once for this update.</p>

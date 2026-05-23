@@ -23,7 +23,7 @@ Confidence is separate from severity. A finding can be high severity but lower c
 | Services | Is an agent installed as a persistent service? | Service name, display name, executable path, start type, signer. | Strong evidence when the path or name matches an RMM tool. |
 | Service install events | Was a service created recently? | Event ID `7045`, service name, image path, timestamp. | Very useful for timeline building. |
 | Scheduled tasks | Is persistence configured through Task Scheduler? | Task name, action, author, enabled state. | Review user-writable paths and odd task names first. |
-| Startup registry and folders | Will a tool launch at sign-in? | Key path, value name, command path. | Useful for persistence, especially under user profiles. |
+| Startup registry and folders | Will a tool launch at sign-in? | Key path, value name, command path, shortcut target path, target signature. | Useful for persistence, especially under user profiles. |
 | Recent installers and scripts | Did an RMM installer appear in Downloads or Temp? | File name, directory, timestamps, signer. | Medium evidence. It may only be a downloaded installer. |
 | PowerShell logs | Was living-off-the-land behavior observed? | Event IDs, command text, script block text. | Review full command lines, user, timestamp, and parent process where available. |
 | Process creation logs | Was `msiexec`, PowerShell, WMI, or a browser-launched installer observed? | Event ID `4688`, command line, parent process. | Coverage depends on Windows audit policy. |

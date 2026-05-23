@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.3.4 - 2026-05-23
+
+- Resolved startup-folder shortcuts before judging executable signatures, reducing false positives for signed tools launched through `.lnk` files such as Tailscale.
+- Split plain `ExecutionPolicy Bypass -File` PowerShell into low-confidence review context while keeping encoded, download, hidden-window, and stronger living-off-the-land behavior elevated.
+- Suppressed scriptblock events that only contain suspicious strings as search patterns during local security review.
+- Raised Defender remediation confidence when Defender reports that the action completed successfully.
+- Updated the website and desktop update log for the evidence-noise reduction release.
+
 ## 0.3.3 - 2026-05-21
 
 - Matched the desktop sidebar behavior to the HomeWorkr and ApplyPilot app shells.

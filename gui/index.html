@@ -341,17 +341,17 @@
       </section>
     </main>
 
-    <section class="update-log-modal hidden" id="desktopUpdateLog" data-update-log-id="desktop-0.3.3" role="dialog" aria-modal="true" aria-labelledby="desktopUpdateLogTitle" aria-describedby="desktopUpdateLogText">
+    <section class="update-log-modal hidden" id="desktopUpdateLog" data-update-log-id="desktop-0.3.4" role="dialog" aria-modal="true" aria-labelledby="desktopUpdateLogTitle" aria-describedby="desktopUpdateLogText">
       <div class="update-log-card">
         <button class="modal-close-button" id="desktopUpdateLogClose" type="button" aria-label="Close update log">&times;</button>
         <span class="eyebrow">Update log</span>
-        <h2 id="desktopUpdateLogTitle">RMM Hunter 0.3.3 is ready.</h2>
-        <p id="desktopUpdateLogText">This release makes the sidebar behave like the HomeWorkr and ApplyPilot app shells.</p>
+        <h2 id="desktopUpdateLogTitle">RMM Hunter 0.3.4 is ready.</h2>
+        <p id="desktopUpdateLogText">This release reduces noisy review signals from signed shortcuts and local security searches.</p>
         <ul>
-          <li>The expanded sidebar uses a dedicated collapse button beside the app name.</li>
-          <li>The collapsed logo reveals the split-panel expand icon on hover.</li>
-          <li>The control uses a generic sidebar split icon instead of arrow text.</li>
-          <li>Watch and AI safety boundaries are unchanged.</li>
+          <li>Startup-folder shortcuts are resolved to their executable targets before signature review.</li>
+          <li>Plain PowerShell `ExecutionPolicy Bypass -File` is low-confidence context unless stronger signals appear.</li>
+          <li>Search commands that contain suspicious strings as patterns no longer become findings by themselves.</li>
+          <li>Defender remediation events show stronger confidence when Defender reports successful action.</li>
         </ul>
         <div class="modal-actions">
           <button class="secondary-button" id="desktopUpdateLogRelease" type="button">Release notes</button>

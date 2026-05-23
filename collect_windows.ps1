@@ -152,6 +152,42 @@ function Get-SignatureSummary {
     }
 }
 
+function Get-ShortcutSummary {
+    param(
+        [string]$Path
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Path) -or -not $Path.ToLowerInvariant().EndsWith(".lnk")) {
+        return $null
+    }
+
+    try {
+        $shell = New-Object -ComObject WScript.Shell
+        $shortcut = $shell.CreateShortcut($Path)
+        $targetPath = [string]$shortcut.TargetPath
+        $targetSignature = $null
+
+        if (-not [string]::IsNullOrWhiteSpace($targetPath) -and (Test-Path -LiteralPath $targetPath -PathType Leaf)) {
+            $targetExtension = [System.IO.Path]::GetExtension($targetPath).ToLowerInvariant()
+            if (@(".exe", ".msi", ".msp", ".dll", ".scr") -contains $targetExtension) {
+                $targetSignature = Get-SignatureSummary $targetPath
+            }
+        }
+
+        return [ordered]@{
+            target_path = $targetPath
+            arguments = [string]$shortcut.Arguments
+            working_directory = [string]$shortcut.WorkingDirectory
+            icon_location = [string]$shortcut.IconLocation
+            target_signature = $targetSignature
+        }
+    }
+    catch {
+        Add-CollectionError -Source "shortcut:$Path" -Message $_.Exception.Message
+        return $null
+    }
+}
+
 function Get-ObjectPropertyValue {
     param(
         [AllowNull()]$Object,
@@ -534,6 +570,7 @@ function Get-StartupFolderArtifacts {
 
             $files = Get-ChildItem -LiteralPath $dir -File -ErrorAction Stop
             foreach ($file in $files) {
+                $shortcut = Get-ShortcutSummary $file.FullName
                 $items += [ordered]@{
                     name = [string]$file.Name
                     path = [string]$file.FullName
@@ -542,6 +579,7 @@ function Get-StartupFolderArtifacts {
                     creation_time_utc = ConvertTo-IsoUtc $file.CreationTimeUtc
                     last_write_time_utc = ConvertTo-IsoUtc $file.LastWriteTimeUtc
                     signature = Get-SignatureSummary $file.FullName
+                    shortcut = $shortcut
                 }
             }
         }

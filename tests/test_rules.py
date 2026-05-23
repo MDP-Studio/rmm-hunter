@@ -386,6 +386,96 @@ class RuleTests(unittest.TestCase):
 
         self.assertEqual(report["findings"], [])
 
+    def test_startup_shortcut_uses_target_signature(self):
+        collection = {
+            "artifacts": {
+                "installed_programs": [],
+                "services": [],
+                "service_install_events": [],
+                "scheduled_tasks": [],
+                "startup_registry": [],
+                "startup_folders": [
+                    {
+                        "name": "Tailscale.lnk",
+                        "path": "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\StartUp\\Tailscale.lnk",
+                        "extension": ".lnk",
+                        "signature": {"status": "UnknownError"},
+                        "shortcut": {
+                            "target_path": "C:\\Program Files\\Tailscale\\tailscale-ipn.exe",
+                            "target_signature": {
+                                "status": "Valid",
+                                "signer_subject": "CN=Tailscale Inc.",
+                            },
+                        },
+                    }
+                ],
+                "recent_files": [],
+                "defender_events": [],
+                "powershell_events": [],
+                "process_creation_events": [],
+                "wmi_events": []
+            },
+            "collection_errors": []
+        }
+        report = rmm_hunter.analyze_artifacts(collection)
+
+        self.assertEqual(report["findings"], [])
+
+    def test_policy_bypass_file_only_is_low_confidence_context(self):
+        collection = {
+            "artifacts": {
+                "installed_programs": [],
+                "services": [],
+                "service_install_events": [],
+                "scheduled_tasks": [],
+                "startup_registry": [],
+                "startup_folders": [],
+                "recent_files": [],
+                "defender_events": [],
+                "powershell_events": [
+                    {
+                        "id": 4104,
+                        "message": "powershell -ExecutionPolicy Bypass -File C:\\Users\\meidi\\Documents\\Codex\\task_start.ps1",
+                    }
+                ],
+                "process_creation_events": [],
+                "wmi_events": []
+            },
+            "collection_errors": []
+        }
+        report = rmm_hunter.analyze_artifacts(collection)
+        finding = report["findings"][0]
+
+        self.assertEqual(finding["category"], "powershell_policy_bypass_only")
+        self.assertEqual(finding["severity"], "low")
+        self.assertEqual(finding["confidence_label"], "low")
+
+    def test_security_search_queries_do_not_become_powershell_findings(self):
+        collection = {
+            "artifacts": {
+                "installed_programs": [],
+                "services": [],
+                "service_install_events": [],
+                "scheduled_tasks": [],
+                "startup_registry": [],
+                "startup_folders": [],
+                "recent_files": [],
+                "defender_events": [],
+                "powershell_events": [
+                    {
+                        "id": 4104,
+                        "message": "rg -n \"ExecutionPolicy Bypass|EncodedCommand|Invoke-Expression|DownloadString|FromBase64String\" C:\\Users\\meidi\\Documents",
+                    }
+                ],
+                "process_creation_events": [],
+                "wmi_events": []
+            },
+            "collection_errors": []
+        }
+        report = rmm_hunter.analyze_artifacts(collection)
+
+        self.assertEqual(report["findings"], [])
+
     def test_mapped_detection_export_preserves_verdict_and_mappings(self):
         sample = json.loads((ROOT / "tests" / "sample_artifacts_high_risk.json").read_text(encoding="utf-8"))
         report = rmm_hunter.analyze_artifacts(sample)

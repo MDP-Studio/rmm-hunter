@@ -28,7 +28,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
-SCANNER_VERSION = "0.3.3"
+SCANNER_VERSION = "0.3.4"
 LOGGER = logging.getLogger(__name__)
 
 REMOTE_TOOLS: dict[str, tuple[str, ...]] = {
@@ -119,9 +119,12 @@ POWERSHELL_DOWNLOAD_PATTERNS = (
     "bitsadmin",
 )
 
-POWERSHELL_BYPASS_PATTERNS = (
+POWERSHELL_POLICY_BYPASS_PATTERNS = (
     "executionpolicy bypass",
     " -ep bypass",
+)
+
+POWERSHELL_HIDDEN_OR_NOPROFILE_PATTERNS = (
     " -nop ",
     " -windowstyle hidden",
     " -window hidden",
@@ -154,6 +157,25 @@ SELF_EVENT_TERMS = (
     "rmm_hunter_artifacts",
     "rmm hunter windows collector",
     "generate-release-manifest.ps1",
+)
+
+SEARCH_ONLY_EVENT_TERMS = (
+    "rg -n",
+    "rg.exe",
+    "select-string",
+    "findstr",
+    " -match ",
+)
+
+SUSPICIOUS_PATTERN_QUERY_TERMS = (
+    "executionpolicy bypass|",
+    "encodedcommand|",
+    "invoke-expression|",
+    "downloadstring|",
+    "frombase64string|",
+    "set-mppreference|",
+    "add-mppreference|",
+    "windowstyle hidden",
 )
 
 URL_PATTERN = re.compile(r"https?://[^\s'\"<>]+", re.IGNORECASE)
@@ -225,6 +247,7 @@ EVIDENCE_STRENGTH_BY_CATEGORY = {
     "recent_service_install_from_suspicious_path": "strong",
     "encoded_powershell": "strong",
     "encoded_powershell_process": "strong",
+    "powershell_policy_bypass_only": "weak",
     "defender_malware_event": "critical",
     "defender_sensitive_configuration_event": "strong",
     "defender_health_issue": "strong",
@@ -1259,6 +1282,12 @@ def is_self_generated_event_text(text: str) -> bool:
     return any(term in text for term in SELF_EVENT_TERMS)
 
 
+def is_search_only_event_text(text: str) -> bool:
+    return any(term in text for term in SEARCH_ONLY_EVENT_TERMS) and any(
+        term in text for term in SUSPICIOUS_PATTERN_QUERY_TERMS
+    )
+
+
 def path_text(item: dict[str, Any]) -> str:
     value = first_present(
         item,
@@ -1294,11 +1323,40 @@ def signature_status(item: dict[str, Any]) -> str | None:
     return None
 
 
+def target_signature_status(item: dict[str, Any]) -> str | None:
+    shortcut = item.get("shortcut")
+    if not isinstance(shortcut, dict):
+        return None
+    signature = shortcut.get("target_signature")
+    if isinstance(signature, dict):
+        status = signature.get("status")
+        if status:
+            return str(status)
+    return None
+
+
 def signature_is_untrusted(item: dict[str, Any]) -> bool:
     status = signature_status(item)
     if status is None:
         return False
     return status.lower() not in {"valid"}
+
+
+def startup_folder_signature_is_untrusted(item: dict[str, Any]) -> bool:
+    extension = str(item.get("extension") or "").lower()
+    if extension == ".lnk":
+        shortcut = item.get("shortcut")
+        if not isinstance(shortcut, dict):
+            return False
+        target_path = str(shortcut.get("target_path") or "").strip()
+        if not target_path:
+            return False
+        target_extension = Path(target_path).suffix.lower()
+        if target_extension not in {".exe", ".msi", ".msp", ".dll", ".scr"}:
+            return False
+        status = target_signature_status(item)
+        return status is not None and status.lower() != "valid"
+    return signature_is_untrusted(item)
 
 
 def file_stem_from_path(path: str) -> str:
@@ -1347,6 +1405,9 @@ def compact_artifact(source: str, item: dict[str, Any]) -> dict[str, Any]:
         "relative_path",
         "row_number",
         "row_context",
+        "target_path",
+        "target_arguments",
+        "target_working_directory",
         "size_bytes",
         "line_count",
         "sample_lines",
@@ -1391,6 +1452,18 @@ def compact_artifact(source: str, item: dict[str, Any]) -> dict[str, Any]:
             "status": signature.get("status"),
             "signer_subject": signature.get("signer_subject"),
         }
+
+    shortcut = item.get("shortcut")
+    if isinstance(shortcut, dict):
+        artifact["target_path"] = shortcut.get("target_path")
+        artifact["target_arguments"] = shortcut.get("arguments")
+        artifact["target_working_directory"] = shortcut.get("working_directory")
+        target_signature = shortcut.get("target_signature")
+        if isinstance(target_signature, dict):
+            artifact["target_signature"] = {
+                "status": target_signature.get("status"),
+                "signer_subject": target_signature.get("signer_subject"),
+            }
 
     message = item.get("message")
     if message:
@@ -1563,6 +1636,16 @@ def add_finding_guidance(finding: dict[str, Any]) -> None:
             "Review the script block, parent process, user, and timestamp before running any cleanup.",
             "If the command is not recognized, preserve the report and run a Defender full scan or offline scan.",
             "Rotate credentials that may have been exposed around the same time if the command touched browsers, cloud tools, or password files.",
+        ]
+    elif category == "powershell_policy_bypass_only":
+        finding["plain_language"] = (
+            "PowerShell was launched with ExecutionPolicy Bypass. By itself this does not mean compromise, especially for local admin or development scripts, "
+            "but it is useful context if it lines up with an unknown installer, hidden window, download, or Defender detection."
+        )
+        finding["recommended_actions"] = [
+            "Confirm whether the script path and timestamp match your own admin or development work.",
+            "Prioritize this only if the same event also lines up with downloads, encoded PowerShell, hidden windows, new services, or Defender detections.",
+            "If it is expected local automation, no cleanup is usually needed. Keep it in the timeline for context.",
         ]
     elif category in {
         "powershell_policy_or_hidden_window",
@@ -2088,13 +2171,13 @@ def analyze_artifacts(collection: dict[str, Any]) -> dict[str, Any]:
                 tool=tool,
                 confidence=0.78,
             )
-        if signature_is_untrusted(entry):
+        if startup_folder_signature_is_untrusted(entry):
             make_finding(
                 findings,
                 severity="low",
                 category="unsigned_startup_folder_item",
-                title="Unsigned executable in startup folder",
-                reason="Unsigned startup executables should be reviewed for ownership and purpose.",
+                title="Unsigned startup executable or shortcut target",
+                reason="Startup executables or shortcut targets without a trusted signature should be reviewed for ownership and purpose.",
                 source="startup_folders",
                 artifact=entry,
                 tool=tool,
@@ -2192,6 +2275,8 @@ def analyze_artifacts(collection: dict[str, Any]) -> dict[str, Any]:
         text = event_data_text(event)
         if is_self_generated_event_text(text):
             continue
+        if is_search_only_event_text(text):
+            continue
         if any(pattern in text for pattern in ENCODED_POWERSHELL_PATTERNS):
             make_finding(
                 findings,
@@ -2214,16 +2299,27 @@ def analyze_artifacts(collection: dict[str, Any]) -> dict[str, Any]:
                 artifact=event,
                 confidence=0.72,
             )
-        elif any(pattern in text for pattern in POWERSHELL_BYPASS_PATTERNS):
+        elif any(pattern in text for pattern in POWERSHELL_HIDDEN_OR_NOPROFILE_PATTERNS):
             make_finding(
                 findings,
                 severity="medium",
                 category="powershell_policy_or_hidden_window",
-                title="PowerShell bypass or hidden-window behavior observed",
-                reason="Execution policy bypass or hidden-window PowerShell needs review in this context.",
+                title="PowerShell hidden-window or no-profile behavior observed",
+                reason="Hidden-window or no-profile PowerShell needs review in this context.",
                 source="powershell_events",
                 artifact=event,
                 confidence=0.72,
+            )
+        elif any(pattern in text for pattern in POWERSHELL_POLICY_BYPASS_PATTERNS):
+            make_finding(
+                findings,
+                severity="low",
+                category="powershell_policy_bypass_only",
+                title="PowerShell execution policy bypass observed",
+                reason="ExecutionPolicy Bypass on its own is common in local admin and development scripts, but should be confirmed if unexpected.",
+                source="powershell_events",
+                artifact=event,
+                confidence=0.58,
             )
 
     for event in artifacts.get("process_creation_events", []):
@@ -2231,6 +2327,8 @@ def analyze_artifacts(collection: dict[str, Any]) -> dict[str, Any]:
             continue
         text = event_data_text(event)
         if is_self_generated_event_text(text):
+            continue
+        if is_search_only_event_text(text):
             continue
         if any(term in text for term in MSIEXEC_TERMS):
             if path_is_suspicious(text) or any(browser in text for browser in BROWSER_TERMS):
@@ -2282,6 +2380,9 @@ def analyze_artifacts(collection: dict[str, Any]) -> dict[str, Any]:
             LOGGER.debug("Could not parse Defender event id %r: %s", event_id, exc)
             event_id = None
         if event_id in DEFENDER_HIGH_RISK_IDS:
+            artifact_context = build_artifact_context("defender_events", event)
+            defender_result = str(artifact_context.get("defender_result") or "").lower()
+            defender_confidence = 0.92 if "completed successfully" in defender_result else 0.88
             make_finding(
                 findings,
                 severity="high",
@@ -2290,7 +2391,7 @@ def analyze_artifacts(collection: dict[str, Any]) -> dict[str, Any]:
                 reason="Defender reported a malware detection or remediation event in the lookback window.",
                 source="defender_events",
                 artifact=event,
-                confidence=0.88,
+                confidence=defender_confidence,
             )
         elif event_id in DEFENDER_CONFIG_IDS:
             is_sensitive_config = defender_config_is_sensitive(event)

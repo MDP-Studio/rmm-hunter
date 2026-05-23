@@ -47,6 +47,7 @@ Windows MVP:
 - Recent service creation events, event ID `7045`
 - Scheduled tasks
 - Startup registry keys and startup folders
+- Startup-folder shortcut target paths and target signatures where available
 - Recent installer and script files in Downloads and Temp locations
 - RMM vendor log locations for tools such as AnyDesk, TeamViewer, ScreenConnect, RustDesk, Splashtop, Atera, MeshAgent, and DWAgent
 - Optional KAPE output import for RMM references from DFIR artifact collections

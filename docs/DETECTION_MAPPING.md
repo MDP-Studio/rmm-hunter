@@ -39,6 +39,7 @@ rmm-hunter.detection-mapping.v1
 | `encoded_powershell` | PowerShell events | High | T1059.001 PowerShell, T1027 Obfuscated Files or Information | D3-SEA Script Execution Analysis |
 | `powershell_download_cradle` | PowerShell events | Medium | T1059.001 PowerShell | D3-SEA Script Execution Analysis |
 | `powershell_policy_or_hidden_window` | PowerShell events | Medium | T1059.001 PowerShell | D3-SEA Script Execution Analysis |
+| `powershell_policy_bypass_only` | PowerShell events | Low | T1059.001 PowerShell | D3-SEA Script Execution Analysis |
 | `msiexec_from_browser_or_download_path` | Process creation events | Medium | T1218.007 Msiexec | D3-PA Process Analysis |
 | `encoded_powershell_process` | Process creation events | High | T1059.001 PowerShell, T1027 Obfuscated Files or Information | D3-PA Process Analysis |
 | `suspicious_wmi_activity` | WMI events | Medium | T1047 Windows Management Instrumentation | D3-PA Process Analysis |
