@@ -10,6 +10,11 @@ https://github.com/MDP-Studio/rmm-hunter
 
 Current RMM Hunter beta artifacts are unsigned builds. They are suitable for testing, but Windows may show `Unknown publisher` or Microsoft Defender SmartScreen warnings.
 
+The release workflow is conditional:
+
+- if SignPath credentials and project variables are configured, SignPath signing is required and release verification must see Authenticode `Status : Valid`;
+- if SignPath is not configured, the workflow may create unsigned beta artifacts, but the manifest must record `unsigned-beta` mode and public docs must keep the SmartScreen and `Unknown publisher` warning.
+
 The project intends to use SignPath Foundation for free open-source Windows code signing if accepted. When enabled, release artifacts will state:
 
 ```text
@@ -46,6 +51,7 @@ Release builds must pass the project verification gate before publication:
 - `npm audit --audit-level=moderate`
 - `pip-audit -r requirements-build.txt`
 - Windows package build
+- release artifact verification for Authenticode state, SHA256 checksums, release manifest, `latest.yml`, and `VERIFY_RELEASE.md`
 - manual smoke test where practical
 
 Signing credentials, SignPath API tokens, certificate material, AI provider keys, and other secrets must never be committed to the repository.

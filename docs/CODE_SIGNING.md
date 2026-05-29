@@ -12,6 +12,17 @@ Unsigned artifacts:
 
 For free open-source signing, apply to SignPath Foundation first. The project policy is documented in `docs/CODE_SIGNING_POLICY.md`.
 
+The GitHub release workflow is SignPath-ready. It checks for these repository settings without printing their values:
+
+- secret `SIGNPATH_API_TOKEN`
+- variable `SIGNPATH_ORGANIZATION_ID`
+- variable `SIGNPATH_PROJECT_SLUG`
+- variable `SIGNPATH_SIGNING_POLICY_SLUG`
+
+When all four are present, the workflow uploads the unsigned setup and portable executables to SignPath, waits for the signing request, replaces the release executables with the signed outputs, refreshes `latest.yml` and the setup blockmap, regenerates `SHA256SUMS.txt` and `rmm-hunter-release-manifest.json`, then requires `Status : Valid` from `Get-AuthenticodeSignature`.
+
+When any setting is absent, the workflow records `unsigned-beta` signing mode and requires release docs to stay honest about `NotSigned` artifacts.
+
 Use Microsoft Artifact Signing when MDP Studio is ready to publish broadly under its own publisher identity. It is the cleanest paid path for GitHub Actions because signing happens through a managed Microsoft service instead of a local certificate file or USB token.
 
 Traditional OV code-signing certificates from a certificate authority are also valid, but modern public code-signing private keys generally require hardware-backed storage or a managed signing service.
@@ -63,7 +74,7 @@ Expected result:
 Status : Valid
 ```
 
-Release builds also generate `SHA256SUMS.txt`, `rmm-hunter-release-manifest.json`, and `VERIFY_RELEASE.md` beside the Windows artifacts. See `docs/VERIFY_RELEASE.md` for the full download verification workflow.
+Release builds also generate `SHA256SUMS.txt`, `rmm-hunter-release-manifest.json`, and `VERIFY_RELEASE.md` beside the Windows artifacts. The release workflow runs `scripts/verify-release-artifacts.ps1` to confirm those files match the final executables. See `docs/VERIFY_RELEASE.md` for the full download verification workflow.
 
 ## Icon
 

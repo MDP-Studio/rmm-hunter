@@ -26,6 +26,10 @@ Use this checklist before creating a GitHub release.
 - [ ] `pip-audit -r requirements-build.txt`
 - [ ] `python scripts/evaluate_corpus.py --manifest tests/corpus/manifest.json`
 - [ ] `npm run dist`
+- [ ] `npm run release:refresh-metadata`
+- [ ] `npm run release:verify:artifacts`
+- [ ] If SignPath mode is active, confirm both Windows executables show Authenticode `Status : Valid`.
+- [ ] If unsigned beta mode is active, confirm docs and release notes state `Unknown publisher` / SmartScreen friction.
 
 ## Windows Smoke Test
 

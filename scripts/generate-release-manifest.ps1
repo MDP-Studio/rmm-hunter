@@ -4,7 +4,9 @@ param(
     [string]$SourceSha = $env:GITHUB_SHA,
     [string]$Repository = $env:GITHUB_REPOSITORY,
     [string]$RunId = $env:GITHUB_RUN_ID,
-    [string]$RunUrl = ""
+    [string]$RunUrl = "",
+    [ValidateSet("signpath", "unsigned-beta")]
+    [string]$SigningMode = "unsigned-beta"
 )
 
 $ErrorActionPreference = "Stop"
@@ -65,6 +67,10 @@ $manifest = [ordered]@{
         sha = $SourceSha
         workflow_run_id = $RunId
         workflow_run_url = $RunUrl
+    }
+    signing = [ordered]@{
+        mode = $SigningMode
+        require_signed_artifacts = ($SigningMode -eq "signpath")
     }
     artifacts = $artifacts
 }

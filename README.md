@@ -309,6 +309,7 @@ npm.cmd run dist
 ```
 
 Release packaging passes `--publish never` to Electron Builder. The GitHub workflow creates the draft GitHub release explicitly after artifacts are built and uploads `latest.yml` so installed NSIS builds can auto-update from GitHub Releases.
+If SignPath is configured in repository secrets and variables, the workflow signs the setup and portable executables before release verification. If SignPath is not configured, the workflow continues as an unsigned beta build and the release manifest records `unsigned-beta` signing mode.
 
 Package only, after `npm.cmd run build:scanner` has already produced the scanner executable:
 
@@ -319,6 +320,12 @@ npm.cmd run package:windows
 The scanner build script uses `RMM_HUNTER_PYINSTALLER` when set, then `.release-venv\Scripts\pyinstaller.exe` when present, then `python -m PyInstaller`.
 
 Release artifacts are written to `release\`.
+Refresh and verify generated release metadata locally with:
+
+```powershell
+npm.cmd run release:refresh-metadata
+npm.cmd run release:verify:artifacts
+```
 
 GitHub Actions workflow:
 
@@ -326,6 +333,7 @@ GitHub Actions workflow:
 - manual `workflow_dispatch`
 - automatic draft release when pushing a `v*` tag
 - release assets include `SHA256SUMS.txt`, `rmm-hunter-release-manifest.json`, `VERIFY_RELEASE.md`, and `latest.yml`
+- release verification fails on stale checksums, stale `latest.yml`, missing verification docs, invalid Authenticode status, or unsigned artifacts when SignPath signing mode is active
 
 Example tag flow after committing:
 
@@ -343,6 +351,7 @@ RMM Hunter's code signing policy is documented in `docs/CODE_SIGNING_POLICY.md`.
 Current status:
 
 - Current beta artifacts are unsigned builds.
+- The release workflow attempts SignPath signing first when the required SignPath secret and variables are configured.
 - Future signed open-source releases are intended to use SignPath Foundation if the project is accepted.
 - Signing credentials and API tokens must never be committed to the repository.
 - Maintainers and signing approvers must keep multi-factor authentication enabled for GitHub and SignPath accounts.

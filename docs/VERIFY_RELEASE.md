@@ -20,7 +20,7 @@ Get-FileHash .\RMM-Hunter-Setup-<version>-x64.exe -Algorithm SHA256
 Get-FileHash .\RMM-Hunter-Portable-<version>-x64.exe -Algorithm SHA256
 ```
 
-Compare the hashes with `SHA256SUMS.txt` and the matching entries in `rmm-hunter-release-manifest.json`. Installed Windows builds also use the `sha512` value in `latest.yml` for Electron auto-update integrity checks.
+Compare the hashes with `SHA256SUMS.txt` and the matching entries in `rmm-hunter-release-manifest.json`. Installed Windows builds also use the `sha512` value in `latest.yml` for Electron auto-update integrity checks. The release workflow verifies these values before uploading assets.
 
 ## 3. Verify Authenticode Signature
 
@@ -55,8 +55,10 @@ Open `rmm-hunter-release-manifest.json` and compare:
 - `source.ref`
 - `source.sha`
 - `source.workflow_run_url`
+- `signing.mode`
 
 The source SHA should match the release tag in the public repository.
+If `signing.mode` is `signpath`, the setup and portable executables should have Authenticode `Status : Valid`. If it is `unsigned-beta`, `Status : NotSigned` is expected and the release should be treated as beta only.
 
 ## 5. Expected Windows Friction
 

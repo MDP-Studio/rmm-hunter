@@ -26,6 +26,8 @@
     "package:windows": "electron-builder --win --x64 --publish never",
     "dist": "npm run clean && npm run check && npm run build:scanner && electron-builder --win --x64 --publish never",
     "dist:dir": "npm run clean && npm run check && npm run build:scanner && electron-builder --win --x64 --dir",
+    "release:refresh-metadata": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/refresh-update-metadata.ps1 -ReleaseDir release",
+    "release:verify:artifacts": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-release-artifacts.ps1 -ReleaseDir release",
     "release:verify": "npm run check && npm audit --audit-level=moderate"
   },
   "build": {

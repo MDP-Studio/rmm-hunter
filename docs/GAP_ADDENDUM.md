@@ -17,7 +17,7 @@ This addendum captures the highest-leverage gaps to close before expanding RMM H
 
 | Gap | Status through 0.2.0 | Remaining work |
 | --- | --- | --- |
-| Release trust and provenance | Partially addressed with workflow-generated `SHA256SUMS.txt`, `rmm-hunter-release-manifest.json`, `VERIFY_RELEASE.md`, and installer update flow. | Complete SignPath or another trusted signing route, then test SmartScreen and install friction on 3 clean Windows hosts. |
+| Release trust and provenance | Partially addressed with workflow-generated `SHA256SUMS.txt`, `rmm-hunter-release-manifest.json`, `VERIFY_RELEASE.md`, installer update flow, conditional SignPath workflow support, and release artifact verification gates. | Complete SignPath approval and repository secret/variable setup, then test SmartScreen and install friction on 3 clean Windows hosts. |
 | Detection interoperability | Addressed for the first slice with `--mapped-out`, profile `rmm-hunter.detection-mapping.v1`, evidence strength, confidence labels, and timeline export. | Validate 20 representative findings in one SIEM or TI workflow before adding full Sigma, STIX, or MISP exporters. |
 | Coverage measurement | Addressed for the first slice with `scripts/evaluate_corpus.py`, `tests/corpus/manifest.json`, `docs/COVERAGE_SCORECARD.md`, and an AnyDesk connection-trace corpus case. | Expand the seeded corpus and publish scorecard deltas in release notes. |
 | ATT&CK and D3FEND mapping | Addressed for current native and imported RMM rules with `docs/DETECTION_MAPPING.md` and matching mappings in the mapped export. | Review mappings with an external analyst and remove any label that is not grounded in actual evidence. |
@@ -46,7 +46,7 @@ Fastest validation:
 
 Next slice:
 
-- Complete the SignPath Foundation path or another trusted Windows signing route.
+- Complete SignPath Foundation approval and configure the release workflow secret/variables.
 - Publish release verification instructions beside release assets, including SHA256 hashes and Authenticode checks.
 - Keep release notes explicit about whether artifacts are unsigned, SignPath-signed, or signed under an MDP Studio publisher identity.
 

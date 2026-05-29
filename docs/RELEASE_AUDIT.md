@@ -155,3 +155,19 @@ release\RMM-Hunter-Setup-0.2.0-x64.exe /S
 4. After SignPath approval, add the SignPath GitHub Actions signing step and required repository secret.
 5. Test one signed release candidate on 3 clean Windows hosts and record SmartScreen, Defender, browser, and installer friction.
 6. Add interoperable output and coverage scorecards only after release provenance is fixed.
+
+## 2026-05-30 Release Trust Update
+
+- GitHub release workflow now has a conditional SignPath signing path. If the
+  required SignPath secret and project variables are configured, the workflow
+  signs the setup and portable executables and requires Authenticode
+  `Status : Valid`.
+- If SignPath is not configured, the workflow records `unsigned-beta` mode and
+  keeps the existing unsigned beta behavior.
+- `scripts/refresh-update-metadata.ps1` refreshes `latest.yml` and the setup
+  blockmap after the signing decision so updater metadata matches the final
+  executable.
+- `scripts/verify-release-artifacts.ps1` verifies Authenticode state,
+  SHA256SUMS, the release manifest, `latest.yml`, and `VERIFY_RELEASE.md`.
+- Remaining blocker for signed public trust is external SignPath approval and
+  repository secret/variable setup, not application code.
