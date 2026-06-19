@@ -8,6 +8,12 @@ Generate it with:
 python .\rmm_hunter.py --input .\tests\sample_artifacts_high_risk.json --mapped-out .\reports\mapped.json
 ```
 
+Generate portable CTI handoff packages from the same completed findings with:
+
+```powershell
+python .\rmm_hunter.py --input .\tests\sample_artifacts_high_risk.json --stix-out .\reports\rmm-hunter-stix.json --misp-out .\reports\rmm-hunter-misp.json
+```
+
 The mapped export uses profile:
 
 ```text
@@ -67,5 +73,12 @@ Each mapped finding includes:
 ## Boundaries
 
 The mapped export is not a SIEM connector, STIX bundle, MISP event, or Sigma rule pack yet. It is a stable bridge layer so those integrations can be added without changing scanner verdicts.
+
+The optional `--stix-out` export is a STIX 2.1 bundle using RMM Hunter custom
+finding objects plus a report object. The optional `--misp-out` export is a
+MISP-compatible event JSON with ATT&CK tags and report-derived attributes.
+Both are derived after deterministic verdict calculation and do not feed back
+into scoring. Because both can contain local paths or event excerpts, share
+them only with trusted responders.
 
 Do not add ATT&CK labels unless the rule has matching collected evidence.

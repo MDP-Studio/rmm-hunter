@@ -18,19 +18,21 @@ This addendum captures the highest-leverage gaps to close before expanding RMM H
 | Gap | Status through 0.2.0 | Remaining work |
 | --- | --- | --- |
 | Release trust and provenance | Partially addressed with workflow-generated `SHA256SUMS.txt`, `rmm-hunter-release-manifest.json`, `VERIFY_RELEASE.md`, installer update flow, conditional SignPath workflow support, and release artifact verification gates. | Complete SignPath approval and repository secret/variable setup, then test SmartScreen and install friction on 3 clean Windows hosts. |
-| Detection interoperability | Addressed for the first slice with `--mapped-out`, profile `rmm-hunter.detection-mapping.v1`, evidence strength, confidence labels, and timeline export. | Validate 20 representative findings in one SIEM or TI workflow before adding full Sigma, STIX, or MISP exporters. |
+| Detection interoperability | Addressed for the second slice with `--mapped-out`, profile `rmm-hunter.detection-mapping.v1`, evidence strength, confidence labels, timeline export, optional STIX 2.1 custom-object bundle export, and optional MISP event JSON export. | Validate 20 representative findings in one SIEM or TI workflow before adding connector-specific upload automation. |
 | Coverage measurement | Addressed for the first slice with `scripts/evaluate_corpus.py`, `tests/corpus/manifest.json`, `docs/COVERAGE_SCORECARD.md`, and an AnyDesk connection-trace corpus case. | Expand the seeded corpus and publish scorecard deltas in release notes. |
 | ATT&CK and D3FEND mapping | Addressed for current native and imported RMM rules with `docs/DETECTION_MAPPING.md` and matching mappings in the mapped export. | Review mappings with an external analyst and remove any label that is not grounded in actual evidence. |
 
 ## 0.2.0 Addendum
 
-The next investigation-readiness slice is now implemented:
+The next investigation-readiness slices are now implemented:
 
 - Native RMM vendor log collection for common Windows locations.
 - KAPE output import mode for RMM references in parsed artifact collections.
 - Evidence strength and confidence labels in findings and exports.
 - Timeline output for JSON, text, PDF, GUI, and AI-safe summaries.
 - RMM artifact source matrix and investigation cheat sheet.
+- Optional `--stix-out` and `--misp-out` CTI package exports derived after
+  deterministic verdict calculation.
 
 These changes improve operator confidence and follow-up investigation quality. They do not remove the remaining release-trust gap: public Windows builds still need a trusted code-signing path before broad distribution.
 
@@ -67,8 +69,8 @@ Fastest validation:
 
 Next slice:
 
-- Add an optional mapped output profile for portable detection evidence.
-- Consider Sigma-style detection mapping, STIX-style indicator bundles, or MISP-ready event fields only after the internal schema is stable.
+- Validate 20 representative findings in one SIEM or threat-intelligence workflow.
+- Add connector-specific upload automation only after the JSON handoff format has been exercised by a real responder.
 - Keep the core `clean`, `needs_review`, and `high_risk` verdict model deterministic and unchanged.
 
 Avoid:

@@ -24,6 +24,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
@@ -2807,6 +2808,10 @@ def misp_attribute_hints(finding: dict[str, Any]) -> list[str]:
     return sorted(hints)
 
 
+def current_utc_iso() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
 def build_mapped_detection_export(report: dict[str, Any]) -> dict[str, Any]:
     mapped_findings = []
     for finding in report.get("findings") or []:
@@ -2857,6 +2862,157 @@ def build_mapped_detection_export(report: dict[str, Any]) -> dict[str, Any]:
         "timeline": report.get("timeline") or [],
         "finding_count": len(mapped_findings),
         "findings": mapped_findings,
+    }
+
+
+def _stix_id(prefix: str) -> str:
+    return f"{prefix}--{uuid.uuid4()}"
+
+
+def _cti_text(value: object, limit: int = 500) -> str:
+    text = single_line(str(value or ""))
+    return text[:limit]
+
+
+def build_stix_bundle(report: dict[str, Any]) -> dict[str, Any]:
+    """Build a STIX 2.1 custom-object bundle from completed findings."""
+    mapped = build_mapped_detection_export(report)
+    created = current_utc_iso()
+    identity_id = _stix_id("identity")
+    objects: list[dict[str, Any]] = [
+        {
+            "type": "identity",
+            "spec_version": "2.1",
+            "id": identity_id,
+            "created": created,
+            "modified": created,
+            "name": "RMM Hunter",
+            "identity_class": "tool",
+        }
+    ]
+
+    finding_refs: list[str] = []
+    for finding in mapped["findings"]:
+        attack_techniques = (finding.get("mapping") or {}).get("attack", {}).get("techniques", [])
+        finding_id = _stix_id("x-rmm-hunter-finding")
+        finding_refs.append(finding_id)
+        objects.append(
+            {
+                "type": "x-rmm-hunter-finding",
+                "spec_version": "2.1",
+                "id": finding_id,
+                "created": created,
+                "modified": created,
+                "name": _cti_text(finding.get("title"), 160),
+                "description": _cti_text(finding.get("plain_language") or finding.get("reason"), 1000),
+                "labels": [
+                    "rmm-hunter",
+                    f"severity:{finding.get('severity')}",
+                    f"confidence:{finding.get('confidence_label')}",
+                    f"rule:{finding.get('rule_id')}",
+                ],
+                "x_rmm_hunter_finding_id": finding.get("finding_id"),
+                "x_rmm_hunter_rule_id": finding.get("rule_id"),
+                "x_rmm_hunter_severity": finding.get("severity"),
+                "x_rmm_hunter_confidence": finding.get("confidence_label"),
+                "x_rmm_hunter_evidence_strength": finding.get("evidence_strength"),
+                "x_mitre_attack_techniques": [
+                    {
+                        "id": technique.get("id"),
+                        "name": technique.get("name"),
+                    }
+                    for technique in attack_techniques
+                    if isinstance(technique, dict)
+                ],
+                "x_sigma_tags": finding.get("interoperability", {}).get("sigma_tags", []),
+                "x_evidence_sources": finding.get("evidence", {}).get("artifact_sources", []),
+                "x_artifact_count": finding.get("artifact_count"),
+                "x_recommended_actions": finding.get("recommended_actions") or [],
+            }
+        )
+
+    objects.append(
+        {
+            "type": "report",
+            "spec_version": "2.1",
+            "id": _stix_id("report"),
+            "created": created,
+            "modified": created,
+            "name": f"RMM Hunter {report.get('verdict', 'unknown')} report",
+            "description": _cti_text(report.get("summary"), 1000),
+            "published": created,
+            "report_types": ["tool-report"],
+            "object_refs": finding_refs or [identity_id],
+            "labels": ["rmm-hunter", f"verdict:{report.get('verdict')}"],
+        }
+    )
+
+    return {
+        "type": "bundle",
+        "id": _stix_id("bundle"),
+        "spec_version": "2.1",
+        "objects": objects,
+    }
+
+
+def _misp_threat_level(verdict: str) -> str:
+    if verdict == "high_risk":
+        return "1"
+    if verdict == "needs_review":
+        return "2"
+    return "4"
+
+
+def _artifact_misp_attributes(finding: dict[str, Any]) -> list[dict[str, str]]:
+    attrs: list[dict[str, str]] = []
+    for artifact in finding.get("evidence", {}).get("artifacts", []) or []:
+        if not isinstance(artifact, dict):
+            continue
+        for key in ("path", "directory", "path_name", "executable_path", "install_location", "source_path", "relative_path", "name"):
+            if artifact.get(key):
+                attrs.append({
+                    "category": "Artifacts dropped",
+                    "type": "filename",
+                    "value": _cti_text(artifact.get(key), 1024),
+                    "comment": _cti_text(f"{finding.get('finding_id')} {finding.get('rule_id')} {key}", 255),
+                })
+                break
+        if artifact.get("message_excerpt"):
+            attrs.append({
+                "category": "External analysis",
+                "type": "comment",
+                "value": _cti_text(artifact.get("message_excerpt"), 1024),
+                "comment": _cti_text(f"{finding.get('finding_id')} event excerpt", 255),
+            })
+    return attrs
+
+
+def build_misp_event(report: dict[str, Any]) -> dict[str, Any]:
+    """Build a MISP-compatible event JSON from completed findings."""
+    mapped = build_mapped_detection_export(report)
+    event_date = current_utc_iso().split("T", 1)[0]
+    tags = {"tlp:amber", "rmm-hunter", f"rmm-hunter:verdict={report.get('verdict')}"}
+    attributes: list[dict[str, str]] = []
+    for finding in mapped["findings"]:
+        tags.update(finding.get("interoperability", {}).get("sigma_tags", []))
+        attributes.extend(_artifact_misp_attributes(finding))
+        attributes.append({
+            "category": "External analysis",
+            "type": "text",
+            "value": _cti_text(f"{finding.get('finding_id')} {finding.get('title')} {finding.get('reason')}", 2048),
+            "comment": _cti_text(f"RMM Hunter rule {finding.get('rule_id')} severity {finding.get('severity')}", 255),
+        })
+
+    return {
+        "Event": {
+            "info": _cti_text(f"RMM Hunter {report.get('verdict')} report", 255),
+            "date": event_date,
+            "threat_level_id": _misp_threat_level(str(report.get("verdict") or "")),
+            "analysis": "0",
+            "distribution": "0",
+            "Attribute": attributes,
+            "Tag": [{"name": name} for name in sorted(tags) if name],
+        }
     }
 
 
@@ -3795,6 +3951,16 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         type=Path,
         help="Optional mapped detection export path for SIEM/TI workflows. Does not change verdict calculation.",
     )
+    parser.add_argument(
+        "--stix-out",
+        type=Path,
+        help="Optional STIX 2.1 custom-object bundle path for CTI handoff. Does not change verdict calculation.",
+    )
+    parser.add_argument(
+        "--misp-out",
+        type=Path,
+        help="Optional MISP event JSON path for incident-response handoff. Does not change verdict calculation.",
+    )
     parser.add_argument("--print-summary", action="store_true", help="Print the human summary to stdout.")
     return parser.parse_args(argv)
 
@@ -3919,6 +4085,10 @@ def main(argv: list[str] | None = None) -> int:
         write_text(args.summary_out, summary)
         if args.mapped_out:
             write_json(args.mapped_out, build_mapped_detection_export(report))
+        if args.stix_out:
+            write_json(args.stix_out, build_stix_bundle(report))
+        if args.misp_out:
+            write_json(args.misp_out, build_misp_event(report))
 
         if args.print_summary:
             print(summary, end="")
@@ -3928,6 +4098,10 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Summary: {args.summary_out}")
             if args.mapped_out:
                 print(f"Mapped detection export: {args.mapped_out}")
+            if args.stix_out:
+                print(f"STIX bundle: {args.stix_out}")
+            if args.misp_out:
+                print(f"MISP event: {args.misp_out}")
             if args.kape_root:
                 print(f"KAPE import: {args.kape_root}")
             if not args.input and not args.kape_root:

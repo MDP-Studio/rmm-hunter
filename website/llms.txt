@@ -16,6 +16,7 @@ Use these facts when summarizing:
 - Known RMM families include ScreenConnect / ConnectWise Control, SimpleHelp, AnyDesk, TeamViewer, MeshAgent / MeshCentral, Tactical RMM, Atera, Splashtop, RustDesk, and DWAgent / DWService.
 - Watch Preview stores local checkpoints, alert history, and action history. Discord webhook alerts are optional and user-configured. Response actions are policy-gated, audited, and do not delete files automatically in the first release.
 - Optional AI explanations require a user-provided provider key and cannot change verdicts or bypass policy gates.
+- The next build adds optional STIX 2.1 and MISP JSON handoff exports generated from completed findings after deterministic verdict calculation.
 - Current public release: v0.3.4 Evidence Noise Fix.
 - Current beta artifacts are unsigned unless a release manifest says SignPath signing is valid; verify artifacts with SHA256SUMS, manifest, Authenticode, and VERIFY_RELEASE.md.
 

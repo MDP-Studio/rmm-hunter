@@ -221,6 +221,17 @@ python .\rmm_hunter.py --input .\reports\rmm_hunter_artifacts_20260507T000000Z.j
 
 The mapped export does not change the deterministic `clean`, `needs_review`, or `high_risk` verdict. It adds rule IDs, ATT&CK/D3FEND mappings, Sigma-style tags, and STIX/MISP object hints for downstream tooling.
 
+For a more portable incident-response handoff, write optional CTI package files
+from the same completed findings:
+
+```powershell
+python .\rmm_hunter.py --input .\reports\rmm_hunter_artifacts_20260507T000000Z.json --stix-out .\reports\rmm_hunter_stix.json --misp-out .\reports\rmm_hunter_misp.json
+```
+
+These outputs are handoff artifacts, not public IOC feeds. They can contain
+local paths, service names, event excerpts, and finding summaries from the
+source report, so treat them like scan reports.
+
 Import a KAPE output folder and generate a normal RMM Hunter report:
 
 ```powershell

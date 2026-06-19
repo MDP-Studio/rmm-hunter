@@ -278,30 +278,30 @@
 
       <section class="section-shell whats-new-section" id="whats-new">
         <div class="section-heading" data-reveal>
-          <p class="section-label">What's new in v0.3.4</p>
-          <h2>Cleaner evidence, fewer false alarms.</h2>
-          <p>RMM Hunter now resolves startup shortcuts to their executable targets, treats plain local PowerShell policy bypass as lower-confidence context, and avoids flagging security-search patterns as real activity.</p>
+          <p class="section-label">What's new in the next build</p>
+          <h2>Cleaner handoff for responders.</h2>
+          <p>RMM Hunter can now write optional STIX and MISP handoff packages from completed findings, while keeping verdict calculation deterministic and local.</p>
         </div>
         <div class="whats-new-grid">
           <article data-reveal>
-            <span>Startup review</span>
-            <h3>Shortcut target signatures</h3>
-            <p>Startup-folder <code>.lnk</code> files are checked through their target executable where possible, so signed tools like Tailscale are not treated as unsigned just because the shortcut itself has no signature.</p>
+            <span>CTI handoff</span>
+            <h3>STIX bundle export</h3>
+            <p>The CLI can write a STIX 2.1 custom-object bundle with finding IDs, severities, confidence labels, evidence sources, and ATT&amp;CK technique references.</p>
           </article>
           <article data-reveal>
-            <span>PowerShell</span>
-            <h3>Better confidence labels</h3>
-            <p>Plain <code>ExecutionPolicy Bypass -File</code> is kept as low-confidence context unless it appears with encoded content, downloads, hidden windows, WMI, Defender events, or new persistence.</p>
+            <span>MISP</span>
+            <h3>Event JSON export</h3>
+            <p>Responder handoff can include a MISP-compatible event with ATT&amp;CK tags and report-derived attributes for local triage workflows.</p>
           </article>
           <article data-reveal>
-            <span>Security review</span>
-            <h3>Searches stay searches</h3>
-            <p>Local searches for strings such as <code>EncodedCommand</code> or <code>DownloadString</code> no longer become findings by themselves when they are clearly part of a review command.</p>
+            <span>Verdict safety</span>
+            <h3>Exports stay downstream</h3>
+            <p>The new handoff files are generated after scanning. They do not change <code>clean</code>, <code>needs_review</code>, or <code>high_risk</code> decisions.</p>
           </article>
           <article data-reveal>
-            <span>Defender</span>
-            <h3>Remediation context is clearer</h3>
-            <p>When Defender reports that a malware action completed successfully, RMM Hunter marks the evidence with stronger confidence while still keeping it in the timeline for review.</p>
+            <span>Sensitive evidence</span>
+            <h3>Same handling as reports</h3>
+            <p>CTI exports can include local paths, service names, and event excerpts, so they are documented as trusted-responder artifacts rather than public IOC feeds.</p>
           </article>
         </div>
       </section>

@@ -496,6 +496,29 @@ class RuleTests(unittest.TestCase):
         self.assertIn("attack.t1219", sigma_tags)
         self.assertIn("attack.t1059.001", sigma_tags)
 
+    def test_cti_exports_preserve_verdict_and_attack_tags(self):
+        sample = json.loads((ROOT / "tests" / "sample_artifacts_high_risk.json").read_text(encoding="utf-8"))
+        report = rmm_hunter.analyze_artifacts(sample)
+        stix_bundle = rmm_hunter.build_stix_bundle(report)
+        misp_event = rmm_hunter.build_misp_event(report)
+
+        self.assertEqual(stix_bundle["type"], "bundle")
+        self.assertEqual(stix_bundle["spec_version"], "2.1")
+        stix_findings = [
+            item for item in stix_bundle["objects"]
+            if item["type"] == "x-rmm-hunter-finding"
+        ]
+        self.assertTrue(stix_findings)
+        self.assertTrue(any(
+            technique["id"] == "T1219"
+            for finding in stix_findings
+            for technique in finding["x_mitre_attack_techniques"]
+        ))
+        self.assertEqual(misp_event["Event"]["threat_level_id"], "1")
+        tag_names = {tag["name"] for tag in misp_event["Event"]["Tag"]}
+        self.assertIn("attack.t1219", tag_names)
+        self.assertTrue(misp_event["Event"]["Attribute"])
+
     def test_anydesk_connection_log_is_very_strong_evidence(self):
         collection = {
             "artifacts": {

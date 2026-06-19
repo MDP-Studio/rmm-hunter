@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added optional `--stix-out` and `--misp-out` CTI handoff exports derived from completed findings after deterministic verdict calculation.
+- Updated the website "What's new" section and detection mapping docs for the CTI export slice.
+
 ## 0.3.4 - 2026-05-23
 
 - Resolved startup-folder shortcuts before judging executable signatures, reducing false positives for signed tools launched through `.lnk` files such as Tailscale.
