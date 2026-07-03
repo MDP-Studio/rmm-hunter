@@ -157,6 +157,11 @@
               Verify release
             </a>
           </div>
+          <aside class="release-trust-note" aria-label="Release trust status">
+            <strong>Unsigned beta download</strong>
+            <p>Current v0.3.4 Windows artifacts may show Unknown publisher or Microsoft Defender SmartScreen warnings unless the release manifest says SignPath signing is valid.</p>
+            <a href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.3.4/VERIFY_RELEASE.md">Check SHA256, manifest, and Authenticode status before trusting a download.</a>
+          </aside>
           <dl class="hero-facts" aria-label="Release facts">
             <div>
               <dt>Latest release</dt>
@@ -532,9 +537,19 @@
             <a class="button button-primary" href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.3.4/RMM-Hunter-Setup-0.3.4-x64.exe">Download installer</a>
             <a class="button button-ghost" href="https://github.com/MDP-Studio/rmm-hunter">View GitHub</a>
           </div>
+          <div class="release-verification-card" aria-label="Release verification">
+            <h3>Before you run it</h3>
+            <ol>
+              <li>Download <code>SHA256SUMS.txt</code>, <code>rmm-hunter-release-manifest.json</code>, and <code>VERIFY_RELEASE.md</code> from the same release.</li>
+              <li>Compare the installer hash against both checksum files.</li>
+              <li>Run <code>Get-AuthenticodeSignature</code> and expect <code>NotSigned</code> only when the manifest says <code>unsigned-beta</code>.</li>
+            </ol>
+          </div>
           <div class="release-strip" aria-label="Release links">
             <a href="https://github.com/MDP-Studio/rmm-hunter/releases/tag/v0.3.4">Release page</a>
             <a href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.3.4/SHA256SUMS.txt">SHA256SUMS</a>
+            <a href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.3.4/rmm-hunter-release-manifest.json">Release manifest</a>
+            <a href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.3.4/VERIFY_RELEASE.md">Verify release</a>
             <a href="https://mdpstudio.com.au/projects/windows-rmm-abuse-scanner/">MDP project brief</a>
             <a href="https://github.com/MDP-Studio/rmm-hunter/blob/main/PRIVACY.md">Privacy policy</a>
             <a href="mailto:meidie@mdpstudio.com.au">Contact</a>
