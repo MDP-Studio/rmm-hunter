@@ -29,6 +29,8 @@ Use this checklist before creating a GitHub release.
 - [ ] `npm run release:refresh-metadata`
 - [ ] `npm run release:verify:artifacts`
 - [ ] If SignPath mode is active, confirm both Windows executables show Authenticode `Status : Valid`.
+- [ ] If SignPath mode is active, confirm `WINDOWS_PUBLISHER_SUBJECT` and
+      `WINDOWS_PUBLISHER_CERTIFICATE_SHA256` match both executables.
 - [ ] If unsigned beta mode is active, confirm docs and release notes state `Unknown publisher` / SmartScreen friction.
 
 ## Windows Smoke Test
@@ -58,6 +60,8 @@ Use this checklist before creating a GitHub release.
 - [ ] Include SHA256 hashes and Authenticode verification guidance beside release assets.
 - [ ] For signed candidates, test SmartScreen, Defender, browser download, and installer friction on 3 clean Windows hosts.
 - [ ] Publish the draft release.
+- [ ] Run `scripts/verify-published-release.ps1` against the public tag and
+      retain its machine-readable JSON result with release evidence.
 
 ## Known Limitations To Mention
 

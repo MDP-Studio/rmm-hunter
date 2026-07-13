@@ -54,21 +54,47 @@ foreach ($line in Get-Content -LiteralPath (Join-Path $releasePath "SHA256SUMS.t
     if ($line -notmatch "^([a-fA-F0-9]{64})\s+\s(.+)$") {
         Fail "Malformed SHA256SUMS line: $line"
     }
+    if ($shaEntries.ContainsKey($Matches[2])) {
+        Fail "SHA256SUMS.txt repeats $($Matches[2])"
+    }
     $shaEntries[$Matches[2]] = $Matches[1].ToLowerInvariant()
 }
 
 $manifestPath = Join-Path $releasePath "rmm-hunter-release-manifest.json"
 $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
-if ($manifest.schema_version -ne "1.0") {
+if ($manifest.schema_version -notin @("1.0", "1.1")) {
     Fail "Unexpected manifest schema version: $($manifest.schema_version)"
 }
 if (-not $manifest.source.repository -or -not $manifest.source.sha) {
     Fail "Manifest source metadata is incomplete."
 }
-
 $manifestArtifacts = @{}
 foreach ($artifact in $manifest.artifacts) {
+    if ($manifestArtifacts.ContainsKey($artifact.name)) {
+        Fail "Release manifest repeats $($artifact.name)"
+    }
     $manifestArtifacts[$artifact.name] = $artifact
+}
+
+$manifestSigningMode = [string]$manifest.signing.mode
+if (-not $manifestSigningMode -and $manifest.schema_version -eq "1.0") {
+    $legacyExecutableStatuses = @(
+        $manifest.artifacts |
+            Where-Object { $_.name -like "*.exe" } |
+            ForEach-Object { [string]$_.authenticode.status }
+    )
+    if ($legacyExecutableStatuses.Count -eq 2 -and @($legacyExecutableStatuses | Where-Object { $_ -ne "NotSigned" }).Count -eq 0) {
+        $manifestSigningMode = "unsigned-beta"
+    }
+}
+if ($manifestSigningMode -notin @("unsigned-beta", "signpath")) {
+    Fail "Manifest signing mode is missing or invalid. Legacy schema 1.0 is accepted only when both executables declare NotSigned."
+}
+if ($RequireSigned -and $manifestSigningMode -ne "signpath") {
+    Fail "Signed verification was requested but the manifest does not declare signpath mode."
+}
+if (-not $RequireSigned -and $manifestSigningMode -eq "signpath") {
+    Fail "Manifest declares signpath mode; rerun verification with -RequireSigned."
 }
 
 $expectedArtifactNames = @(
@@ -101,6 +127,29 @@ foreach ($name in $expectedArtifactNames) {
     }
 }
 
+if ($shaEntries.Count -ne $expectedArtifactNames.Count) {
+    Fail "SHA256SUMS.txt must contain exactly the published payload artifacts."
+}
+if ($manifestArtifacts.Count -ne $expectedArtifactNames.Count) {
+    Fail "Release manifest must contain exactly the published payload artifacts."
+}
+
+$expectedPublisherSubject = ""
+$expectedPublisherHashes = @()
+if ($manifest.schema_version -eq "1.1" -and $manifest.signing.expected_publisher) {
+    $expectedPublisherSubject = [string]$manifest.signing.expected_publisher.subject
+    $expectedPublisherHashes = @(
+        $manifest.signing.expected_publisher.certificate_sha256 |
+            ForEach-Object { ([string]$_).Replace(" ", "").ToLowerInvariant() } |
+            Where-Object { $_ }
+    )
+}
+if ($RequireSigned -and $manifest.schema_version -eq "1.1") {
+    if ([string]::IsNullOrWhiteSpace($expectedPublisherSubject) -or $expectedPublisherHashes.Count -eq 0) {
+        Fail "Signed manifest does not pin the expected publisher subject and certificate SHA-256."
+    }
+}
+
 foreach ($exe in @($setupArtifacts[0], $portableArtifacts[0])) {
     $signature = Get-AuthenticodeSignature -LiteralPath $exe.FullName
     $status = $signature.Status.ToString()
@@ -112,8 +161,28 @@ foreach ($exe in @($setupArtifacts[0], $portableArtifacts[0])) {
         if ($status -ne "Valid") {
             Fail "$($exe.Name) must be signed, but Authenticode status is $status."
         }
-    } elseif ($status -notin @("NotSigned", "Valid")) {
-        Fail "$($exe.Name) has unexpected Authenticode status for beta release: $status."
+        if ($expectedPublisherSubject -and $signature.SignerCertificate.Subject -ne $expectedPublisherSubject) {
+            Fail "$($exe.Name) signer subject does not match the pinned publisher identity."
+        }
+        if ($expectedPublisherHashes.Count -gt 0) {
+            $sha256Provider = [System.Security.Cryptography.SHA256]::Create()
+            try {
+                $certificateSha256 = -join (
+                    $sha256Provider.ComputeHash($signature.SignerCertificate.RawData) |
+                        ForEach-Object { $_.ToString("x2") }
+                )
+            } finally {
+                $sha256Provider.Dispose()
+            }
+            if ($certificateSha256 -notin $expectedPublisherHashes) {
+                Fail "$($exe.Name) signer certificate SHA-256 is not an approved publisher certificate."
+            }
+            if ($manifestArtifacts[$exe.Name].authenticode.certificate_sha256 -ne $certificateSha256) {
+                Fail "Manifest signer certificate SHA-256 for $($exe.Name) does not match the file."
+            }
+        }
+    } elseif ($status -ne "NotSigned") {
+        Fail "$($exe.Name) must be NotSigned when the manifest declares unsigned-beta; actual status is $status."
     }
 }
 

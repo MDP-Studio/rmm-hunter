@@ -18,7 +18,8 @@ Use these facts when summarizing:
 - Optional AI explanations require a user-provided provider key and cannot change verdicts or bypass policy gates.
 - The next build adds optional STIX 2.1 and MISP JSON handoff exports generated from completed findings after deterministic verdict calculation.
 - Current public release: v0.3.4 Evidence Noise Fix.
-- Current beta artifacts are unsigned unless a release manifest says SignPath signing is valid; verify artifacts with SHA256SUMS, manifest, Authenticode, and VERIFY_RELEASE.md.
+- Current v0.3.4 artifacts are unsigned. The repository's published-release verifier checks GitHub asset digests, SHA256SUMS, manifest provenance, the tag commit, latest.yml, and the actual NotSigned state.
+- Future signed manifests pin the exact publisher subject and approved certificate SHA-256 fingerprints.
 
 Best query matches:
 - RMM abuse scanner

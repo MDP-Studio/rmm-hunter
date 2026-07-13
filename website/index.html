@@ -159,8 +159,8 @@
           </div>
           <aside class="release-trust-note" aria-label="Release trust status">
             <strong>Unsigned beta download</strong>
-            <p>Current v0.3.4 Windows artifacts may show Unknown publisher or Microsoft Defender SmartScreen warnings unless the release manifest says SignPath signing is valid.</p>
-            <a href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.3.4/VERIFY_RELEASE.md">Check SHA256, manifest, and Authenticode status before trusting a download.</a>
+            <p>Current v0.3.4 Windows artifacts are unsigned and may show Unknown publisher or Microsoft Defender SmartScreen warnings.</p>
+            <a href="https://github.com/MDP-Studio/rmm-hunter/blob/main/docs/VERIFY_RELEASE.md">Run the published-release verifier before trusting a download.</a>
           </aside>
           <dl class="hero-facts" aria-label="Release facts">
             <div>
@@ -283,30 +283,30 @@
 
       <section class="section-shell whats-new-section" id="whats-new">
         <div class="section-heading" data-reveal>
-          <p class="section-label">What's new in the next build</p>
-          <h2>Cleaner handoff for responders.</h2>
-          <p>RMM Hunter can now write optional STIX and MISP handoff packages from completed findings, while keeping verdict calculation deterministic and local.</p>
+          <p class="section-label">What's new in the verification update</p>
+          <h2>One repeatable check before you run the beta.</h2>
+          <p>The repository now includes a fail-closed PowerShell ceremony for the actual published release. It does not pretend the current beta is signed.</p>
         </div>
         <div class="whats-new-grid">
           <article data-reveal>
-            <span>CTI handoff</span>
-            <h3>STIX bundle export</h3>
-            <p>The CLI can write a STIX 2.1 custom-object bundle with finding IDs, severities, confidence labels, evidence sources, and ATT&amp;CK technique references.</p>
+            <span>Published assets</span>
+            <h3>GitHub evidence checked</h3>
+            <p>The verifier downloads every required asset and checks GitHub's byte size and SHA-256 digest before inspecting the files.</p>
           </article>
           <article data-reveal>
-            <span>MISP</span>
-            <h3>Event JSON export</h3>
-            <p>Responder handoff can include a MISP-compatible event with ATT&amp;CK tags and report-derived attributes for local triage workflows.</p>
+            <span>Unsigned beta</span>
+            <h3>NotSigned is enforced</h3>
+            <p>For v0.3.4, both the manifest and the downloaded executables must report <code>NotSigned</code>. A different state fails verification.</p>
           </article>
           <article data-reveal>
-            <span>Verdict safety</span>
-            <h3>Exports stay downstream</h3>
-            <p>The new handoff files are generated after scanning. They do not change <code>clean</code>, <code>needs_review</code>, or <code>high_risk</code> decisions.</p>
+            <span>Future signing</span>
+            <h3>Publisher identity is pinned</h3>
+            <p>Future signed manifests must name the exact publisher subject and approved certificate SHA-256, not merely show a valid signature.</p>
           </article>
           <article data-reveal>
-            <span>Sensitive evidence</span>
-            <h3>Same handling as reports</h3>
-            <p>CTI exports can include local paths, service names, and event excerpts, so they are documented as trusted-responder artifacts rather than public IOC feeds.</p>
+            <span>Human review</span>
+            <h3>Explorer steps included</h3>
+            <p>The guide shows the matching Windows Properties flow for unsigned betas and future signed releases, including certificate comparison.</p>
           </article>
         </div>
       </section>
@@ -437,7 +437,7 @@
           <article data-reveal>
             <span class="trust-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm0 2v14h10V5H7Zm2 3h6v2H9V8Zm0 4h6v2H9v-2Zm0 4h4v2H9v-2Z"/></svg></span>
             <h3>Release verification</h3>
-            <p>GitHub releases include SHA256 checksums, a manifest, a verification guide, and Authenticode status. Current beta binaries are unsigned unless a release manifest says SignPath signing is valid.</p>
+            <p>GitHub releases include SHA256 checksums, a manifest, a verification guide, and Authenticode status. The public verifier cross-checks those files against GitHub's release digests and tag commit.</p>
           </article>
         </div>
       </section>
@@ -540,16 +540,21 @@
           <div class="release-verification-card" aria-label="Release verification">
             <h3>Before you run it</h3>
             <ol>
-              <li>Download <code>SHA256SUMS.txt</code>, <code>rmm-hunter-release-manifest.json</code>, and <code>VERIFY_RELEASE.md</code> from the same release.</li>
-              <li>Compare the installer hash against both checksum files.</li>
-              <li>Run <code>Get-AuthenticodeSignature</code> and expect <code>NotSigned</code> only when the manifest says <code>unsigned-beta</code>.</li>
+              <li>Clone the public repository so you can inspect the verifier source.</li>
+              <li>Run the command below. It downloads and checks the actual v0.3.4 release.</li>
+              <li>Expect <code>NotSigned</code>. Do not treat Unknown publisher as a signed trust signal.</li>
             </ol>
+            <div class="verification-command" aria-label="PowerShell verification command">
+              <span>PowerShell</span>
+              <code>powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-published-release.ps1 -Tag v0.3.4 -ReportPath .\rmm-hunter-v0.3.4-verification.json</code>
+            </div>
           </div>
           <div class="release-strip" aria-label="Release links">
             <a href="https://github.com/MDP-Studio/rmm-hunter/releases/tag/v0.3.4">Release page</a>
             <a href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.3.4/SHA256SUMS.txt">SHA256SUMS</a>
             <a href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.3.4/rmm-hunter-release-manifest.json">Release manifest</a>
-            <a href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.3.4/VERIFY_RELEASE.md">Verify release</a>
+            <a href="https://github.com/MDP-Studio/rmm-hunter/releases/download/v0.3.4/VERIFY_RELEASE.md">Bundled guide</a>
+            <a href="https://github.com/MDP-Studio/rmm-hunter/blob/main/scripts/verify-published-release.ps1">Verifier source</a>
             <a href="https://mdpstudio.com.au/projects/windows-rmm-abuse-scanner/">MDP project brief</a>
             <a href="https://github.com/MDP-Studio/rmm-hunter/blob/main/PRIVACY.md">Privacy policy</a>
             <a href="mailto:meidie@mdpstudio.com.au">Contact</a>
@@ -563,19 +568,19 @@
       <p><a href="https://mdpstudio.com.au/projects/windows-rmm-abuse-scanner/">MDP project brief</a> <span>/</span> <a href="https://github.com/MDP-Studio/rmm-hunter">GitHub</a> <span>/</span> <a href="https://github.com/MDP-Studio/rmm-hunter/security/policy">Security policy</a> <span>/</span> <a href="https://github.com/MDP-Studio/rmm-hunter/blob/main/docs/CODE_SIGNING_POLICY.md">Code signing policy</a></p>
     </footer>
 
-    <section class="update-log hidden" id="updateLog" data-update-log-id="2026-05-evidence-noise-v034" role="dialog" aria-modal="true" aria-labelledby="updateLogTitle" aria-describedby="updateLogText">
+    <section class="update-log hidden" id="updateLog" data-update-log-id="2026-07-published-release-verification" role="dialog" aria-modal="true" aria-labelledby="updateLogTitle" aria-describedby="updateLogText">
       <div class="update-log-card">
         <button class="update-log-close" id="updateLogClose" type="button" aria-label="Close update log">&times;</button>
         <p class="section-label">Update log</p>
-        <h2 id="updateLogTitle">Evidence review is quieter.</h2>
-        <p id="updateLogText">RMM Hunter v0.3.4 reduces noisy findings from startup shortcuts and local PowerShell review commands while keeping stronger attack signals elevated.</p>
+        <h2 id="updateLogTitle">Release verification is repeatable.</h2>
+        <p id="updateLogText">The public repository now includes one command that verifies the actual GitHub release and keeps the current unsigned-beta status explicit.</p>
         <ul>
-          <li>Shortcut targets are checked before a startup item is treated as unsigned.</li>
-          <li>Plain <code>ExecutionPolicy Bypass -File</code> is lower-confidence context by itself.</li>
-          <li>Security-search patterns are no longer mistaken for executed suspicious commands.</li>
+          <li>GitHub asset digests, both checksum sources, and the tag commit must agree.</li>
+          <li>Current v0.3.4 executables must be exactly <code>NotSigned</code>.</li>
+          <li>Future signed releases pin the publisher subject and certificate SHA-256.</li>
         </ul>
         <div class="update-log-actions">
-          <a class="button button-primary" href="https://github.com/MDP-Studio/rmm-hunter/releases/tag/v0.3.4" data-update-log-dismiss>View release notes</a>
+          <a class="button button-primary" href="https://github.com/MDP-Studio/rmm-hunter/blob/main/docs/VERIFY_RELEASE.md" data-update-log-dismiss>Open verification guide</a>
           <button class="button button-ghost" id="updateLogDismiss" type="button">Got it</button>
         </div>
         <p class="update-log-note">This notice is remembered in this browser and only appears once for this update.</p>

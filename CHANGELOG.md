@@ -4,6 +4,14 @@
 
 - Added optional `--stix-out` and `--misp-out` CTI handoff exports derived from completed findings after deterministic verdict calculation.
 - Updated the website "What's new" section and detection mapping docs for the CTI export slice.
+- Added a one-command published-release verifier that checks GitHub asset
+  digests, release checksums, the public tag commit, update metadata, and the
+  actual Authenticode state.
+- Added explicit publisher-subject and certificate-SHA-256 pinning for future
+  signed releases without claiming that current beta files are signed.
+- Added an offline unsigned-release fixture and tamper regression test.
+- Updated the public website with the exact CLI and Windows Explorer
+  verification ceremony.
 
 ## 0.3.4 - 2026-05-23
 

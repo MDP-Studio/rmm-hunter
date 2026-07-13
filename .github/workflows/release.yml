@@ -158,7 +158,9 @@ jobs:
             -Repository "${{ github.repository }}" `
             -RunId "${{ github.run_id }}" `
             -RunUrl "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" `
-            -SigningMode "${{ steps.signing.outputs.mode }}"
+            -SigningMode "${{ steps.signing.outputs.mode }}" `
+            -ExpectedPublisherSubject "${{ vars.WINDOWS_PUBLISHER_SUBJECT }}" `
+            -ExpectedPublisherCertificateSha256 "${{ vars.WINDOWS_PUBLISHER_CERTIFICATE_SHA256 }}"
 
       - name: Verify release artifacts
         shell: pwsh

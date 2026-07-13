@@ -12,6 +12,12 @@ The site is intentionally static and dependency-free. It links to the public Git
 
 The update-log notice is also static. It stores a local `rmm-hunter:update-log:*` flag in the visitor's browser so each update notice is only shown once per browser. Change the `data-update-log-id` value in `index.html` whenever the notice should appear again for a new release or major website update.
 
+The download section surfaces the exact command from
+`scripts/verify-published-release.ps1`. Keep its tag, signing status, and
+publisher-identity wording synchronized with `docs/VERIFY_RELEASE.md` and the
+actual GitHub release. Never change the site to claim a signed release until the
+public verifier passes against signed artifacts.
+
 When changing the desktop app, scanner, installer, release flow, security boundaries, privacy behavior, or public feature set, follow `docs/APP_WEBSITE_SYNC.md` from the repository root. App-facing changes must either update this website or explicitly record `Website impact: none`.
 
 Local preview:

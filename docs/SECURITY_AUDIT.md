@@ -1,5 +1,25 @@
 # Security Audit
 
+## 2026-07-13 Release Trust Update
+
+- Added `scripts/verify-published-release.ps1` to download and verify the actual
+  GitHub release rather than trusting local build output.
+- The verifier requires GitHub asset size and SHA-256 metadata, the release
+  checksum file, the manifest, source tag/commit agreement, `latest.yml`
+  integrity, and the actual Authenticode state.
+- Verified the public v0.3.4 release end to end. Both executable hashes matched
+  GitHub and both project checksum sources; both files were exactly
+  `NotSigned`, as required for the current beta.
+- Manifest schema 1.1 pins the exact publisher subject and one or more
+  certificate SHA-256 fingerprints for future SignPath releases. `Status:
+  Valid` alone is not accepted as publisher identity.
+- Added offline fixture tests for the honest unsigned path, tampered release
+  rejection, and refusal to generate a signed manifest without a pinned
+  publisher identity.
+- No code-signing certificate was created, simulated, or claimed. The remaining
+  release-trust gap is a publicly trusted signing identity and clean-host
+  SmartScreen testing.
+
 Date: 2026-05-18
 
 ## Scope

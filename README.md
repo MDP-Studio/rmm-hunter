@@ -278,7 +278,17 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\collect_windows.ps1 -Outpu
 
 The GitHub release build is Windows-first. It bundles the Python scanner as a PyInstaller executable, then packages the Electron desktop app with Electron Builder.
 
-Current public downloads are published from GitHub Releases. RMM Hunter beta releases are unsigned until SignPath or another trusted signing route is configured, so Windows may show `Unknown publisher` or Microsoft Defender SmartScreen warnings. Verify release artifacts with the bundled `SHA256SUMS.txt`, `rmm-hunter-release-manifest.json`, and `VERIFY_RELEASE.md` files.
+Current public downloads are published from GitHub Releases. RMM Hunter beta releases are unsigned until SignPath or another trusted signing route is configured, so Windows may show `Unknown publisher` or Microsoft Defender SmartScreen warnings. Verify release artifacts with the bundled `SHA256SUMS.txt`, `rmm-hunter-release-manifest.json`, and `VERIFY_RELEASE.md` files, or run the public verifier below.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-published-release.ps1 -Tag v0.3.4 -ReportPath .\rmm-hunter-v0.3.4-verification.json
+```
+
+The command downloads the actual published assets and checks GitHub's asset
+digests, both checksum sources, the public tag commit, update metadata, and the
+real Authenticode state. Current `v0.3.4` artifacts must be exactly
+`NotSigned`. Future signed manifests pin the expected publisher subject and
+certificate SHA-256 so a valid signature from the wrong identity is rejected.
 
 The installed Windows app can check GitHub Releases for newer versions, download the NSIS installer update, and restart to install it after the user clicks the update action. Update checks do not send scan reports or artifacts. Portable builds can still check for updates, but they must be replaced manually from the release page.
 
@@ -320,7 +330,7 @@ npm.cmd run dist
 ```
 
 Release packaging passes `--publish never` to Electron Builder. The GitHub workflow creates the draft GitHub release explicitly after artifacts are built and uploads `latest.yml` so installed NSIS builds can auto-update from GitHub Releases.
-If SignPath is configured in repository secrets and variables, the workflow signs the setup and portable executables before release verification. If SignPath is not configured, the workflow continues as an unsigned beta build and the release manifest records `unsigned-beta` signing mode.
+If SignPath is configured in repository secrets and variables, the workflow signs the setup and portable executables before release verification. Signed releases also require `WINDOWS_PUBLISHER_SUBJECT` and `WINDOWS_PUBLISHER_CERTIFICATE_SHA256`, which are published in the manifest and enforced against both files. If SignPath is not configured, the workflow continues as an unsigned beta build and the release manifest records `unsigned-beta` signing mode.
 
 Package only, after `npm.cmd run build:scanner` has already produced the scanner executable:
 
@@ -345,6 +355,8 @@ GitHub Actions workflow:
 - automatic draft release when pushing a `v*` tag
 - release assets include `SHA256SUMS.txt`, `rmm-hunter-release-manifest.json`, `VERIFY_RELEASE.md`, and `latest.yml`
 - release verification fails on stale checksums, stale `latest.yml`, missing verification docs, invalid Authenticode status, or unsigned artifacts when SignPath signing mode is active
+- signed verification pins the exact publisher subject and approved certificate SHA-256 fingerprints
+- `scripts/verify-published-release.ps1` independently re-downloads and verifies the public release and tag
 
 Example tag flow after committing:
 
