@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("rmmHunter", {
   startScan: (options) => ipcRenderer.invoke("scan:start", options),
+  cancelScan: () => ipcRenderer.invoke("scan:cancel"),
   selectKapeRoot: () => ipcRenderer.invoke("kape:selectRoot"),
   onProgress: (callback) => {
     const listener = (_event, payload) => callback(payload);

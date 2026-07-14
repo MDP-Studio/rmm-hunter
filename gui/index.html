@@ -177,7 +177,10 @@
               <span class="eyebrow">Scanning</span>
               <h3 id="progressStage">Preparing scanner</h3>
             </div>
-            <div class="spinner" aria-hidden="true"></div>
+            <div class="progress-actions">
+              <button class="secondary-button compact-button hidden" id="cancelScanButton" type="button">Cancel scan</button>
+              <div class="spinner" aria-hidden="true"></div>
+            </div>
           </div>
           <div class="progress-track" id="scanProgress" role="progressbar" aria-label="Scan progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
             <div class="progress-bar" id="scanProgressBar"></div>

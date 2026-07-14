@@ -1,12 +1,12 @@
 const { app, BrowserWindow, dialog, ipcMain, safeStorage, shell } = require("electron");
 const { autoUpdater } = require("electron-updater");
-const childProcess = require("node:child_process");
 const fs = require("node:fs");
 const http = require("node:http");
 const https = require("node:https");
 const os = require("node:os");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
+const { startBoundedProcess } = require("./scanner-process");
 
 const ROOT_DIR = path.resolve(__dirname, "..");
 const APP_FILE = path.join(__dirname, "index.html");
@@ -87,6 +87,7 @@ const AI_PROVIDERS = Object.freeze({
 });
 
 let mainWindow;
+let activeScannerExecution = null;
 let updaterState = {
   status: "idle",
   currentVersion: APP_VERSION,
@@ -313,6 +314,14 @@ ipcMain.handle("scan:start", async (_event, options = {}) => {
   };
 });
 
+ipcMain.handle("scan:cancel", () => {
+  if (!activeScannerExecution) {
+    return { cancelled: false };
+  }
+  activeScannerExecution.cancel();
+  return { cancelled: true };
+});
+
 ipcMain.handle("kape:selectRoot", async () => {
   const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
     title: "Select KAPE output folder",
@@ -518,46 +527,36 @@ ipcMain.handle("updates:install", async () => {
 });
 
 function runScanner(args, progress = {}) {
-  return new Promise((resolve, reject) => {
-    const scanner = resolveScannerProcess(args);
-    sendProgress(
-      progress.stage || "Collecting Windows evidence",
-      progress.detail || "Checking installed apps, services, tasks, startup items, and event logs."
-    );
+  if (activeScannerExecution) {
+    throw new Error("Another scanner operation is already running.");
+  }
 
-    const child = childProcess.spawn(scanner.command, scanner.args, {
-      cwd: scanner.cwd,
-      windowsHide: true
-    });
+  const scanner = resolveScannerProcess(args);
+  sendProgress(
+    progress.stage || "Collecting Windows evidence",
+    progress.detail || "Checking installed apps, services, tasks, startup items, and event logs."
+  );
 
-    let stdout = "";
-    let stderr = "";
-
-    child.stdout.on("data", (data) => {
-      stdout += data.toString();
-      for (const line of splitLines(data.toString())) {
+  const execution = startBoundedProcess({
+    command: scanner.command,
+    args: scanner.args,
+    cwd: scanner.cwd,
+    onStdout: (chunk) => {
+      for (const line of splitLines(chunk)) {
         sendProgress("Scanner output", line);
       }
-    });
-
-    child.stderr.on("data", (data) => {
-      stderr += data.toString();
-      for (const line of splitLines(data.toString())) {
+    },
+    onStderr: (chunk) => {
+      for (const line of splitLines(chunk)) {
         sendProgress("Scanner warning", line);
       }
-    });
-
-    child.on("error", (error) => {
-      reject(new Error(`Could not start scanner. ${error.message}`));
-    });
-
-    child.on("close", (code) => {
-      if (code === 0) {
-        resolve(stdout);
-        return;
-      }
-      reject(new Error(`Scanner failed with exit code ${code}.\n${stderr || stdout}`));
-    });
+    }
+  });
+  activeScannerExecution = execution;
+  return execution.promise.finally(() => {
+    if (activeScannerExecution === execution) {
+      activeScannerExecution = null;
+    }
   });
 }
 

@@ -1,5 +1,9 @@
 # Release Audit
 
+## Superseding Decision, 2026-07-14
+
+Do not publish another unsigned release. The current workflow requires SignPath, pinned publisher identity, valid signatures on the Electron application and bundled scanner, and valid signatures on setup and portable executables. Missing signing configuration stops the workflow. Public `v0.3.4` remains a historical unsigned beta; the May 2026 notes below are retained only as an audit record and no longer authorize distribution.
+
 Date: 2026-05-18
 
 ## Scope

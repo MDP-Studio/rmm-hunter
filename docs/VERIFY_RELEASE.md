@@ -24,11 +24,11 @@ checks agree:
 The optional JSON report is machine-readable and contains no scan data. The
 temporary executable downloads are removed after verification.
 
-Release `v0.3.4` uses the legacy `1.0` manifest. It records `NotSigned` on both
+Historical release `v0.3.4` uses the legacy `1.0` manifest. It records `NotSigned` on both
 executables but predates the top-level `signing.mode` field. The verifier accepts
 that legacy release only when both executable entries and both downloaded files
 are exactly `NotSigned`. Manifest schema `1.1` and newer must explicitly declare
-`unsigned-beta` or `signpath`.
+`unsigned-beta` or `signpath`. The source workflow no longer permits new `unsigned-beta` releases; that mode remains supported by the verifier only for historical artifacts.
 
 ## Manual Flow: 1. Download Release Files
 
@@ -57,13 +57,13 @@ Get-AuthenticodeSignature .\RMM-Hunter-Setup-<version>-x64.exe | Format-List
 Get-AuthenticodeSignature .\RMM-Hunter-Portable-<version>-x64.exe | Format-List
 ```
 
-Current unsigned beta builds are expected to show:
+Historical unsigned beta builds are expected to show:
 
 ```text
 Status : NotSigned
 ```
 
-Future signed builds should show:
+All newly built public releases must show:
 
 ```text
 Status : Valid
@@ -108,10 +108,10 @@ If `signing.mode` is `signpath`, the setup and portable executables should have 
 ## 5. Verify In Windows Explorer
 
 1. Right-click the downloaded installer and choose **Properties**.
-2. For the current unsigned beta, confirm there is no **Digital Signatures**
+2. For a historical unsigned beta, confirm there is no **Digital Signatures**
    tab. If Windows opens a consent prompt, the publisher should be shown as
    **Unknown publisher**. Cancel unless you have completed the checksum checks.
-3. For a future signed release, open **Digital Signatures**, select the
+3. For a new signed release, open **Digital Signatures**, select the
    signature, choose **Details**, then **View Certificate**.
 4. Confirm Windows reports the signature as valid and compare the certificate
    subject and SHA-256 fingerprint with `signing.expected_publisher` in the
@@ -122,6 +122,6 @@ If `signing.mode` is `signpath`, the setup and portable executables should have 
 
 ## 6. Expected Windows Friction
 
-Unsigned beta builds may show `Unknown publisher`, browser download warnings, or Microsoft Defender SmartScreen prompts.
+Historical unsigned beta builds may show `Unknown publisher`, browser download warnings, or Microsoft Defender SmartScreen prompts.
 
-Do not treat an unsigned build as a broadly trusted public security tool. Use it for testing, then prefer a signed release once the project has an approved signing path.
+Do not redistribute an unsigned build as a public security tool. New release workflows must stop until the trusted signing path is available.

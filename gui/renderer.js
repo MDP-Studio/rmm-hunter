@@ -1,4 +1,5 @@
 const scanButton = document.getElementById("scanButton");
+const cancelScanButton = document.getElementById("cancelScanButton");
 const progressPanel = document.getElementById("progressPanel");
 const progressStage = document.getElementById("progressStage");
 const progressLog = document.getElementById("progressLog");
@@ -114,6 +115,7 @@ const desktopBridge = window.rmmHunter || {
   startScan: async () => {
     throw new Error("Desktop scanner bridge is unavailable. Start the app with npm.cmd start.");
   },
+  cancelScan: async () => ({ cancelled: false }),
   selectKapeRoot: async () => null,
   onProgress: () => () => {},
   onUpdateStatus: () => () => {},
@@ -236,6 +238,15 @@ scanButton.addEventListener("click", async () => {
     renderError(error);
   } finally {
     setScanning(false);
+  }
+});
+
+cancelScanButton.addEventListener("click", async () => {
+  cancelScanButton.disabled = true;
+  cancelScanButton.textContent = "Cancelling...";
+  const result = await desktopBridge.cancelScan();
+  if (!result?.cancelled) {
+    appendProgress("The scanner had already stopped.");
   }
 });
 
@@ -863,6 +874,9 @@ function activateTab(tabId, { remember = true, scrollTop = true } = {}) {
 function setScanning(isScanning) {
   scanButton.disabled = isScanning;
   scanButton.textContent = isScanning ? "Scanning..." : "Scan this device";
+  cancelScanButton.classList.toggle("hidden", !isScanning);
+  cancelScanButton.disabled = !isScanning;
+  cancelScanButton.textContent = "Cancel scan";
   if (isScanning) {
     progressPanel.classList.remove("hidden");
     progressPanel.classList.remove("complete");

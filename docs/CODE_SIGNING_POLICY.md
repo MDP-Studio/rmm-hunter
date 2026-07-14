@@ -8,12 +8,14 @@ https://github.com/MDP-Studio/rmm-hunter
 
 ## Current Status
 
-Current RMM Hunter beta artifacts are unsigned builds. They are suitable for testing, but Windows may show `Unknown publisher` or Microsoft Defender SmartScreen warnings.
+Published `v0.3.4` is a historical unsigned beta. It may be retained for reproducible verification, but it is not approved for further broad distribution.
 
-The release workflow is conditional:
+The release workflow is fail closed:
 
-- if SignPath credentials and project variables are configured, SignPath signing is required and release verification must see Authenticode `Status : Valid`;
-- if SignPath is not configured, the workflow may create unsigned beta artifacts, but the manifest must record `unsigned-beta` mode and public docs must keep the SmartScreen and `Unknown publisher` warning.
+- SignPath credentials, project variables, publisher subject, and approved certificate SHA-256 pins are mandatory;
+- the Electron application and bundled scanner are signed and verified before packaging;
+- the setup and portable executables are then signed and verified;
+- any missing setting, rejected signing request, identity mismatch, or unsigned file stops the workflow before a draft release is created.
 
 Signed releases also require two public repository variables:
 
@@ -34,8 +36,10 @@ Free code signing provided by SignPath.io, certificate by SignPath Foundation.
 
 ## What Will Be Signed
 
-The intended signed artifacts are:
+Every future release must sign:
 
+- the unpacked `RMM Hunter.exe` Electron application
+- the bundled `rmm-hunter-cli.exe` scanner
 - `RMM-Hunter-Setup-*-x64.exe`
 - `RMM-Hunter-Portable-*-x64.exe`
 

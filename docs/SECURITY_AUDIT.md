@@ -1,5 +1,15 @@
 # Security Audit
 
+## 2026-07-14 Distribution And Runtime Hardening
+
+- Future releases now fail closed when SignPath credentials or pinned publisher identity values are missing. There is no unsigned release fallback.
+- The workflow signs and validates the Electron application and bundled scanner before packaging, then signs and validates setup and portable executables.
+- Future installed builds enable Electron update code-signature verification.
+- Desktop scanner processes have an operator cancel action, a 15-minute timeout, an 8 MiB combined-output limit, and process-tree termination.
+- `daytime_auto` and `night_auto` now enforce configured support hours. Invalid time policy fails to operator approval.
+- The seeded regression corpus expanded from 4 to 12 cases and all 12 pass. It remains a regression suite, not a broad efficacy claim.
+- Public `v0.3.4` remains an unsigned historical beta. A trusted SignPath identity and clean-host install tests remain external release blockers.
+
 ## 2026-07-13 Release Trust Update
 
 - Added `scripts/verify-published-release.ps1` to download and verify the actual
@@ -93,7 +103,7 @@ No reportable security vulnerabilities were found in the application code after 
 - `electron-builder` brings some deprecated transitive packages in the current npm tree. They are build-time dependencies and no vulnerability was reported by npm audit, but they should be watched during dependency updates.
 - Build Python dependencies are pinned in `requirements-build.txt` and should be checked with `pip-audit -r requirements-build.txt` or `uvx pip-audit==2.10.0 -r requirements-build.txt`.
 - `uvx pip-audit==2.10.0 -r requirements-build.txt` passed with no known vulnerabilities.
-- `python scripts/evaluate_corpus.py --manifest tests/corpus/manifest.json` passed against the seeded corpus, 4/4 cases.
+- `python scripts/evaluate_corpus.py --manifest tests/corpus/manifest.json` passed against the seeded corpus, 12/12 cases.
 - System Trust Health smoke analysis confirmed Defender protections were enabled, security intelligence was recent, Windows code-signing validation passed for 3 known Windows binaries, and the trusted root store was readable on the test machine.
 
 ## Release Verification Performed

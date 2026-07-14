@@ -1,5 +1,6 @@
 import importlib.util
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 import tempfile
 import unittest
@@ -625,10 +626,16 @@ class RuleTests(unittest.TestCase):
         }
         config = rmm_hunter.load_watch_config_from_dict({
             "mode": "night_auto",
+            "business_hours": {"timezone": "UTC"},
             "auto_actions": {"night_auto": ["network_isolate"]},
         })
 
-        decision = rmm_hunter.watch_action_decision(alert, "network_isolate", config)
+        decision = rmm_hunter.watch_action_decision(
+            alert,
+            "network_isolate",
+            config,
+            now=datetime(2026, 7, 14, 23, 0, tzinfo=timezone.utc),
+        )
 
         self.assertFalse(decision["allowed"])
         self.assertTrue(decision["approval_required"])
@@ -644,11 +651,17 @@ class RuleTests(unittest.TestCase):
         }
         config = rmm_hunter.load_watch_config_from_dict({
             "mode": "night_auto",
+            "business_hours": {"timezone": "UTC"},
             "approved_tools": ["AnyDesk"],
             "auto_actions": {"night_auto": ["network_isolate"]},
         })
 
-        decision = rmm_hunter.watch_action_decision(alert, "network_isolate", config)
+        decision = rmm_hunter.watch_action_decision(
+            alert,
+            "network_isolate",
+            config,
+            now=datetime(2026, 7, 14, 23, 0, tzinfo=timezone.utc),
+        )
 
         self.assertFalse(decision["allowed"])
         self.assertIn("approved", decision["reason"].lower())
@@ -663,13 +676,106 @@ class RuleTests(unittest.TestCase):
         }
         config = rmm_hunter.load_watch_config_from_dict({
             "mode": "night_auto",
+            "business_hours": {"timezone": "UTC"},
             "auto_actions": {"night_auto": ["network_isolate"]},
         })
 
-        decision = rmm_hunter.watch_action_decision(alert, "network_isolate", config)
+        decision = rmm_hunter.watch_action_decision(
+            alert,
+            "network_isolate",
+            config,
+            now=datetime(2026, 7, 14, 23, 0, tzinfo=timezone.utc),
+        )
 
         self.assertTrue(decision["allowed"])
         self.assertFalse(decision["approval_required"])
+
+    def test_watch_night_profile_requires_approval_during_business_hours(self):
+        alert = {
+            "severity": "critical",
+            "confidence": "high",
+            "rule_id": "defender_malware_event",
+            "finding": {"tool": ""},
+            "evidence": [{"source": "defender_events", "path": "C:\\Users\\Public\\payload.exe"}],
+        }
+        config = rmm_hunter.load_watch_config_from_dict({
+            "mode": "night_auto",
+            "business_hours": {"timezone": "UTC", "start": "09:00", "end": "17:30", "weekdays": [1, 2, 3, 4, 5]},
+            "auto_actions": {"night_auto": ["network_isolate"]},
+        })
+
+        decision = rmm_hunter.watch_action_decision(
+            alert,
+            "network_isolate",
+            config,
+            now=datetime(2026, 7, 14, 11, 0, tzinfo=timezone.utc),
+        )
+
+        self.assertFalse(decision["allowed"])
+        self.assertTrue(decision["approval_required"])
+        self.assertIn("business hours", decision["reason"].lower())
+
+    def test_watch_daytime_profile_requires_approval_after_hours(self):
+        alert = {
+            "severity": "critical",
+            "confidence": "high",
+            "rule_id": "defender_malware_event",
+            "finding": {"tool": ""},
+            "evidence": [{"source": "defender_events", "path": "C:\\Users\\Public\\payload.exe"}],
+        }
+        config = rmm_hunter.load_watch_config_from_dict({
+            "mode": "daytime_auto",
+            "business_hours": {"timezone": "UTC", "start": "09:00", "end": "17:30", "weekdays": [1, 2, 3, 4, 5]},
+            "auto_actions": {"daytime_auto": ["network_isolate"]},
+        })
+
+        decision = rmm_hunter.watch_action_decision(
+            alert,
+            "network_isolate",
+            config,
+            now=datetime(2026, 7, 14, 23, 0, tzinfo=timezone.utc),
+        )
+
+        self.assertFalse(decision["allowed"])
+        self.assertTrue(decision["approval_required"])
+        self.assertIn("outside", decision["reason"].lower())
+
+    def test_watch_invalid_business_hours_fail_closed(self):
+        alert = {
+            "severity": "critical",
+            "confidence": "high",
+            "rule_id": "defender_malware_event",
+            "finding": {"tool": ""},
+            "evidence": [],
+        }
+        config = rmm_hunter.load_watch_config_from_dict({
+            "mode": "night_auto",
+            "business_hours": {"timezone": "UTC", "start": "9am", "end": "17:30", "weekdays": [1, 2, 3, 4, 5]},
+            "auto_actions": {"night_auto": ["network_isolate"]},
+        })
+
+        decision = rmm_hunter.watch_action_decision(
+            alert,
+            "network_isolate",
+            config,
+            now=datetime(2026, 7, 14, 23, 0, tzinfo=timezone.utc),
+        )
+
+        self.assertFalse(decision["allowed"])
+        self.assertTrue(decision["approval_required"])
+        self.assertIn("hh:mm", decision["reason"].lower())
+
+    def test_watch_overnight_business_window_uses_previous_weekday(self):
+        config = rmm_hunter.load_watch_config_from_dict({
+            "business_hours": {"timezone": "UTC", "start": "22:00", "end": "06:00", "weekdays": [1]},
+        })
+
+        active = rmm_hunter.watch_is_within_business_hours(
+            config,
+            now=datetime(2026, 7, 14, 2, 0, tzinfo=timezone.utc),
+        )
+
+        self.assertTrue(active)
 
     def test_ai_watch_rejects_unknown_action(self):
         alert = {"severity": "critical", "confidence": "high", "recommended_actions": []}

@@ -3399,12 +3399,62 @@ def alert_path_is_protected(alert: dict[str, Any]) -> bool:
     return any(marker in text for marker in WATCH_PROTECTED_PATH_MARKERS)
 
 
+def watch_is_within_business_hours(
+    config: dict[str, Any],
+    now: datetime | None = None,
+) -> bool:
+    hours = config.get("business_hours")
+    if not isinstance(hours, dict):
+        raise ValueError("Business hours are missing from local policy.")
+
+    timezone_name = str(hours.get("timezone") or "local").strip().lower()
+    if timezone_name == "local":
+        current = (now or datetime.now().astimezone()).astimezone()
+    elif timezone_name in {"utc", "z"}:
+        current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    else:
+        raise ValueError("Business-hours timezone must be local or UTC.")
+
+    def parse_minutes(value: Any) -> int:
+        match = re.fullmatch(r"([01]\d|2[0-3]):([0-5]\d)", str(value or ""))
+        if not match:
+            raise ValueError("Business hours must use 24-hour HH:MM values.")
+        return int(match.group(1)) * 60 + int(match.group(2))
+
+    weekdays = hours.get("weekdays")
+    if not isinstance(weekdays, list) or not weekdays:
+        raise ValueError("Business hours require at least one ISO weekday from 1 to 7.")
+    try:
+        active_weekdays = {int(day) for day in weekdays}
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Business-hours weekdays must be integers from 1 to 7.") from exc
+    if not active_weekdays.issubset(set(range(1, 8))):
+        raise ValueError("Business-hours weekdays must be integers from 1 to 7.")
+
+    start = parse_minutes(hours.get("start"))
+    end = parse_minutes(hours.get("end"))
+    if start == end:
+        raise ValueError("Business-hours start and end cannot be the same.")
+
+    current_minutes = current.hour * 60 + current.minute
+    current_weekday = current.isoweekday()
+    if start < end:
+        return current_weekday in active_weekdays and start <= current_minutes < end
+
+    previous_weekday = 7 if current_weekday == 1 else current_weekday - 1
+    return (
+        (current_weekday in active_weekdays and current_minutes >= start)
+        or (previous_weekday in active_weekdays and current_minutes < end)
+    )
+
+
 def watch_action_decision(
     alert: dict[str, Any],
     action_id: str,
     config: dict[str, Any] | None = None,
     *,
     manual_approval: bool = False,
+    now: datetime | None = None,
 ) -> dict[str, Any]:
     config = load_watch_config_from_dict(config or {})
     mode = normalize_watch_mode(config.get("mode"))
@@ -3426,6 +3476,25 @@ def watch_action_decision(
         if action_id == "block_suspicious_path":
             return {"allowed": False, "approval_required": True, "reason": "Execution blocking is preview-only in this release."}
         return {"allowed": True, "approval_required": False, "reason": "Operator approval provided."}
+
+    if mode in {"daytime_auto", "night_auto"}:
+        try:
+            within_business_hours = watch_is_within_business_hours(config, now=now)
+        except ValueError as exc:
+            LOGGER.warning("Watch auto-response policy requires approval: %s", exc)
+            return {"allowed": False, "approval_required": True, "reason": str(exc)}
+        if mode == "daytime_auto" and not within_business_hours:
+            return {
+                "allowed": False,
+                "approval_required": True,
+                "reason": "Daytime auto-response is outside configured business hours.",
+            }
+        if mode == "night_auto" and within_business_hours:
+            return {
+                "allowed": False,
+                "approval_required": True,
+                "reason": "Night auto-response is disabled during configured business hours.",
+            }
 
     if action_id in WATCH_SOFT_ACTIONS and mode == "approval_required":
         return {"allowed": False, "approval_required": True, "reason": "Default mode records alerts and asks before running response actions."}
@@ -3588,7 +3657,9 @@ def send_discord_alert(alert: dict[str, Any], webhook_url: str) -> dict[str, Any
         method="POST",
     )
     try:
-        with urllib.request.urlopen(request, timeout=15) as response:
+        # discord_webhook_is_allowed above restricts this request to HTTPS on
+        # Discord's exact webhook hosts and path prefix.
+        with urllib.request.urlopen(request, timeout=15) as response:  # nosec B310
             return {"sent": 200 <= response.status < 300, "status": response.status}
     except urllib.error.URLError as exc:
         LOGGER.warning("Discord Watch alert failed: %s", exc)

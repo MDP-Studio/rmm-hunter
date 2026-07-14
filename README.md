@@ -112,6 +112,7 @@ The GUI provides:
 - Big `Scan this device` action
 - Tabbed workspace for Scan, Evidence, Timeline, Watch, Trust health, and Info
 - Progress screen during collection and analysis
+- Operator cancellation, a 15-minute process timeout, and a bounded output budget for desktop scanner runs
 - Dashboard verdict: `clean`, `needs_review`, or `high_risk`
 - Evidence cards for each finding
 - Evidence strength, confidence labels, and finding timeline context
@@ -187,6 +188,8 @@ Response modes:
 | `approval_required` | Default mode. Show a proposed action, but require user approval before any response runs. |
 | `daytime_auto` | During configured support hours, allow soft containment only for policy-approved conditions. |
 | `night_auto` | Outside support hours, allow guarded containment only for high-confidence conditions that pass policy gates. |
+
+Auto modes evaluate the configured ISO weekdays, start/end time, and local or UTC policy timezone. A malformed support-hours policy fails closed to operator approval.
 
 Active response actions are audited and reversible where possible. The first release must not automatically delete files. Examples of safer response categories include pausing a known suspicious scheduled task, stopping a suspicious service, disabling a startup entry, adding a local block rule, or collecting extra evidence, but only when the action is explicitly pre-approved by policy and available in the selected response mode.
 
@@ -278,7 +281,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\collect_windows.ps1 -Outpu
 
 The GitHub release build is Windows-first. It bundles the Python scanner as a PyInstaller executable, then packages the Electron desktop app with Electron Builder.
 
-Current public downloads are published from GitHub Releases. RMM Hunter beta releases are unsigned until SignPath or another trusted signing route is configured, so Windows may show `Unknown publisher` or Microsoft Defender SmartScreen warnings. Verify release artifacts with the bundled `SHA256SUMS.txt`, `rmm-hunter-release-manifest.json`, and `VERIFY_RELEASE.md` files, or run the public verifier below.
+Current public download `v0.3.4` is a historical unsigned beta and may show `Unknown publisher` or Microsoft Defender SmartScreen warnings. No new public Windows release can be produced by the release workflow until SignPath and the pinned publisher identity are configured. Verify historical artifacts with the bundled `SHA256SUMS.txt`, `rmm-hunter-release-manifest.json`, and `VERIFY_RELEASE.md` files, or run the public verifier below.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-published-release.ps1 -Tag v0.3.4 -ReportPath .\rmm-hunter-v0.3.4-verification.json
@@ -290,7 +293,7 @@ real Authenticode state. Current `v0.3.4` artifacts must be exactly
 `NotSigned`. Future signed manifests pin the expected publisher subject and
 certificate SHA-256 so a valid signature from the wrong identity is rejected.
 
-The installed Windows app can check GitHub Releases for newer versions, download the NSIS installer update, and restart to install it after the user clicks the update action. Update checks do not send scan reports or artifacts. Portable builds can still check for updates, but they must be replaced manually from the release page.
+The installed Windows app can check GitHub Releases for newer versions, download the NSIS installer update, and restart to install it after the user clicks the update action. Future packaged builds require a matching Windows code signature on updates. Update checks do not send scan reports or artifacts. Portable builds can still check for updates, but they must be replaced manually from the release page.
 
 Builds older than `0.1.2` only opened the GitHub release page. Install `0.1.2` or newer manually once, then later installed builds can use the in-app download and restart-to-install flow.
 
@@ -330,7 +333,7 @@ npm.cmd run dist
 ```
 
 Release packaging passes `--publish never` to Electron Builder. The GitHub workflow creates the draft GitHub release explicitly after artifacts are built and uploads `latest.yml` so installed NSIS builds can auto-update from GitHub Releases.
-If SignPath is configured in repository secrets and variables, the workflow signs the setup and portable executables before release verification. Signed releases also require `WINDOWS_PUBLISHER_SUBJECT` and `WINDOWS_PUBLISHER_CERTIFICATE_SHA256`, which are published in the manifest and enforced against both files. If SignPath is not configured, the workflow continues as an unsigned beta build and the release manifest records `unsigned-beta` signing mode.
+The workflow is fail closed. It signs and verifies the unpacked Electron app and bundled scanner first, packages those signed binaries, then signs and verifies the setup and portable executables. `WINDOWS_PUBLISHER_SUBJECT` and `WINDOWS_PUBLISHER_CERTIFICATE_SHA256` are published in the manifest and enforced at both signing stages. Missing SignPath or publisher settings stop the build before distributable artifacts are created.
 
 Package only, after `npm.cmd run build:scanner` has already produced the scanner executable:
 
@@ -354,7 +357,7 @@ GitHub Actions workflow:
 - manual `workflow_dispatch`
 - automatic draft release when pushing a `v*` tag
 - release assets include `SHA256SUMS.txt`, `rmm-hunter-release-manifest.json`, `VERIFY_RELEASE.md`, and `latest.yml`
-- release verification fails on stale checksums, stale `latest.yml`, missing verification docs, invalid Authenticode status, or unsigned artifacts when SignPath signing mode is active
+- release verification fails on stale checksums, stale `latest.yml`, missing verification docs, invalid Authenticode status, unsigned inner binaries, or unsigned distributable artifacts
 - signed verification pins the exact publisher subject and approved certificate SHA-256 fingerprints
 - `scripts/verify-published-release.ps1` independently re-downloads and verifies the public release and tag
 
@@ -373,9 +376,10 @@ RMM Hunter's code signing policy is documented in `docs/CODE_SIGNING_POLICY.md`.
 
 Current status:
 
-- Current beta artifacts are unsigned builds.
-- The release workflow attempts SignPath signing first when the required SignPath secret and variables are configured.
-- Future signed open-source releases are intended to use SignPath Foundation if the project is accepted.
+- Public `v0.3.4` remains a historical unsigned beta and is not suitable for further broad distribution.
+- The release workflow refuses to create a new distributable unless SignPath and publisher identity pins are configured.
+- Each future release must sign the Electron application, bundled scanner, setup executable, and portable executable.
+- Signed open-source releases are intended to use SignPath Foundation if the project is accepted.
 - Signing credentials and API tokens must never be committed to the repository.
 - Maintainers and signing approvers must keep multi-factor authentication enabled for GitHub and SignPath accounts.
 

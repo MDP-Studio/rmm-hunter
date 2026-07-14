@@ -14,6 +14,8 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = ROOT / "rmm_hunter.py"
+MINIMUM_CORPUS_CASES = 12
+VALID_VERDICTS = {"clean", "needs_review", "high_risk"}
 
 
 def load_scanner():
@@ -68,6 +70,29 @@ def evaluate_case(scanner: Any, case: dict[str, Any]) -> dict[str, Any]:
         "passed": not errors,
         "errors": errors,
     }
+
+
+def validate_manifest(manifest: dict[str, Any]) -> list[dict[str, Any]]:
+    if manifest.get("schema_version") != "1.0":
+        raise ValueError("Corpus manifest schema_version must be 1.0.")
+    cases = manifest.get("cases")
+    if not isinstance(cases, list) or len(cases) < MINIMUM_CORPUS_CASES:
+        raise ValueError(f"Corpus manifest must contain at least {MINIMUM_CORPUS_CASES} cases.")
+
+    case_ids: set[str] = set()
+    for index, case in enumerate(cases, start=1):
+        if not isinstance(case, dict):
+            raise ValueError(f"Corpus case {index} must be an object.")
+        case_id = str(case.get("id") or "").strip()
+        if not case_id or case_id in case_ids:
+            raise ValueError(f"Corpus case IDs must be present and unique: {case_id or index}.")
+        case_ids.add(case_id)
+        if case.get("expected_verdict") not in VALID_VERDICTS:
+            raise ValueError(f"Corpus case {case_id} has an invalid expected verdict.")
+        artifact_path = ROOT / str(case.get("path") or "")
+        if not artifact_path.is_file():
+            raise ValueError(f"Corpus case {case_id} artifact does not exist: {artifact_path}.")
+    return cases
 
 
 def safe_rate(numerator: int, denominator: int) -> float:
@@ -148,7 +173,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv or sys.argv[1:])
     scanner = load_scanner()
     manifest = load_json(args.manifest if args.manifest.is_absolute() else ROOT / args.manifest)
-    results = [evaluate_case(scanner, case) for case in manifest.get("cases", [])]
+    results = [evaluate_case(scanner, case) for case in validate_manifest(manifest)]
     scorecard = build_scorecard(results)
 
     if args.json_out:

@@ -17,9 +17,9 @@ This addendum captures the highest-leverage gaps to close before expanding RMM H
 
 | Gap | Status through 0.2.0 | Remaining work |
 | --- | --- | --- |
-| Release trust and provenance | Partially addressed with workflow-generated `SHA256SUMS.txt`, `rmm-hunter-release-manifest.json`, `VERIFY_RELEASE.md`, installer update flow, conditional SignPath workflow support, a public-release download verifier, and exact publisher identity pinning for future signed artifacts. | Complete SignPath approval and repository secret/variable setup, then test SmartScreen and install friction on 3 clean Windows hosts. |
+| Release trust and provenance | Source release controls now fail closed, require two-stage SignPath signing for inner binaries and distributables, verify updater signatures, generate integrity sidecars, and pin the publisher identity. | Complete SignPath approval and repository secret/variable setup, then test SmartScreen and install friction on 3 clean Windows hosts. |
 | Detection interoperability | Addressed for the second slice with `--mapped-out`, profile `rmm-hunter.detection-mapping.v1`, evidence strength, confidence labels, timeline export, optional STIX 2.1 custom-object bundle export, and optional MISP event JSON export. | Validate 20 representative findings in one SIEM or TI workflow before adding connector-specific upload automation. |
-| Coverage measurement | Addressed for the first slice with `scripts/evaluate_corpus.py`, `tests/corpus/manifest.json`, `docs/COVERAGE_SCORECARD.md`, and an AnyDesk connection-trace corpus case. | Expand the seeded corpus and publish scorecard deltas in release notes. |
+| Coverage measurement | The guarded corpus now contains 12 clean, review, and high-risk regression cases with a minimum-size and unique-ID validation gate. | Add real clean-host and authorized-MSP fixtures, then publish scorecard deltas in release notes. |
 | ATT&CK and D3FEND mapping | Addressed for current native and imported RMM rules with `docs/DETECTION_MAPPING.md` and matching mappings in the mapped export. | Review mappings with an external analyst and remove any label that is not grounded in actual evidence. |
 
 ## 0.2.0 Addendum

@@ -1,18 +1,8 @@
 # Windows Code Signing
 
-RMM Hunter currently builds unsigned Windows artifacts. This is expected until MDP Studio has a public code-signing option.
+Public `v0.3.4` is a historical unsigned beta. The repository now blocks every new Windows release until a trusted SignPath signing route is configured.
 
-Unsigned artifacts:
-
-- show `Unknown publisher`
-- can trigger Microsoft Defender SmartScreen
-- can still be used for testing and draft releases
-
-## Recommended Path
-
-For free open-source signing, apply to SignPath Foundation first. The project policy is documented in `docs/CODE_SIGNING_POLICY.md`.
-
-The GitHub release workflow is SignPath-ready. It checks for these repository settings without printing their values:
+## Required Repository Settings
 
 - secret `SIGNPATH_API_TOKEN`
 - variable `SIGNPATH_ORGANIZATION_ID`
@@ -21,96 +11,38 @@ The GitHub release workflow is SignPath-ready. It checks for these repository se
 - variable `WINDOWS_PUBLISHER_SUBJECT`
 - variable `WINDOWS_PUBLISHER_CERTIFICATE_SHA256`
 
-When the four SignPath settings and both publisher identity variables are
-present, the workflow uploads the unsigned setup and portable executables to
-SignPath, waits for the signing request, replaces the release executables with
-the signed outputs, refreshes `latest.yml` and the setup blockmap, regenerates
-`SHA256SUMS.txt` and `rmm-hunter-release-manifest.json`, then requires
-`Status : Valid`, the exact publisher subject, and an approved certificate
-SHA-256 from `Get-AuthenticodeSignature`.
+The certificate variable accepts one or more comma-separated SHA-256 fingerprints for a documented certificate rotation. Do not commit signing credentials or certificate private keys.
 
-When any setting is absent, the workflow records `unsigned-beta` signing mode and requires release docs to stay honest about `NotSigned` artifacts.
+## Fail-Closed Release Sequence
 
-Use Microsoft Artifact Signing when MDP Studio is ready to publish broadly under its own publisher identity. It is the cleanest paid path for GitHub Actions because signing happens through a managed Microsoft service instead of a local certificate file or USB token.
+1. Build the Python scanner and unpacked Electron application.
+2. Submit `RMM Hunter.exe` and `rmm-hunter-cli.exe` to SignPath.
+3. Replace the unsigned inner files and verify `Status : Valid`, the exact subject, and an approved certificate fingerprint.
+4. Package setup and portable executables from the signed unpacked application.
+5. Submit both distributable executables to SignPath.
+6. Replace and verify the signed outputs, then regenerate `latest.yml`, the blockmap, checksums, and release manifest.
+7. Create a draft release only after every gate passes.
 
-Traditional OV code-signing certificates from a certificate authority are also valid, but modern public code-signing private keys generally require hardware-backed storage or a managed signing service.
-
-Do not use a self-signed certificate for public releases. It is useful only for local testing or enterprise environments that explicitly trust your certificate.
+Missing configuration is an error. There is no unsigned fallback in `.github/workflows/release.yml`.
 
 ## Electron Builder Configuration
 
-Keep signing disabled until the certificate or managed signing service exists:
+`signAndEditExecutable` stays `false` because SignPath performs external signing in the controlled two-stage workflow. `verifyUpdateCodeSignature` is `true`, so future installed builds reject update installers whose signer does not match the installed application.
 
-```json
-"win": {
-  "icon": "gui/assets/icon.ico",
-  "signAndEditExecutable": false,
-  "verifyUpdateCodeSignature": false
-}
-```
-
-After Microsoft Artifact Signing is configured, enable signing and add Azure signing options:
-
-```json
-"win": {
-  "icon": "gui/assets/icon.ico",
-  "signAndEditExecutable": true,
-  "verifyUpdateCodeSignature": true,
-  "azureSignOptions": {
-    "publisherName": "Exact certificate publisher name",
-    "endpoint": "https://YOUR-ENDPOINT.codesigning.azure.net",
-    "certificateProfileName": "YOUR_PROFILE",
-    "codeSigningAccountName": "YOUR_ACCOUNT"
-  }
-}
-```
-
-Never commit Microsoft, certificate authority, or signing credentials to the repository. Store them as GitHub Actions secrets or environment variables.
+Local `npm.cmd run dist` output is unsigned developer output. It must not be uploaded, tagged, or distributed as a release.
 
 ## Verification
 
-After a signed build:
+The workflow uses `scripts/verify-authenticode.ps1` for inner executables and `scripts/verify-release-artifacts.ps1 -RequireSigned` for final artifacts. Manual verification remains:
 
 ```powershell
 Get-AuthenticodeSignature .\release\RMM-Hunter-Setup-*-x64.exe
 Get-AuthenticodeSignature .\release\RMM-Hunter-Portable-*-x64.exe
 ```
 
-Expected result:
+Expected result is `Status : Valid` and the signer must match `signing.expected_publisher` in `rmm-hunter-release-manifest.json`.
 
-```text
-Status : Valid
-```
-
-Release builds also generate `SHA256SUMS.txt`, `rmm-hunter-release-manifest.json`, and `VERIFY_RELEASE.md` beside the Windows artifacts. The release workflow runs `scripts/verify-release-artifacts.ps1` to confirm those files match the final executables. See `docs/VERIFY_RELEASE.md` for the full download verification workflow.
-
-After publication, run the independent public ceremony:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-published-release.ps1 -Tag v0.3.4
-```
-
-## Icon
-
-The Windows app icon is tracked in:
-
-```text
-gui/assets/icon.ico
-```
-
-Source files:
-
-```text
-gui/assets/icon.svg
-gui/assets/icon.png
-```
-
-Regenerate with ImageMagick:
-
-```powershell
-magick .\gui\assets\icon.svg -resize 1024x1024 .\gui\assets\icon.png
-magick .\gui\assets\icon.png -define icon:auto-resize=256,128,64,48,32,16 .\gui\assets\icon.ico
-```
+Do not use a self-signed certificate for public releases.
 
 ## References
 

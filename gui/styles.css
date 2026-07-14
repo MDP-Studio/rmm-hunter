@@ -883,6 +883,12 @@ body.sidebar-collapsed .scope-list {
   justify-content: space-between;
 }
 
+.progress-actions {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
 .eyebrow,
 .label {
   font-size: 12px;

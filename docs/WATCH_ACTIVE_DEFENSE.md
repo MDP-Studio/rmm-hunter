@@ -89,6 +89,8 @@ Use a private alert channel and treat the webhook URL like a password. RMM Hunte
 
 `approval_required` is the default because RMM tools can be legitimate. Auto modes must be opt-in and visibly reversible where possible.
 
+The current policy engine enforces configured support hours before any auto action. It accepts `local` or `UTC` timezones, ISO weekdays 1 through 7, and 24-hour `HH:MM` boundaries, including overnight windows. Invalid or missing time policy fails closed to operator approval.
+
 ## Policy Gates
 
 Every response action must pass deterministic policy gates before it is offered or run.

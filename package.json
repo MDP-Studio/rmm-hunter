@@ -18,12 +18,15 @@
   "scripts": {
     "start": "electron .",
     "clean": "node scripts/clean-release.js",
-    "check:js": "node --check gui/main.js && node --check gui/preload.js && node --check gui/renderer.js && node --check scripts/build-scanner.js && node --check scripts/clean-release.js",
+    "check:js": "node --check gui/main.js && node --check gui/preload.js && node --check gui/renderer.js && node --check gui/scanner-process.js && node --check scripts/build-scanner.js && node --check scripts/clean-release.js",
+    "test:js": "node --test tests/*.test.js",
     "check:py": "python -m py_compile rmm_hunter.py scripts/evaluate_corpus.py && python -m unittest discover -v && python scripts/evaluate_corpus.py --manifest tests/corpus/manifest.json",
-    "check": "npm run check:js && npm run check:py",
+    "check": "npm run check:js && npm run test:js && npm run check:py",
     "test": "python -m unittest discover -v",
     "build:scanner": "node scripts/build-scanner.js",
     "package:windows": "electron-builder --win --x64 --publish never",
+    "package:windows:unpacked": "electron-builder --win --x64 --dir --publish never",
+    "package:windows:from-signed": "electron-builder --win --x64 --prepackaged \"release/win-unpacked\" --publish never",
     "dist": "npm run clean && npm run check && npm run build:scanner && electron-builder --win --x64 --publish never",
     "dist:dir": "npm run clean && npm run check && npm run build:scanner && electron-builder --win --x64 --dir",
     "release:refresh-metadata": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/refresh-update-metadata.ps1 -ReleaseDir release",
@@ -62,7 +65,7 @@
     "win": {
       "icon": "gui/assets/icon.ico",
       "signAndEditExecutable": false,
-      "verifyUpdateCodeSignature": false,
+      "verifyUpdateCodeSignature": true,
       "target": [
         {
           "target": "nsis",

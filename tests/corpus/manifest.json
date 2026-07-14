@@ -24,6 +24,54 @@
       "path": "tests/sample_artifacts_high_risk.json",
       "expected_verdict": "high_risk",
       "expected_categories": ["known_rmm_service", "service_from_user_writable_path", "encoded_powershell"]
+    },
+    {
+      "id": "scheduled-task-persistence",
+      "path": "tests/corpus/scheduled_task_persistence.json",
+      "expected_verdict": "needs_review",
+      "expected_categories": ["known_rmm_scheduled_task", "scheduled_task_from_suspicious_path"]
+    },
+    {
+      "id": "startup-registry-persistence",
+      "path": "tests/corpus/startup_registry_persistence.json",
+      "expected_verdict": "needs_review",
+      "expected_categories": ["known_rmm_startup_registry", "startup_registry_suspicious_path"]
+    },
+    {
+      "id": "recent-remote-tool-download",
+      "path": "tests/corpus/recent_remote_tool.json",
+      "expected_verdict": "needs_review",
+      "expected_categories": ["recent_remote_tool_file"]
+    },
+    {
+      "id": "defender-malware-event",
+      "path": "tests/corpus/defender_malware_event.json",
+      "expected_verdict": "high_risk",
+      "expected_categories": ["defender_malware_event"]
+    },
+    {
+      "id": "powershell-download",
+      "path": "tests/corpus/powershell_download.json",
+      "expected_verdict": "needs_review",
+      "expected_categories": ["powershell_download_cradle"]
+    },
+    {
+      "id": "msiexec-browser-download",
+      "path": "tests/corpus/msiexec_browser_download.json",
+      "expected_verdict": "needs_review",
+      "expected_categories": ["msiexec_from_browser_or_download_path"]
+    },
+    {
+      "id": "wmi-persistence",
+      "path": "tests/corpus/wmi_persistence.json",
+      "expected_verdict": "needs_review",
+      "expected_categories": ["suspicious_wmi_activity"]
+    },
+    {
+      "id": "defender-sensitive-change",
+      "path": "tests/corpus/defender_sensitive_change.json",
+      "expected_verdict": "needs_review",
+      "expected_categories": ["defender_sensitive_configuration_event"]
     }
   ]
 }

@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0",
+  "scanner": {"name": "Synthetic collector", "version": "0.0.0", "collected_at_utc": "2026-07-14T00:00:00Z", "hostname": "MSI-LAB"},
+  "collection": {"lookback_days": 14},
+  "artifacts": {
+    "installed_programs": [], "services": [], "service_install_events": [], "scheduled_tasks": [],
+    "startup_registry": [], "startup_folders": [], "recent_files": [], "defender_events": [], "powershell_events": [],
+    "process_creation_events": [{"log_name": "Security", "id": 4688, "time_created_utc": "2026-07-14T00:00:00Z", "message": "New Process Name: C:\\Windows\\System32\\msiexec.exe Command Line: msiexec.exe /i C:\\Users\\Analyst\\Downloads\\support.msi Parent Process Name: C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"}],
+    "wmi_events": []
+  },
+  "collection_errors": []
+}

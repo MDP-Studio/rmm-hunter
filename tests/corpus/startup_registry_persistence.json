@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0",
+  "scanner": {"name": "Synthetic collector", "version": "0.0.0", "collected_at_utc": "2026-07-14T00:00:00Z", "hostname": "STARTUP-LAB"},
+  "collection": {"lookback_days": 14},
+  "artifacts": {
+    "installed_programs": [], "services": [], "service_install_events": [], "scheduled_tasks": [],
+    "startup_registry": [{"hive": "HKCU", "key": "Software\\Microsoft\\Windows\\CurrentVersion\\Run", "name": "TeamViewer", "value": "C:\\Users\\Analyst\\AppData\\Local\\Temp\\TeamViewer.exe"}],
+    "startup_folders": [], "recent_files": [], "defender_events": [], "powershell_events": [],
+    "process_creation_events": [], "wmi_events": []
+  },
+  "collection_errors": []
+}

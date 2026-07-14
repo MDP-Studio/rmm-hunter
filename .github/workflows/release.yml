@@ -54,33 +54,7 @@ jobs:
       - name: Build scanner executable
         run: npm run build:scanner
 
-      - name: Package Windows app
-        id: package_windows
-        shell: pwsh
-        continue-on-error: true
-        run: |
-          npm.cmd run package:windows *> package-windows.log
-          $code = $LASTEXITCODE
-          Get-Content -Path package-windows.log -Tail 120
-          exit $code
-
-      - name: Upload package log
-        if: steps.package_windows.outcome == 'failure'
-        uses: actions/upload-artifact@v7
-        with:
-          name: package-windows-log-${{ github.run_number }}
-          path: package-windows.log
-          if-no-files-found: ignore
-
-      - name: Show packaging failure
-        if: steps.package_windows.outcome == 'failure'
-        shell: pwsh
-        run: |
-          $tail = (Get-Content -Path package-windows.log -Tail 40) -join "%0A"
-          Write-Output "::error title=Electron Builder failed::$tail"
-          exit 1
-
-      - name: Resolve release signing mode
+      - name: Require release signing configuration
         id: signing
         shell: pwsh
         env:
@@ -88,24 +62,116 @@ jobs:
           SIGNPATH_ORGANIZATION_ID: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
           SIGNPATH_PROJECT_SLUG: ${{ vars.SIGNPATH_PROJECT_SLUG }}
           SIGNPATH_SIGNING_POLICY_SLUG: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          WINDOWS_PUBLISHER_SUBJECT: ${{ vars.WINDOWS_PUBLISHER_SUBJECT }}
+          WINDOWS_PUBLISHER_CERTIFICATE_SHA256: ${{ vars.WINDOWS_PUBLISHER_CERTIFICATE_SHA256 }}
         run: |
           $missing = @()
           if ([string]::IsNullOrWhiteSpace($env:SIGNPATH_API_TOKEN)) { $missing += "SIGNPATH_API_TOKEN" }
           if ([string]::IsNullOrWhiteSpace($env:SIGNPATH_ORGANIZATION_ID)) { $missing += "SIGNPATH_ORGANIZATION_ID" }
           if ([string]::IsNullOrWhiteSpace($env:SIGNPATH_PROJECT_SLUG)) { $missing += "SIGNPATH_PROJECT_SLUG" }
           if ([string]::IsNullOrWhiteSpace($env:SIGNPATH_SIGNING_POLICY_SLUG)) { $missing += "SIGNPATH_SIGNING_POLICY_SLUG" }
-
-          if ($missing.Count -eq 0) {
-            "mode=signpath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            Write-Host "SignPath signing is configured. Signed artifacts are required."
-          } else {
-            "mode=unsigned-beta" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            Write-Warning "SignPath signing is not configured. Building unsigned beta artifacts. Missing: $($missing -join ', ')"
+          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_PUBLISHER_SUBJECT)) { $missing += "WINDOWS_PUBLISHER_SUBJECT" }
+          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_PUBLISHER_CERTIFICATE_SHA256)) { $missing += "WINDOWS_PUBLISHER_CERTIFICATE_SHA256" }
+          if ($missing.Count -gt 0) {
+            throw "Public Windows releases require SignPath and pinned publisher settings. Missing: $($missing -join ', ')"
           }
+          "mode=signpath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "SignPath and publisher identity pins are configured. Unsigned distribution is disabled."
+
+      - name: Build unpacked Windows app
+        id: package_unpacked
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          npm.cmd run package:windows:unpacked *> package-windows.log
+          $code = $LASTEXITCODE
+          Get-Content -Path package-windows.log -Tail 120
+          exit $code
+
+      - name: Upload unpacked build log
+        if: steps.package_unpacked.outcome == 'failure'
+        uses: actions/upload-artifact@v7
+        with:
+          name: package-windows-log-${{ github.run_number }}
+          path: package-windows.log
+          if-no-files-found: ignore
+
+      - name: Show unpacked build failure
+        if: steps.package_unpacked.outcome == 'failure'
+        shell: pwsh
+        run: |
+          $tail = (Get-Content -Path package-windows.log -Tail 40) -join "%0A"
+          Write-Output "::error title=Electron Builder failed::$tail"
+          exit 1
+
+      - name: Upload inner executables for SignPath
+        id: upload_inner_signpath
+        uses: actions/upload-artifact@v7
+        with:
+          name: rmm-hunter-inner-unsigned-${{ github.run_id }}
+          path: |
+            release/win-unpacked/RMM Hunter.exe
+            release/win-unpacked/resources/bin/rmm-hunter-cli.exe
+          if-no-files-found: error
+
+      - name: Sign application and scanner executables
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          github-artifact-id: ${{ steps.upload_inner_signpath.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed-inner
+
+      - name: Replace and verify signed inner executables
+        shell: pwsh
+        run: |
+          $targets = @(
+            Get-Item -LiteralPath "release/win-unpacked/RMM Hunter.exe"
+            Get-Item -LiteralPath "release/win-unpacked/resources/bin/rmm-hunter-cli.exe"
+          )
+          foreach ($target in $targets) {
+            $matches = @(Get-ChildItem -LiteralPath signed-inner -Recurse -File -Filter $target.Name)
+            if ($matches.Count -ne 1) {
+              throw "Expected exactly one signed $($target.Name) from SignPath; found $($matches.Count)."
+            }
+            Copy-Item -LiteralPath $matches[0].FullName -Destination $target.FullName -Force
+          }
+          .\scripts\verify-authenticode.ps1 `
+            -ArtifactPath @($targets.FullName) `
+            -ExpectedPublisherSubject "${{ vars.WINDOWS_PUBLISHER_SUBJECT }}" `
+            -ExpectedPublisherCertificateSha256 "${{ vars.WINDOWS_PUBLISHER_CERTIFICATE_SHA256 }}"
+
+      - name: Package installers from signed application
+        id: package_windows
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          npm.cmd run package:windows:from-signed *> package-signed-windows.log
+          $code = $LASTEXITCODE
+          Get-Content -Path package-signed-windows.log -Tail 120
+          exit $code
+
+      - name: Upload signed package log
+        if: steps.package_windows.outcome == 'failure'
+        uses: actions/upload-artifact@v7
+        with:
+          name: package-signed-windows-log-${{ github.run_number }}
+          path: package-signed-windows.log
+          if-no-files-found: ignore
+
+      - name: Show signed packaging failure
+        if: steps.package_windows.outcome == 'failure'
+        shell: pwsh
+        run: |
+          $tail = (Get-Content -Path package-signed-windows.log -Tail 40) -join "%0A"
+          Write-Output "::error title=Signed Electron package failed::$tail"
+          exit 1
 
       - name: Upload unsigned executables for SignPath
         id: upload_unsigned_signpath
-        if: steps.signing.outputs.mode == 'signpath'
         uses: actions/upload-artifact@v7
         with:
           name: rmm-hunter-unsigned-signpath-${{ github.run_id }}
@@ -115,7 +181,6 @@ jobs:
           if-no-files-found: error
 
       - name: Submit SignPath signing request
-        if: steps.signing.outputs.mode == 'signpath'
         uses: signpath/github-action-submit-signing-request@v2
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
@@ -127,7 +192,6 @@ jobs:
           output-artifact-directory: signed-release
 
       - name: Replace unsigned executables with SignPath output
-        if: steps.signing.outputs.mode == 'signpath'
         shell: pwsh
         run: |
           $signedRoot = Resolve-Path -LiteralPath signed-release
@@ -158,15 +222,13 @@ jobs:
             -Repository "${{ github.repository }}" `
             -RunId "${{ github.run_id }}" `
             -RunUrl "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" `
-            -SigningMode "${{ steps.signing.outputs.mode }}" `
+            -SigningMode "signpath" `
             -ExpectedPublisherSubject "${{ vars.WINDOWS_PUBLISHER_SUBJECT }}" `
             -ExpectedPublisherCertificateSha256 "${{ vars.WINDOWS_PUBLISHER_CERTIFICATE_SHA256 }}"
 
       - name: Verify release artifacts
         shell: pwsh
-        run: |
-          $requireSigned = "${{ steps.signing.outputs.mode }}" -eq "signpath"
-          .\scripts\verify-release-artifacts.ps1 -ReleaseDir release -RequireSigned:$requireSigned
+        run: .\scripts\verify-release-artifacts.ps1 -ReleaseDir release -RequireSigned
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7
