@@ -84,6 +84,7 @@ Known remote access tools covered in the initial rules:
 - Splashtop
 - RustDesk
 - DWAgent / DWService
+- Nizlo
 
 Later platform scope:
 

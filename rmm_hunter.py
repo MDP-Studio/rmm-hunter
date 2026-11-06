@@ -85,6 +85,13 @@ REMOTE_TOOLS: dict[str, tuple[str, ...]] = {
         "dwservice",
         "dwservice.exe",
     ),
+    "Nizlo": (
+        "nizlo",
+        "nizlo.agent",
+        "nizlo.remotebridge",
+        "nizlo rmm agent",
+        "cloud 84 holdings",
+    ),
 }
 
 SUSPICIOUS_PATH_MARKERS = (
