@@ -56,6 +56,47 @@ class RuleTests(unittest.TestCase):
         self.assertEqual(report["verdict"], "needs_review")
         self.assertEqual(report["findings"][0]["severity"], "medium")
 
+    def test_nizlo_indicators_match_without_becoming_high_risk_by_name_alone(self):
+        self.assertEqual(
+            rmm_hunter.match_remote_tool(
+                "C:\\Program Files\\Nizlo\\Agent\\Nizlo.Agent.exe"
+            ),
+            "Nizlo",
+        )
+        self.assertEqual(
+            rmm_hunter.match_remote_tool("Publisher: Cloud 84 Holdings, LLC"),
+            "Nizlo",
+        )
+
+        collection = {
+            "artifacts": {
+                "installed_programs": [
+                    {
+                        "display_name": "Nizlo RMM Agent",
+                        "publisher": "Cloud 84 Holdings, LLC",
+                        "install_location": "C:\\Program Files\\Nizlo\\Agent",
+                    }
+                ],
+                "services": [],
+                "service_install_events": [],
+                "scheduled_tasks": [],
+                "startup_registry": [],
+                "startup_folders": [],
+                "recent_files": [],
+                "defender_events": [],
+                "powershell_events": [],
+                "process_creation_events": [],
+                "wmi_events": [],
+            },
+            "collection_errors": [],
+        }
+
+        report = rmm_hunter.analyze_artifacts(collection)
+
+        self.assertEqual(report["verdict"], "needs_review")
+        self.assertEqual(report["findings"][0]["severity"], "medium")
+        self.assertEqual(report["findings"][0]["tool"], "Nizlo")
+
     def test_empty_collection_is_clean(self):
         collection = {
             "artifacts": {

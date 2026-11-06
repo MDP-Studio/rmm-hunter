@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added conservative Nizlo executable, product, service, and signer matching with regression coverage that keeps an ordinary Program Files installation at `needs_review` rather than treating the product name alone as high risk.
 - Added optional `--stix-out` and `--misp-out` CTI handoff exports derived from completed findings after deterministic verdict calculation.
 - Updated the website "What's new" section and detection mapping docs for the CTI export slice.
 - Added a one-command published-release verifier that checks GitHub asset
